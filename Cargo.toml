@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/cli", "crates/editor"]
+members = ["crates/cli", "crates/editor", "crates/utils"]
 resolver = "2"
 
 [workspace.package]
@@ -7,3 +7,8 @@ edition = "2021"
 version = "0.1.0"
 license = "MIT"
 authors = ["Yuta"]
+
+[workspace.dependencies]
+anyhow = "1.0.95"
+clap = { version = "4.5.27", features = ["derive"] }
+crossterm = { version = "0.28.1", features = ["events"] }
