@@ -1,5 +1,6 @@
 use crossterm::event::Event as CrosstermEvent;
 
+#[derive(Clone)]
 pub enum Event {
     Open,                           // Windowを開いた
     Close,                          // Windowを閉じた

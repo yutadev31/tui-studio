@@ -9,4 +9,5 @@ authors.workspace = true
 anyhow.workspace = true
 crossterm.workspace = true
 editor.path = "../editor"
+side_view.path = "../side-view"
 utils.path = "../utils"
