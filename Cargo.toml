@@ -16,5 +16,4 @@ authors = ["Yuta"]
 
 [workspace.dependencies]
 anyhow = "1.0.95"
-clap = { version = "4.5.27", features = ["derive"] }
 crossterm = { version = "0.28.1", features = ["events"] }
