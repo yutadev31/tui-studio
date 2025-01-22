@@ -1,5 +1,5 @@
 [package]
-name = "editor"
+name = "sideview"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
@@ -11,4 +11,4 @@ crossterm.workspace = true
 utils.path = "../utils"
 
 [lib]
-path = "src/editor.rs"
+path = "src/sideview.rs"

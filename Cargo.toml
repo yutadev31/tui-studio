@@ -1,5 +1,11 @@
 [workspace]
-members = ["crates/cli", "crates/editor", "crates/utils"]
+members = [
+  "crates/cli",
+  "crates/editor",
+  "crates/file-manager",
+  "crates/sideview",
+  "crates/utils",
+]
 resolver = "2"
 
 [workspace.package]
