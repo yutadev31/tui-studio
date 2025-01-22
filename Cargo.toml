@@ -1,8 +1,9 @@
 [workspace]
-members = ["crates/cli"]
+members = ["crates/cli", "crates/editor"]
 resolver = "2"
 
 [workspace.package]
+edition = "2021"
 version = "0.1.0"
 license = "MIT"
 authors = ["Yuta"]
