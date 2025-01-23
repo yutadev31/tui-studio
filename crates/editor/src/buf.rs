@@ -5,7 +5,8 @@ use std::{
 };
 
 use anyhow::Result;
-use crossterm::event::{Event, KeyCode};
+use crossterm::event::{Event as CrosstermEvent, KeyCode};
+use utils::event::Event;
 
 use crate::{cursor::EditorCursor, mode::EditorMode};
 
@@ -81,13 +82,14 @@ impl EditorBuffer {
         }
     }
 
-    pub fn backspace(&mut self) -> Result<()> {
+    pub fn backspace(&mut self, mode: &EditorMode) -> Result<()> {
         let (x, y) = self.cursor.get(&self.lines);
 
         if x == 0 {
             self.join_lines(y - 1);
             self.cursor.move_by(0, -1, &self.lines)?;
-            self.cursor.move_x_to(self.lines[y].len() - 1, &self.lines)
+            self.cursor
+                .move_x_to(self.lines[y].len() - 1, &self.lines, mode)
         } else {
             self.lines[y].remove(x - 1);
             self.cursor.move_by(-1, 0, &self.lines)?;
@@ -121,46 +123,51 @@ impl EditorBuffer {
 
         match mode {
             EditorMode::Normal => match evt {
-                Event::Key(evt) => match evt.code {
-                    KeyCode::Char('j') => {
-                        self.cursor.move_by(0, 1, &self.lines)?;
-                    }
-                    KeyCode::Char('k') => {
-                        self.cursor.move_by(0, -1, &self.lines)?;
-                    }
-                    KeyCode::Char('h') => {
+                Event::Command(cmd) => match cmd.as_str() {
+                    "editor.cursor.left" => {
                         self.cursor.move_by(-1, 0, &self.lines)?;
                     }
-                    KeyCode::Char('l') => {
+                    "editor.cursor.down" => {
+                        self.cursor.move_by(0, 1, &self.lines)?;
+                    }
+                    "editor.cursor.up" => {
+                        self.cursor.move_by(0, -1, &self.lines)?;
+                    }
+                    "editor.cursor.right" => {
                         self.cursor.move_by(1, 0, &self.lines)?;
                     }
-                    KeyCode::Char('0') => {
-                        self.cursor.move_x_to(0, &self.lines);
+                    "editor.cursor.line_start" => {
+                        self.cursor.move_x_to(0, &self.lines, mode);
                     }
-                    KeyCode::Char('$') => {
+                    "editor.cursor.line_end" => {
                         self.cursor
-                            .move_x_to(self.lines[cursor_y].len(), &self.lines);
+                            .move_x_to(self.lines[cursor_y].len(), &self.lines, mode);
                     }
-                    KeyCode::Char('g') => {
-                        self.cursor.move_y_to(0, &self.lines)?;
+                    "editor.cursor.top" => {
+                        self.cursor.move_y_to(0, &self.lines, mode)?;
                     }
-                    KeyCode::Char('G') => {
-                        self.cursor.move_y_to(self.lines.len() - 1, &self.lines)?;
+                    "editor.cursor.end" => {
+                        self.cursor
+                            .move_y_to(self.lines.len() - 1, &self.lines, mode)?;
                     }
                     _ => {}
                 },
                 _ => {}
             },
             EditorMode::Insert => match evt {
-                Event::Key(evt) => match evt.code {
-                    KeyCode::Delete => self.delete(),
-                    KeyCode::Backspace => self.backspace()?,
-                    KeyCode::Char(c) => {
-                        self.append(c);
-                        self.cursor.move_by(1, 0, &self.lines)?;
+                Event::CrosstermEvent(evt) => {
+                    if let CrosstermEvent::Key(evt) = evt {
+                        match evt.code {
+                            KeyCode::Delete => self.delete(),
+                            KeyCode::Backspace => self.backspace(mode)?,
+                            KeyCode::Char(c) => {
+                                self.append(c);
+                                self.cursor.move_by(1, 0, &self.lines)?;
+                            }
+                            _ => {}
+                        }
                     }
-                    _ => {}
-                },
+                }
                 _ => {}
             },
             EditorMode::Command => {}

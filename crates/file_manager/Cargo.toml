@@ -1,5 +1,5 @@
 [package]
-name = "editor"
+name = "file_manager"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
@@ -10,7 +10,6 @@ anyhow.workspace = true
 crossterm.workspace = true
 utils.path = "../utils"
 command.path = "../command"
-key_binding.path = "../key_binding"
 
 [lib]
-path = "src/editor.rs"
+path = "src/file_manager.rs"

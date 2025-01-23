@@ -1,6 +1,8 @@
 use anyhow::Result;
 use utils::term::get_term_size;
 
+use crate::mode::EditorMode;
+
 #[derive(Clone)]
 pub struct EditorCursor {
     x: usize,
@@ -35,32 +37,53 @@ impl EditorCursor {
         (self.scroll_x, self.scroll_y)
     }
 
-    pub fn move_x_to(&mut self, x: usize, lines: &Vec<String>) {
+    pub fn clamp_x(&mut self, x: usize, lines: &Vec<String>, mode: &EditorMode) -> usize {
         let line_len = lines[self.y].len();
 
-        if line_len == 0 {
-            self.x = 0;
-        } else if x > line_len - 1 {
-            self.x = line_len - 1;
-        } else {
-            self.x = x;
+        match mode {
+            EditorMode::Normal => {
+                if line_len == 0 {
+                    0
+                } else if x > line_len - 1 {
+                    line_len - 1
+                } else {
+                    x
+                }
+            }
+            EditorMode::Insert => {
+                if x > line_len {
+                    line_len
+                } else {
+                    x
+                }
+            }
+            _ => x,
         }
     }
 
-    pub fn move_y_to(&mut self, y: usize, lines: &Vec<String>) -> Result<()> {
-        let (_, term_h) = get_term_size()?;
+    pub fn clamp_y(&mut self, y: usize, lines: &Vec<String>) -> usize {
         let buf_len = lines.len();
 
         if y > buf_len {
-            self.y = buf_len;
+            buf_len
         } else {
-            self.y = y;
+            y
         }
+    }
+
+    pub fn move_x_to(&mut self, x: usize, lines: &Vec<String>, mode: &EditorMode) {
+        self.x = self.clamp_x(x, lines, mode);
+    }
+
+    pub fn move_y_to(&mut self, y: usize, lines: &Vec<String>, mode: &EditorMode) -> Result<()> {
+        let (_, term_h) = get_term_size()?;
+
+        self.y = self.clamp_y(y, lines);
 
         if self.y as usize > self.scroll_y + term_h as usize + 1 {
-            self.scroll_y_to(self.y - term_h as usize + 1);
+            self.scroll_y_to(self.y - term_h as usize + 1, lines, mode);
         } else if self.y < self.scroll_y {
-            self.scroll_y_to(self.y);
+            self.scroll_y_to(self.y, lines, mode);
         }
 
         Ok(())
@@ -142,7 +165,7 @@ impl EditorCursor {
         Ok(())
     }
 
-    pub fn scroll_y_to(&mut self, y: usize) {
+    pub fn scroll_y_to(&mut self, y: usize, lines: &Vec<String>, mode: &EditorMode) {
         self.scroll_y = y;
     }
 }

@@ -8,3 +8,5 @@ authors.workspace = true
 [dependencies]
 anyhow.workspace = true
 crossterm.workspace = true
+command.path = "../command"
+key_binding.path = "../key_binding"

@@ -6,20 +6,41 @@ use std::time::Duration;
 
 use anyhow::Result;
 use app::App;
+use clap::Parser;
 use crossterm::event;
+use fluent_templates::static_loader;
+use utils::component::{Component, DrawableComponent};
 use utils::event::Event;
 use utils::term::init_term;
-use utils::window::Window;
+
+static_loader! {
+    pub static LOCALES = {
+        locales: "../../locales",
+        fallback_language: "en-US",
+    };
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg()]
+    path: Option<String>,
+}
 
 fn main() -> Result<()> {
     init_term()?;
 
-    let app = Arc::new(Mutex::new(App::new()?));
+    let args = Args::parse();
+
+    let app = Arc::new(Mutex::new(App::new(args.path)?));
+    app.lock().unwrap().init();
 
     let app_clone = Arc::clone(&app);
     thread::spawn(move || loop {
-        let app = app_clone.lock().unwrap();
-        app.draw().unwrap();
+        {
+            let app = app_clone.lock().unwrap();
+            app.draw().unwrap();
+        }
         thread::sleep(Duration::from_millis(16));
     });
 

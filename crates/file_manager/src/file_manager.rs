@@ -1,7 +1,10 @@
-use std::{fs::read_dir, path::PathBuf};
+use std::path::PathBuf;
 
 use anyhow::Result;
-use utils::{event::Event, window::Window};
+use utils::{
+    component::{Component, DrawableComponent},
+    event::Event,
+};
 
 pub struct FileManager {
     path: PathBuf,
@@ -13,11 +16,13 @@ impl FileManager {
     }
 }
 
-impl Window for FileManager {
+impl Component for FileManager {
     fn on_event(&mut self, evt: Event) -> Result<()> {
         Ok(())
     }
+}
 
+impl DrawableComponent for FileManager {
     fn draw(&self) -> Result<()> {
         Ok(())
     }

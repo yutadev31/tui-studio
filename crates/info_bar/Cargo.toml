@@ -1,5 +1,5 @@
 [package]
-name = "side_view"
+name = "info_bar"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
@@ -9,6 +9,4 @@ authors.workspace = true
 anyhow.workspace = true
 crossterm.workspace = true
 utils.path = "../utils"
-
-[lib]
-path = "src/side_view.rs"
+command.path = "../command"

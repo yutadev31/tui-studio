@@ -1,9 +1,11 @@
 [workspace]
 members = [
   "crates/cli",
+  "crates/command",
   "crates/editor",
-  "crates/file-manager",
-  "crates/side-view",
+  "crates/file_manager", "crates/info_bar",
+  "crates/key_binding",
+  "crates/side_view",
   "crates/utils",
 ]
 resolver = "2"
@@ -17,3 +19,6 @@ authors = ["Yuta"]
 [workspace.dependencies]
 anyhow = "1.0.95"
 crossterm = { version = "0.28.1", features = ["events"] }
+fluent = "0.16.1"
+fluent-templates = "0.13.0"
+chrono = "0.4.39"

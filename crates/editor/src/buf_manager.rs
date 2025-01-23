@@ -10,11 +10,17 @@ pub struct EditorBufferManager {
 }
 
 impl EditorBufferManager {
-    pub fn new() -> Self {
-        Self {
-            buffers: Vec::new(),
-            current_index: None,
-        }
+    pub fn new(path: Option<String>) -> Result<Self> {
+        Ok(match path {
+            None => Self {
+                buffers: Vec::new(),
+                current_index: None,
+            },
+            Some(path) => Self {
+                buffers: vec![EditorBuffer::open(PathBuf::from(path))?],
+                current_index: Some(0),
+            },
+        })
     }
 
     pub fn open_new_file(&mut self) {
