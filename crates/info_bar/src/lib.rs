@@ -1,7 +1,4 @@
-use std::io::stdout;
-
 use anyhow::Result;
-use crossterm::{execute, style::Print};
 use utils::{
     component::{Component, DrawableComponent},
     event::Event,

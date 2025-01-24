@@ -1,5 +1,3 @@
-use std::fs::write;
-
 use anyhow::Result;
 use utils::term::get_term_size;
 
