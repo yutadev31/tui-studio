@@ -13,17 +13,19 @@ pub struct KeyConfig {
 }
 
 impl KeyConfig {
-    pub fn new() -> Self {
-        Self {
-            bindings: HashMap::new(),
-        }
-    }
-
     pub fn register(&mut self, sequence: KeySequence, command: &str) {
         self.bindings.insert(sequence, command.to_string());
     }
 
     pub fn get_command(&self, sequence: &KeySequence) -> Option<&String> {
         self.bindings.get(sequence)
+    }
+}
+
+impl Default for KeyConfig {
+    fn default() -> Self {
+        Self {
+            bindings: HashMap::new(),
+        }
     }
 }

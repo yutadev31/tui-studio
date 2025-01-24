@@ -5,7 +5,7 @@ pub(crate) mod mode;
 
 use std::io::stdout;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use buf_manager::EditorBufferManager;
 use command::CommandManager;
 use crossterm::{
@@ -14,7 +14,6 @@ use crossterm::{
     style::Print,
     terminal::{Clear, ClearType},
 };
-use cursor::EditorCursor;
 use key_binding::{Key, KeyConfig};
 use mode::EditorMode;
 use utils::{component::Component, event::Event, rect::Rect, term::get_term_size};
@@ -73,7 +72,7 @@ impl DrawableComponent for Editor {
 
         if let Some(buffer) = self.buffer_manager.get_current() {
             let (cursor_x, cursor_y) = buffer.get_cursor_location();
-            let (cursor_x, cursor_y): (u16, u16) = (cursor_x.try_into()?, cursor_y.try_into()?);
+            let (cursor_x, cursor_y): (u16, u16) = (cursor_x as u16, cursor_y as u16);
 
             let (_scroll_x, scroll_y) = buffer.get_scroll_location();
             let lines = buffer.get_lines();

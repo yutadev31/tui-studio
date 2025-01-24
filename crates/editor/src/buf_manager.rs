@@ -24,7 +24,7 @@ impl EditorBufferManager {
     }
 
     pub fn open_new_file(&mut self) {
-        self.buffers.push(EditorBuffer::new());
+        self.buffers.push(EditorBuffer::default());
     }
 
     pub fn open(&mut self, path: PathBuf) -> Result<()> {

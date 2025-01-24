@@ -1,3 +1,5 @@
+use std::fs::write;
+
 use anyhow::Result;
 use utils::term::get_term_size;
 
@@ -12,15 +14,6 @@ pub struct EditorCursor {
 }
 
 impl EditorCursor {
-    pub fn new() -> Self {
-        Self {
-            x: 0,
-            y: 0,
-            scroll_x: 0,
-            scroll_y: 0,
-        }
-    }
-
     pub fn get(&self, lines: &Vec<String>) -> (usize, usize) {
         let x = if lines[self.y].len() == 0 {
             0
@@ -37,7 +30,7 @@ impl EditorCursor {
         (self.scroll_x, self.scroll_y)
     }
 
-    pub fn clamp_x(&mut self, x: usize, lines: &Vec<String>, mode: &EditorMode) -> usize {
+    fn clamp_x(&self, x: usize, lines: &Vec<String>, mode: &EditorMode) -> usize {
         let line_len = lines[self.y].len();
 
         match mode {
@@ -61,7 +54,7 @@ impl EditorCursor {
         }
     }
 
-    pub fn clamp_y(&mut self, y: usize, lines: &Vec<String>) -> usize {
+    fn clamp_y(&self, y: usize, lines: &Vec<String>) -> usize {
         let buf_len = lines.len();
 
         if y > buf_len {
@@ -167,5 +160,16 @@ impl EditorCursor {
 
     pub fn scroll_y_to(&mut self, y: usize, lines: &Vec<String>, mode: &EditorMode) {
         self.scroll_y = y;
+    }
+}
+
+impl Default for EditorCursor {
+    fn default() -> Self {
+        Self {
+            x: 0,
+            y: 0,
+            scroll_x: 0,
+            scroll_y: 0,
+        }
     }
 }

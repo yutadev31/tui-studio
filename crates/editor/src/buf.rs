@@ -18,20 +18,12 @@ pub struct EditorBuffer {
 }
 
 impl EditorBuffer {
-    pub fn new() -> Self {
-        Self {
-            lines: Vec::new(),
-            cursor: EditorCursor::new(),
-            path: None,
-        }
-    }
-
     pub fn open(path: PathBuf) -> Result<Self> {
         let code = read_to_string(path.clone())?;
 
         Ok(Self {
             lines: code.lines().map(|line| line.to_string()).collect(),
-            cursor: EditorCursor::new(),
+            cursor: EditorCursor::default(),
             path: Some(path),
         })
     }
@@ -180,5 +172,15 @@ impl EditorBuffer {
 impl Display for EditorBuffer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.lines.join("\n"))
+    }
+}
+
+impl Default for EditorBuffer {
+    fn default() -> Self {
+        Self {
+            lines: Vec::new(),
+            cursor: EditorCursor::default(),
+            path: None,
+        }
     }
 }

@@ -20,3 +20,9 @@ impl Display for EditorMode {
         )
     }
 }
+
+impl Default for EditorMode {
+    fn default() -> Self {
+        EditorMode::Normal
+    }
+}

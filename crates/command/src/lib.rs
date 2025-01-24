@@ -3,13 +3,15 @@ pub struct CommandManager {
 }
 
 impl CommandManager {
-    pub fn new() -> Self {
+    pub fn register(&mut self, id: &str) {
+        self.commands.push(id.to_string());
+    }
+}
+
+impl Default for CommandManager {
+    fn default() -> Self {
         Self {
             commands: Vec::new(),
         }
-    }
-
-    pub fn register(&mut self, id: &str) {
-        self.commands.push(id.to_string());
     }
 }

@@ -30,8 +30,8 @@ impl App {
         Ok(Self {
             editor: Editor::new(path, Rect::new(0, 0, term_w, term_h))?,
             side_view: SideView::new()?,
-            cmd_manager: CommandManager::new(),
-            key_config: KeyConfig::new(),
+            cmd_manager: CommandManager::default(),
+            key_config: KeyConfig::default(),
             key_buf: Vec::new(),
             first_key_time: None,
         })
