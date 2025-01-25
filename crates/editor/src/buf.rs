@@ -1,16 +1,11 @@
 use std::{
     fmt::Display,
     fs::{read_to_string, write},
-    io::stdout,
     path::PathBuf,
 };
 
 use anyhow::Result;
-use crossterm::{
-    event::{Event as CrosstermEvent, KeyCode},
-    execute,
-    style::Print,
-};
+use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use utils::event::Event;
 
 use crate::{cursor::EditorCursor, mode::EditorMode};

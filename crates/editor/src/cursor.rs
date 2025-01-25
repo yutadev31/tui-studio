@@ -80,6 +80,18 @@ impl EditorCursor {
         Ok(())
     }
 
+    pub fn move_to(
+        &mut self,
+        x: usize,
+        y: usize,
+        lines: &Vec<String>,
+        mode: &EditorMode,
+    ) -> Result<()> {
+        self.move_x_to(x, lines, mode);
+        self.move_y_to(y, lines, mode)?;
+        Ok(())
+    }
+
     pub fn move_by(&mut self, x: isize, y: isize, lines: &Vec<String>) -> Result<()> {
         let (_, term_h) = get_term_size()?;
         let term_h = term_h - 1;
