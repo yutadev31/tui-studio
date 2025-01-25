@@ -75,10 +75,9 @@ impl Component for App {
                             Some(command) => {
                                 self.key_buf = Vec::new();
                                 self.on_event(Event::Command(command.clone()))?;
+                                return Ok(());
                             }
                         };
-
-                        return Ok(());
                     }
                     _ => {}
                 }

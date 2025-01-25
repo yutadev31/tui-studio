@@ -1,11 +1,16 @@
 use std::{
     fmt::Display,
     fs::{read_to_string, write},
+    io::stdout,
     path::PathBuf,
 };
 
 use anyhow::Result;
-use crossterm::event::{Event as CrosstermEvent, KeyCode};
+use crossterm::{
+    event::{Event as CrosstermEvent, KeyCode},
+    execute,
+    style::Print,
+};
 use utils::event::Event;
 
 use crate::{cursor::EditorCursor, mode::EditorMode};
@@ -152,6 +157,15 @@ impl EditorBuffer {
                         match evt.code {
                             KeyCode::Delete => self.delete(),
                             KeyCode::Backspace => self.backspace(mode)?,
+                            KeyCode::Tab => {
+                                self.append('\t');
+                                self.cursor.move_by(1, 0, &self.lines)?;
+                            }
+                            KeyCode::Enter => {
+                                self.append('\n');
+                                self.cursor.move_by(0, 1, &self.lines)?;
+                                self.cursor.move_x_to(0, &self.lines, mode);
+                            }
                             KeyCode::Char(c) => {
                                 self.append(c);
                                 self.cursor.move_by(1, 0, &self.lines)?;

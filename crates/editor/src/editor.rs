@@ -9,7 +9,7 @@ use anyhow::Result;
 use buf_manager::EditorBufferManager;
 use command::CommandManager;
 use crossterm::{
-    cursor::MoveTo,
+    cursor::{MoveTo, SetCursorStyle},
     execute,
     style::Print,
     terminal::{Clear, ClearType},
@@ -92,6 +92,18 @@ impl DrawableComponent for Editor {
                 stdout(),
                 MoveTo(cursor_x + self.rect.x, cursor_y - scroll_y + self.rect.y)
             )?;
+
+            match self.mode {
+                EditorMode::Normal => {
+                    execute!(stdout(), SetCursorStyle::SteadyBlock)?;
+                }
+                EditorMode::Insert => {
+                    execute!(stdout(), SetCursorStyle::SteadyBar)?;
+                }
+                EditorMode::Command => {
+                    execute!(stdout(), SetCursorStyle::SteadyBar)?;
+                }
+            }
         }
 
         Ok(())
