@@ -45,7 +45,7 @@ impl Component for Editor {
         self.rect.w = term_w;
         self.rect.h = term_h - 1;
 
-        let current = self.buffer_manager.get_current();
+        let current = self.buffer_manager.get_current_mut();
 
         match evt.clone() {
             Event::Command(cmd) => match cmd.as_str() {
@@ -58,7 +58,7 @@ impl Component for Editor {
             _ => {}
         }
 
-        if let Some(mut current) = current {
+        if let Some(current) = current {
             current.on_event(evt, &self.mode)?;
         }
 

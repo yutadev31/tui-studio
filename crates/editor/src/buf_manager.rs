@@ -45,10 +45,17 @@ impl EditorBufferManager {
         }
     }
 
-    pub fn get_current(&self) -> Option<EditorBuffer> {
+    pub fn get_current(&self) -> Option<&EditorBuffer> {
         match self.current_index {
             None => None,
-            Some(index) => Some(self.buffers[index].clone()),
+            Some(index) => Some(&self.buffers[index]),
+        }
+    }
+
+    pub fn get_current_mut(&mut self) -> Option<&mut EditorBuffer> {
+        match self.current_index {
+            None => None,
+            Some(index) => Some(&mut self.buffers[index]),
         }
     }
 }
