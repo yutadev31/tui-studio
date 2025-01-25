@@ -59,7 +59,7 @@ impl Component for App {
                             let now = Utc::now();
                             let elapsed = now - first_key_time;
 
-                            if elapsed >= Duration::seconds(2) {
+                            if elapsed >= Duration::milliseconds(500) {
                                 self.key_buf = Vec::new();
                             }
                         }
