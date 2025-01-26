@@ -51,36 +51,27 @@ impl Component for App {
     fn on_event(&mut self, evt: Event) -> Result<()> {
         if let Event::CrosstermEvent(evt) = evt.clone() {
             if let CrosstermEvent::Key(evt) = evt {
-                match evt.code {
-                    KeyCode::Char(c) => {
-                        if self.key_buf.len() == 0 {
-                            self.first_key_time = Some(Utc::now())
-                        } else if let Some(first_key_time) = self.first_key_time {
-                            let now = Utc::now();
-                            let elapsed = now - first_key_time;
+                if self.key_buf.len() == 0 {
+                    self.first_key_time = Some(Utc::now())
+                } else if let Some(first_key_time) = self.first_key_time {
+                    let now = Utc::now();
+                    let elapsed = now - first_key_time;
 
-                            if elapsed >= Duration::milliseconds(500) {
-                                self.key_buf = Vec::new();
-                            }
-                        }
-
-                        if evt.modifiers.contains(KeyModifiers::CONTROL) {
-                            self.key_buf.push(Key::Ctrl(c));
-                        } else {
-                            self.key_buf.push(Key::Char(c));
-                        }
-
-                        match self.key_config.get_command(&self.key_buf) {
-                            None => {}
-                            Some(command) => {
-                                self.key_buf = Vec::new();
-                                self.on_event(Event::Command(command.clone()))?;
-                                return Ok(());
-                            }
-                        };
+                    if elapsed >= Duration::milliseconds(500) {
+                        self.key_buf = Vec::new();
                     }
-                    _ => {}
                 }
+
+                self.key_buf.push(Key::from(evt));
+
+                match self.key_config.get_command(&self.key_buf) {
+                    None => {}
+                    Some(command) => {
+                        self.key_buf = Vec::new();
+                        self.on_event(Event::Command(command.clone()))?;
+                        return Ok(());
+                    }
+                };
             }
         }
 

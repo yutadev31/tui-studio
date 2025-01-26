@@ -1,12 +1,10 @@
 pub(crate) mod buf;
-pub(crate) mod buf_manager;
-pub(crate) mod cursor;
 pub(crate) mod mode;
 
 use std::io::stdout;
 
 use anyhow::Result;
-use buf_manager::EditorBufferManager;
+use buf::buf_manager::EditorBufferManager;
 use command::CommandManager;
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
@@ -50,15 +48,30 @@ impl Component for Editor {
         match evt.clone() {
             Event::Command(cmd) => match cmd.as_str() {
                 "editor.quit" => safe_exit(),
-                "editor.mode.normal" => self.mode = EditorMode::Normal,
-                "editor.mode.command" => self.mode = EditorMode::Command,
-                "editor.mode.insert" => self.mode = EditorMode::Insert,
                 _ => {}
             },
             _ => {}
         }
 
         if let Some(current) = current {
+            match evt.clone() {
+                Event::Command(cmd) => match cmd.as_str() {
+                    "editor.mode.normal" => {
+                        self.mode = EditorMode::Normal;
+                        current.cursor_sync(&self.mode);
+                    }
+                    "editor.mode.command" => {
+                        self.mode = EditorMode::Command;
+                        current.cursor_sync(&self.mode);
+                    }
+                    "editor.mode.insert" => {
+                        self.mode = EditorMode::Insert;
+                        current.cursor_sync(&self.mode);
+                    }
+                    _ => {}
+                },
+                _ => {}
+            }
             current.on_event(evt, &self.mode)?;
         }
 
@@ -71,11 +84,11 @@ impl DrawableComponent for Editor {
         execute!(stdout(), Clear(ClearType::All))?;
 
         if let Some(buffer) = self.buffer_manager.get_current() {
-            let (cursor_x, cursor_y) = buffer.get_cursor_location();
+            let (cursor_x, cursor_y) = buffer.get_cursor_location(&self.mode);
             let (cursor_x, cursor_y): (u16, u16) = (cursor_x as u16, cursor_y as u16);
 
             let (_scroll_x, scroll_y) = buffer.get_scroll_location();
-            let lines = buffer.get_lines();
+            let lines = buffer.get_code_buf().get_lines();
 
             for (index, line) in lines
                 .iter()
@@ -86,6 +99,8 @@ impl DrawableComponent for Editor {
                 let y: u16 = index.try_into()?;
                 execute!(stdout(), MoveTo(self.rect.x, self.rect.y + y), Print(line))?;
             }
+
+            execute!(stdout(), Print(format!("{}, {}", cursor_x, cursor_y)))?;
 
             let scroll_y: u16 = scroll_y.try_into()?;
             execute!(

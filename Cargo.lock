@@ -498,6 +498,9 @@ dependencies = [
 [[package]]
 name = "key_binding"
 version = "0.1.0"
+dependencies = [
+ "crossterm",
+]
 
 [[package]]
 name = "libc"

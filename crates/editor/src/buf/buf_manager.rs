@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 
-use crate::buf::EditorBuffer;
+use crate::buf::buf::EditorBuffer;
 
 pub struct EditorBufferManager {
     buffers: Vec<EditorBuffer>,
