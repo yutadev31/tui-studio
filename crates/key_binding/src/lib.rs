@@ -1,6 +1,9 @@
+pub mod component;
+
 use std::collections::HashMap;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use utils::mode::EditorMode;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub enum Key {
@@ -44,16 +47,16 @@ impl From<KeyEvent> for Key {
 pub type KeySequence = Vec<Key>;
 
 pub struct KeyConfig {
-    bindings: HashMap<KeySequence, String>,
+    bindings: HashMap<(EditorMode, KeySequence), String>,
 }
 
 impl KeyConfig {
-    pub fn register(&mut self, sequence: KeySequence, command: &str) {
-        self.bindings.insert(sequence, command.to_string());
+    pub fn register(&mut self, mode: EditorMode, sequence: KeySequence, command: &str) {
+        self.bindings.insert((mode, sequence), command.to_string());
     }
 
-    pub fn get_command(&self, sequence: &KeySequence) -> Option<&String> {
-        self.bindings.get(sequence)
+    pub fn get_command(&self, mode: EditorMode, sequence: KeySequence) -> Option<&String> {
+        self.bindings.get(&(mode, sequence))
     }
 }
 

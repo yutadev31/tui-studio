@@ -1,8 +1,10 @@
-use std::fmt::{self, Display, Formatter};
+use std::{
+    fmt::{self, Display, Formatter},
+    fs::write,
+};
 
 use anyhow::Result;
-
-use crate::mode::EditorMode;
+use utils::mode::EditorMode;
 
 use super::cursor::EditorCursor;
 
@@ -16,7 +18,17 @@ impl EditorCodeBuffer {
         self.lines.clone()
     }
 
+    pub fn get_line(&self, y: usize) -> String {
+        self.lines[y].clone()
+    }
+
+    fn byte_index_to_char_index(&self, x: usize, y: usize) -> usize {
+        self.lines[y].chars().take(x).map(|c| c.len_utf8()).sum()
+    }
+
     pub fn append(&mut self, x: usize, y: usize, c: char) {
+        let x = self.byte_index_to_char_index(x, y);
+
         if c == '\n' {
             self.split_line(x, y);
         } else {
@@ -45,6 +57,7 @@ impl EditorCodeBuffer {
 
     pub fn delete(&mut self, cursor: &mut EditorCursor, mode: &EditorMode) {
         let (x, y) = cursor.get(self, mode);
+        let x = self.byte_index_to_char_index(x, y);
 
         if x == self.get_line_length(y) {
             self.join_lines(y);
@@ -55,6 +68,7 @@ impl EditorCodeBuffer {
 
     pub fn backspace(&mut self, cursor: &mut EditorCursor, mode: &EditorMode) -> Result<()> {
         let (x, y) = cursor.get(&self, mode);
+        let x = self.byte_index_to_char_index(x, y);
 
         if x == 0 {
             if y == 0 {
@@ -80,7 +94,7 @@ impl EditorCodeBuffer {
     }
 
     pub fn get_line_length(&self, y: usize) -> usize {
-        self.lines[y].len()
+        self.lines[y].chars().count()
     }
 }
 

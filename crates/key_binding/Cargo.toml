@@ -7,3 +7,4 @@ authors.workspace = true
 
 [dependencies]
 crossterm.workspace = true
+utils.path = "../utils"

@@ -1,8 +1,8 @@
 mod app;
 
 use std::sync::{Arc, Mutex};
-use std::thread;
 use std::time::Duration;
+use std::{panic, thread};
 
 use anyhow::Result;
 use app::App;
@@ -11,7 +11,7 @@ use crossterm::event;
 use fluent_templates::static_loader;
 use utils::component::{Component, DrawableComponent};
 use utils::event::Event;
-use utils::term::init_term;
+use utils::term::{init_term, safe_exit};
 
 static_loader! {
     pub static LOCALES = {
@@ -27,12 +27,8 @@ struct Args {
     path: Option<String>,
 }
 
-fn main() -> Result<()> {
-    init_term()?;
-
-    let args = Args::parse();
-
-    let app = Arc::new(Mutex::new(App::new(args.path)?));
+fn run_app(path: Option<String>) -> Result<()> {
+    let app = Arc::new(Mutex::new(App::new(path)?));
     app.lock().unwrap().init();
 
     let app_clone = Arc::clone(&app);
@@ -52,4 +48,13 @@ fn main() -> Result<()> {
             app.draw()?;
         }
     }
+}
+
+fn main() -> Result<()> {
+    init_term()?;
+    let args = Args::parse();
+
+    run_app(args.path)?;
+
+    Ok(())
 }

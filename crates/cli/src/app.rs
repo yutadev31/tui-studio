@@ -6,11 +6,13 @@ use editor::Editor;
 use key_binding::{Key, KeyConfig};
 use side_view::SideView;
 use utils::{
-    component::{CommandComponent, Component, DrawableComponent, KeybindingComponent},
+    component::{CommandComponent, Component, DrawableComponent},
     event::Event,
     rect::Rect,
     term::get_term_size,
 };
+
+use key_binding::component::KeybindingComponent;
 
 pub struct App {
     editor: Editor,
@@ -64,7 +66,10 @@ impl Component for App {
 
                 self.key_buf.push(Key::from(evt));
 
-                match self.key_config.get_command(&self.key_buf) {
+                match self
+                    .key_config
+                    .get_command(self.editor.get_mode(), self.key_buf.clone())
+                {
                     None => {}
                     Some(command) => {
                         self.key_buf = Vec::new();

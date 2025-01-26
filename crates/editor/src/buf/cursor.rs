@@ -1,7 +1,8 @@
 use anyhow::Result;
-use utils::term::get_term_size;
+use unicode_width::UnicodeWidthChar;
+use utils::{mode::EditorMode, term::get_term_size};
 
-use crate::{buf::code_buf::EditorCodeBuffer, mode::EditorMode};
+use crate::buf::code_buf::EditorCodeBuffer;
 
 #[derive(Clone)]
 pub struct EditorCursor {
@@ -14,6 +15,19 @@ pub struct EditorCursor {
 impl EditorCursor {
     pub fn get(&self, code: &EditorCodeBuffer, mode: &EditorMode) -> (usize, usize) {
         (self.clamp_x(self.x, code, mode), self.y)
+    }
+
+    pub fn get_draw_position(&self, code: &EditorCodeBuffer, mode: &EditorMode) -> (usize, usize) {
+        let line = code.get_line(self.y);
+        let x = self.clamp_x(self.x, code, mode);
+
+        (
+            line.chars()
+                .take(x)
+                .filter_map(|c| c.width())
+                .fold(0, |sum, x| sum + x),
+            self.y,
+        )
     }
 
     pub fn get_scroll(&self) -> (usize, usize) {
@@ -33,7 +47,7 @@ impl EditorCursor {
                     x
                 }
             }
-            EditorMode::Insert => {
+            EditorMode::Insert { append: _ } => {
                 if x > line_len {
                     line_len
                 } else {
@@ -130,7 +144,7 @@ impl EditorCursor {
         Ok(())
     }
 
-    pub fn scroll_by(&mut self, _x: isize, y: isize, lines: &Vec<String>) -> Result<()> {
+    pub fn scroll_by(&mut self, _x: isize, y: isize, code: &EditorCodeBuffer) -> Result<()> {
         let (_term_w, term_h) = get_term_size()?;
 
         // todo
@@ -144,7 +158,8 @@ impl EditorCursor {
         // }
 
         if (self.scroll_y != 0 || y > 0)
-            && (lines.len() >= term_h as usize && self.scroll_y <= lines.len() - term_h as usize
+            && (code.get_line_count() >= term_h as usize
+                && self.scroll_y <= code.get_line_count() - term_h as usize
                 || y < 0)
         {
             let mut scroll_y: isize = self.scroll_y.try_into()?;

@@ -1,6 +1,5 @@
 use anyhow::Result;
 use command::CommandManager;
-use key_binding::KeyConfig;
 
 use crate::event::Event;
 
@@ -14,8 +13,4 @@ pub trait DrawableComponent: Component {
 
 pub trait CommandComponent: Component {
     fn register_commands(&self, cmd_manager: &mut CommandManager);
-}
-
-pub trait KeybindingComponent: Component {
-    fn register_keybindings(&self, key_config: &mut KeyConfig);
 }

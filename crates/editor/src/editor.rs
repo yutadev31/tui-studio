@@ -1,5 +1,4 @@
 pub(crate) mod buf;
-pub(crate) mod mode;
 
 use std::io::stdout;
 
@@ -12,11 +11,12 @@ use crossterm::{
     style::Print,
     terminal::{Clear, ClearType},
 };
-use key_binding::{Key, KeyConfig};
-use mode::EditorMode;
-use utils::{component::Component, event::Event, rect::Rect, term::get_term_size};
+use key_binding::{component::KeybindingComponent, Key, KeyConfig};
 use utils::{
-    component::{CommandComponent, DrawableComponent, KeybindingComponent},
+    component::Component, event::Event, mode::EditorMode, rect::Rect, term::get_term_size,
+};
+use utils::{
+    component::{CommandComponent, DrawableComponent},
     term::safe_exit,
 };
 
@@ -33,6 +33,10 @@ impl Editor {
             buffer_manager: EditorBufferManager::new(path)?,
             mode: EditorMode::Normal,
         })
+    }
+
+    pub fn get_mode(&self) -> EditorMode {
+        self.mode.clone()
     }
 }
 
@@ -57,21 +61,42 @@ impl Component for Editor {
             match evt.clone() {
                 Event::Command(cmd) => match cmd.as_str() {
                     "editor.mode.normal" => {
+                        if let EditorMode::Insert { append } = self.mode {
+                            if append {
+                                current.cursor_move_by(-1, 0, &self.mode)?;
+                            }
+                        }
                         self.mode = EditorMode::Normal;
-                        current.cursor_sync(&self.mode);
-                    }
-                    "editor.mode.command" => {
-                        self.mode = EditorMode::Command;
-                        current.cursor_sync(&self.mode);
-                    }
-                    "editor.mode.insert" => {
-                        self.mode = EditorMode::Insert;
                         current.cursor_sync(&self.mode);
                     }
                     _ => {}
                 },
                 _ => {}
             }
+
+            match self.mode {
+                EditorMode::Normal => match evt.clone() {
+                    Event::Command(cmd) => match cmd.as_str() {
+                        "editor.mode.command" => {
+                            self.mode = EditorMode::Command;
+                            current.cursor_sync(&self.mode);
+                        }
+                        "editor.mode.insert" => {
+                            self.mode = EditorMode::Insert { append: false };
+                            current.cursor_sync(&self.mode);
+                        }
+                        "editor.mode.append" => {
+                            self.mode = EditorMode::Insert { append: true };
+                            current.cursor_move_by(1, 0, &self.mode)?;
+                            current.cursor_sync(&self.mode);
+                        }
+                        _ => {}
+                    },
+                    _ => {}
+                },
+                _ => {}
+            }
+
             current.on_event(evt, &self.mode)?;
         }
 
@@ -84,9 +109,6 @@ impl DrawableComponent for Editor {
         execute!(stdout(), Clear(ClearType::All))?;
 
         if let Some(buffer) = self.buffer_manager.get_current() {
-            let (cursor_x, cursor_y) = buffer.get_cursor_location(&self.mode);
-            let (cursor_x, cursor_y): (u16, u16) = (cursor_x as u16, cursor_y as u16);
-
             let (_scroll_x, scroll_y) = buffer.get_scroll_location();
             let lines = buffer.get_code_buf().get_lines();
 
@@ -100,7 +122,10 @@ impl DrawableComponent for Editor {
                 execute!(stdout(), MoveTo(self.rect.x, self.rect.y + y), Print(line))?;
             }
 
-            execute!(stdout(), Print(format!("{}, {}", cursor_x, cursor_y)))?;
+            execute!(stdout(), Print(self.mode.to_string()))?;
+
+            let (cursor_x, cursor_y) = buffer.get_cursor_draw_location(&self.mode);
+            let (cursor_x, cursor_y): (u16, u16) = (cursor_x as u16, cursor_y as u16);
 
             let scroll_y: u16 = scroll_y.try_into()?;
             execute!(
@@ -112,7 +137,7 @@ impl DrawableComponent for Editor {
                 EditorMode::Normal => {
                     execute!(stdout(), SetCursorStyle::SteadyBlock)?;
                 }
-                EditorMode::Insert => {
+                EditorMode::Insert { append: _ } => {
                     execute!(stdout(), SetCursorStyle::SteadyBar)?;
                 }
                 EditorMode::Command => {
@@ -148,17 +173,72 @@ impl CommandComponent for Editor {
 
 impl KeybindingComponent for Editor {
     fn register_keybindings(&self, key_config: &mut KeyConfig) {
-        key_config.register(vec![Key::Char('q')], "editor.quit");
-        key_config.register(vec![Key::Ctrl('c')], "editor.mode.normal");
-        key_config.register(vec![Key::Char(':')], "editor.mode.command");
-        key_config.register(vec![Key::Char('i')], "editor.mode.insert");
-        key_config.register(vec![Key::Char('h')], "editor.cursor.left");
-        key_config.register(vec![Key::Char('j')], "editor.cursor.down");
-        key_config.register(vec![Key::Char('k')], "editor.cursor.up");
-        key_config.register(vec![Key::Char('l')], "editor.cursor.right");
-        key_config.register(vec![Key::Char('0')], "editor.cursor.line_start");
-        key_config.register(vec![Key::Char('$')], "editor.cursor.line_end");
-        key_config.register(vec![Key::Char('g'), Key::Char('g')], "editor.cursor.top");
-        key_config.register(vec![Key::Char('G')], "editor.cursor.end");
+        // key_config.register(EditorMode::Normal, vec![Key::Char('q')], "editor.quit");
+        key_config.register(
+            EditorMode::Insert { append: false },
+            vec![Key::Ctrl('c')],
+            "editor.mode.normal",
+        );
+        key_config.register(
+            EditorMode::Insert { append: true },
+            vec![Key::Ctrl('c')],
+            "editor.mode.normal",
+        );
+        key_config.register(
+            EditorMode::Command,
+            vec![Key::Ctrl('c')],
+            "editor.mode.normal",
+        );
+        key_config.register(
+            EditorMode::Normal,
+            vec![Key::Char(':')],
+            "editor.mode.command",
+        );
+        key_config.register(
+            EditorMode::Normal,
+            vec![Key::Char('i')],
+            "editor.mode.insert",
+        );
+        key_config.register(
+            EditorMode::Normal,
+            vec![Key::Char('a')],
+            "editor.mode.append",
+        );
+        key_config.register(
+            EditorMode::Normal,
+            vec![Key::Char('h')],
+            "editor.cursor.left",
+        );
+        key_config.register(
+            EditorMode::Normal,
+            vec![Key::Char('j')],
+            "editor.cursor.down",
+        );
+        key_config.register(EditorMode::Normal, vec![Key::Char('k')], "editor.cursor.up");
+        key_config.register(
+            EditorMode::Normal,
+            vec![Key::Char('l')],
+            "editor.cursor.right",
+        );
+        key_config.register(
+            EditorMode::Normal,
+            vec![Key::Char('0')],
+            "editor.cursor.line_start",
+        );
+        key_config.register(
+            EditorMode::Normal,
+            vec![Key::Char('$')],
+            "editor.cursor.line_end",
+        );
+        key_config.register(
+            EditorMode::Normal,
+            vec![Key::Char('g'), Key::Char('g')],
+            "editor.cursor.top",
+        );
+        key_config.register(
+            EditorMode::Normal,
+            vec![Key::Char('G')],
+            "editor.cursor.end",
+        );
     }
 }

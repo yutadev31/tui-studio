@@ -1,10 +1,10 @@
 use std::fmt::Display;
 
-#[derive(PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum EditorMode {
     Normal,
     Command,
-    Insert,
+    Insert { append: bool },
 }
 
 impl Display for EditorMode {
@@ -15,7 +15,12 @@ impl Display for EditorMode {
             match self {
                 EditorMode::Normal => "NORMAL",
                 EditorMode::Command => "COMMAND",
-                EditorMode::Insert => "INSERT",
+                EditorMode::Insert { append } =>
+                    if *append {
+                        "INSERT (APPEND)"
+                    } else {
+                        "INSERT"
+                    },
             }
         )
     }

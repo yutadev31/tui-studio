@@ -284,6 +284,7 @@ dependencies = [
  "command",
  "crossterm",
  "key_binding",
+ "unicode-width",
  "utils",
 ]
 
@@ -500,6 +501,7 @@ name = "key_binding"
 version = "0.1.0"
 dependencies = [
  "crossterm",
+ "utils",
 ]
 
 [[package]]
@@ -877,6 +879,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adb9e6ca4f869e1180728b7950e35922a7fc6397f7b641499e8f3ef06e50dc83"
 
 [[package]]
+name = "unicode-width"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fc81956842c57dac11422a97c3b8195a1ff727f06e85c84ed2e8aa277c9a0fd"
+
+[[package]]
 name = "utf8parse"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -889,7 +897,6 @@ dependencies = [
  "anyhow",
  "command",
  "crossterm",
- "key_binding",
 ]
 
 [[package]]

@@ -11,6 +11,7 @@ crossterm.workspace = true
 utils.path = "../utils"
 command.path = "../command"
 key_binding.path = "../key_binding"
+unicode-width.workspace = true
 
 [lib]
 path = "src/editor.rs"

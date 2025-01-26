@@ -37,11 +37,8 @@ impl EditorBufferManager {
     }
 
     pub fn close_current(&mut self) {
-        match self.current_index {
-            None => {}
-            Some(index) => {
-                self.close(index);
-            }
+        if let Some(index) = self.current_index {
+            self.close(index);
         }
     }
 

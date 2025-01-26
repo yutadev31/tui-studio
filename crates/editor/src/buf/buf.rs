@@ -1,21 +1,19 @@
 use std::{
-    fs::{read_to_string, write},
+    fs::{read_to_string, write, File},
+    io::Write,
     path::PathBuf,
 };
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use crossterm::event::{Event as CrosstermEvent, KeyCode};
-use utils::event::Event;
-
-use crate::mode::EditorMode;
+use utils::{event::Event, mode::EditorMode};
 
 use super::{code_buf::EditorCodeBuffer, cursor::EditorCursor};
 
-#[derive(Clone)]
 pub struct EditorBuffer {
     code: EditorCodeBuffer,
     cursor: EditorCursor,
-    path: Option<PathBuf>,
+    file: Option<File>,
 }
 
 impl EditorBuffer {
@@ -25,27 +23,30 @@ impl EditorBuffer {
         Ok(Self {
             code: EditorCodeBuffer::from(code),
             cursor: EditorCursor::default(),
-            path: Some(path),
+            file: Some(File::open(path)?),
         })
     }
 
-    pub fn set_path(&mut self, path: PathBuf) {
-        self.path = Some(path);
+    pub fn set_path(&mut self, path: PathBuf) -> Result<()> {
+        self.file = Some(File::open(path)?);
+        Ok(())
     }
 
-    pub fn save(&self) -> Result<()> {
-        match &self.path {
-            None => {}
-            Some(path) => {
-                write(path, self.code.to_string())?;
-            }
+    pub fn save(&mut self) -> Result<()> {
+        if let Some(file) = &mut self.file {
+            file.write(self.code.to_string().as_bytes())?;
+            Ok(())
+        } else {
+            Err(anyhow!("Cannot save the file because it is not open."))
         }
-
-        Ok(())
     }
 
     pub fn get_cursor_location(&self, mode: &EditorMode) -> (usize, usize) {
         self.cursor.get(&self.code, mode)
+    }
+
+    pub fn get_cursor_draw_location(&self, mode: &EditorMode) -> (usize, usize) {
+        self.cursor.get_draw_position(&self.code, mode)
     }
 
     pub fn get_scroll_location(&self) -> (usize, usize) {
@@ -54,6 +55,10 @@ impl EditorBuffer {
 
     pub fn cursor_sync(&mut self, mode: &EditorMode) {
         self.cursor.sync(&self.code, mode);
+    }
+
+    pub fn cursor_move_by(&mut self, x: isize, y: isize, mode: &EditorMode) -> Result<()> {
+        self.cursor.move_by(x, y, &self.code, mode)
     }
 
     pub fn on_event(&mut self, evt: Event, mode: &EditorMode) -> Result<()> {
@@ -95,7 +100,7 @@ impl EditorBuffer {
                 },
                 _ => {}
             },
-            EditorMode::Insert => match evt {
+            EditorMode::Insert { append: _ } => match evt {
                 Event::CrosstermEvent(evt) => {
                     if let CrosstermEvent::Key(evt) = evt {
                         match evt.code {
@@ -136,7 +141,7 @@ impl Default for EditorBuffer {
         Self {
             code: EditorCodeBuffer::default(),
             cursor: EditorCursor::default(),
-            path: None,
+            file: None,
         }
     }
 }
