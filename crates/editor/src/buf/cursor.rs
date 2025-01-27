@@ -139,6 +139,61 @@ impl EditorCursor {
         Ok(())
     }
 
+    pub fn move_to_back_word(&mut self, code: &EditorCodeBuffer) {
+        let line = code.get_line(self.position.y);
+        let mut x = self.position.x;
+
+        if x == 0 {
+            if self.position.y == 0 {
+                return;
+            }
+
+            self.position.y -= 1;
+            x = code.get_line_length(self.position.y);
+        }
+
+        while x > 0 {
+            let Some(c) = line.chars().nth(x - 1) else {
+                x -= 1;
+                continue;
+            };
+
+            if c.is_whitespace() && self.position.x != x {
+                break;
+            }
+
+            x -= 1;
+        }
+
+        self.position.x = x;
+    }
+
+    pub fn move_to_next_word(&mut self, code: &EditorCodeBuffer) {
+        let line = code.get_line(self.position.y);
+        let mut x = self.position.x;
+
+        if x == code.get_line_length(self.position.y) {
+            if self.position.y == code.get_line_count() - 1 {
+                return;
+            }
+
+            self.position.y += 1;
+            self.position.x = 0;
+            return;
+        }
+
+        while x < code.get_line_length(self.position.y) {
+            let c = line.chars().nth(x).unwrap();
+            if c.is_whitespace() && x != self.position.x {
+                break;
+            }
+
+            x += 1;
+        }
+
+        self.position.x = x;
+    }
+
     // pub fn scroll_by(&mut self, _x: isize, y: isize, code: &EditorCodeBuffer) -> Result<()> {
     //     let (_term_w, term_h) = get_term_size()?;
 

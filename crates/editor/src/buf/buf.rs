@@ -100,6 +100,8 @@ impl EditorBuffer {
                     self.cursor
                         .move_y_to(self.code.get_line_count() - 1, &self.code)?;
                 }
+                "editor.cursor.next_word" => self.cursor.move_to_next_word(&self.code),
+                "editor.cursor.back_word" => self.cursor.move_to_back_word(&self.code),
                 "editor.edit.line_delete" => self.code.delete_line(cursor_y, clipboard)?,
                 "editor.edit.line_yank" => self.code.yank_line(cursor_y, clipboard)?,
                 "editor.edit.paste" => {

@@ -305,6 +305,16 @@ impl KeybindingComponent for Editor {
             vec![Key::Char('G')],
             "editor.cursor.end",
         );
+        key_config.register(
+            KeyConfigType::NormalAndVisual,
+            vec![Key::Char('w')],
+            "editor.cursor.next_word",
+        );
+        key_config.register(
+            KeyConfigType::NormalAndVisual,
+            vec![Key::Char('b')],
+            "editor.cursor.back_word",
+        );
 
         // Edit
         key_config.register(
