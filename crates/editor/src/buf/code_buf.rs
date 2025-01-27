@@ -128,9 +128,15 @@ impl Display for EditorCodeBuffer {
 }
 
 impl From<String> for EditorCodeBuffer {
-    fn from(lines: String) -> Self {
+    fn from(code: String) -> Self {
+        let code = if !code.ends_with('\n') {
+            code + "\n"
+        } else {
+            code
+        };
+
         Self {
-            lines: lines.lines().map(|line| line.to_string()).collect(),
+            lines: code.lines().map(|line| line.to_string()).collect(),
         }
     }
 }

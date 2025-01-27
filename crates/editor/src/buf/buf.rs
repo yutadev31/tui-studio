@@ -44,7 +44,6 @@ impl EditorBuffer {
         if let Some(file) = &mut self.file {
             file.seek(SeekFrom::Start(0))?;
             file.write_all(self.code.to_string().as_bytes())?;
-            write("./a.log", self.code.to_string().as_bytes())?;
             Ok(())
         } else {
             Err(anyhow!("Cannot save the file because it is not open."))
