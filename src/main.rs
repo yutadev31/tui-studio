@@ -37,8 +37,13 @@ fn run_app(path: Option<String>) -> Result<()> {
             let app = app_clone.lock().unwrap();
             app.draw().unwrap();
         }
-        thread::sleep(Duration::from_millis(16));
+        thread::sleep(Duration::from_millis(32));
     });
+
+    {
+        let mut app = app.lock().unwrap();
+        app.on_event(Event::Resize)?;
+    }
 
     loop {
         let event = Event::CrosstermEvent(event::read()?);

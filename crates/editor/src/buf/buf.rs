@@ -7,6 +7,7 @@ use std::{
 use anyhow::{anyhow, Result};
 use arboard::Clipboard;
 use crossterm::event::{Event as CrosstermEvent, KeyCode};
+use syntax_highlight::{SyntaxHighlight, SyntaxHighlightToken};
 use utils::{event::Event, mode::EditorMode, vec2::Vec2};
 
 use super::{code_buf::EditorCodeBuffer, cursor::EditorCursor};
@@ -14,6 +15,7 @@ use super::{code_buf::EditorCodeBuffer, cursor::EditorCursor};
 pub struct EditorBuffer {
     code: EditorCodeBuffer,
     cursor: EditorCursor,
+    syntax_highlight: SyntaxHighlight,
     file: Option<File>,
 }
 
@@ -32,6 +34,7 @@ impl EditorBuffer {
             code: EditorCodeBuffer::from(buf),
             cursor: EditorCursor::default(),
             file: Some(file),
+            syntax_highlight: SyntaxHighlight::new_rust_highlight(),
         })
     }
 
@@ -72,6 +75,16 @@ impl EditorBuffer {
 
     pub fn get_code_buf(&self) -> &EditorCodeBuffer {
         &self.code
+    }
+
+    pub fn highlight(&mut self) -> Result<Vec<Vec<SyntaxHighlightToken>>> {
+        let mut tokens: Vec<Vec<SyntaxHighlightToken>> = vec![];
+
+        for line in self.code.get_lines() {
+            tokens.push(self.syntax_highlight.highlight(line.as_str())?);
+        }
+
+        Ok(tokens)
     }
 
     pub fn on_event(
@@ -184,6 +197,7 @@ impl Default for EditorBuffer {
         Self {
             code: EditorCodeBuffer::default(),
             cursor: EditorCursor::default(),
+            syntax_highlight: SyntaxHighlight::new_rust_highlight(),
             file: None,
         }
     }

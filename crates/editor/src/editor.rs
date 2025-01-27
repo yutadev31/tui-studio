@@ -1,6 +1,6 @@
 pub(crate) mod buf;
 
-use std::io::stdout;
+use std::{io::stdout, thread::current};
 
 use anyhow::{anyhow, Result};
 use arboard::Clipboard;
@@ -8,10 +8,11 @@ use buf::buf_manager::EditorBufferManager;
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
     execute,
-    style::{Color, Print, ResetColor, SetBackgroundColor},
+    style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
     terminal::{Clear, ClearType},
 };
 use key_binding::{component::KeybindingComponent, Key, KeyConfig, KeyConfigType};
+use syntax_highlight::SyntaxHighlightToken;
 use utils::{
     component::Component, event::Event, mode::EditorMode, rect::Rect, term::get_term_size,
 };
@@ -22,6 +23,7 @@ pub struct Editor {
     buffer_manager: EditorBufferManager,
     mode: EditorMode,
     clipboard: Clipboard,
+    highlight_tokens: Vec<Vec<SyntaxHighlightToken>>,
 }
 
 impl Editor {
@@ -31,6 +33,7 @@ impl Editor {
             buffer_manager: EditorBufferManager::new(path)?,
             mode: EditorMode::Normal,
             clipboard: Clipboard::new()?,
+            highlight_tokens: vec![],
         })
     }
 
@@ -108,6 +111,8 @@ impl Component for Editor {
 
         let current = self.buffer_manager.get_current_mut();
         if let Some(current) = current {
+            self.highlight_tokens = current.highlight()?;
+
             if let Some(mode) = current.on_event(evt, &self.mode, &mut self.clipboard)? {
                 match mode {
                     EditorMode::Command => self.set_command_mode()?,
@@ -147,12 +152,17 @@ impl DrawableComponent for Editor {
             let num_len = (lines.len() - 1).to_string().len();
             let offset_x = (num_len + 1) as u16;
 
+            if self.highlight_tokens.len() == 0 {
+                return Ok(());
+            }
+
             for (index, line) in lines
                 .iter()
                 .skip(scroll_y)
                 .take(self.rect.h.into())
                 .enumerate()
             {
+                let highlight_tokens = self.highlight_tokens[index + scroll_y].clone();
                 if let EditorMode::Visual { start: start_pos } = self.mode {
                     let cursor_pos = buffer.get_draw_cursor_position(&self.mode);
                     let (cursor_x, cursor_y) = cursor_pos.into();
@@ -214,20 +224,40 @@ impl DrawableComponent for Editor {
                             Print(back_text)
                         )?;
                     } else {
-                        let y: u16 = index.try_into()?;
-                        execute!(
-                            stdout(),
-                            MoveTo(self.rect.x + offset_x, self.rect.y + y),
-                            Print(line)
-                        )?;
+                        execute!(stdout(), Print(line))?;
                     }
                 } else {
-                    let y: u16 = index.try_into()?;
                     execute!(
                         stdout(),
-                        MoveTo(self.rect.x + offset_x, self.rect.y + y),
-                        Print(line)
+                        MoveTo(self.rect.x + offset_x, self.rect.y + index as u16),
                     )?;
+
+                    for highlight_token in highlight_tokens {
+                        let start_char_index = line
+                            .chars()
+                            .take(highlight_token.start)
+                            .map(|c| c.len_utf8())
+                            .sum();
+                        let end_char_index = line
+                            .chars()
+                            .take(highlight_token.end)
+                            .map(|c| c.len_utf8())
+                            .sum();
+
+                        match highlight_token.kind {
+                            None => {
+                                execute!(stdout(), ResetColor)?;
+                            }
+                            Some(kind) => match kind.as_str() {
+                                "keyword" => {
+                                    execute!(stdout(), SetForegroundColor(Color::Magenta))?
+                                }
+                                _ => execute!(stdout(), ResetColor)?,
+                            },
+                        };
+
+                        execute!(stdout(), Print(&line[start_char_index..end_char_index]))?;
+                    }
                 }
             }
 

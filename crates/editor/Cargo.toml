@@ -12,6 +12,7 @@ utils.path = "../utils"
 key_binding.path = "../key_binding"
 unicode-width.workspace = true
 arboard.workspace = true
+syntax_highlight.path = "../syntax_highlight"
 
 [lib]
 path = "src/editor.rs"

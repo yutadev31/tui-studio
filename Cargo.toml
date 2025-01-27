@@ -1,5 +1,10 @@
 [workspace]
-members = ["crates/editor", "crates/key_binding", "crates/utils"]
+members = [
+  "crates/editor",
+  "crates/key_binding",
+  "crates/syntax_highlight",
+  "crates/utils",
+]
 resolver = "2"
 
 [workspace.package]
