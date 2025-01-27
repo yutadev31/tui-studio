@@ -61,6 +61,7 @@ impl Editor {
     fn set_insert_mode(&mut self, append: bool) -> Result<()> {
         let current = self.buffer_manager.get_current_mut();
         if let Some(current) = current {
+            current.cursor_sync(&self.mode);
             self.mode = EditorMode::Insert { append };
             if append {
                 current.cursor_move_by(1, 0, &self.mode)?;
