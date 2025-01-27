@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, ops::Add};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Vec2 {
@@ -31,6 +31,14 @@ impl Ord for Vec2 {
         } else {
             self.x.cmp(&other.x)
         }
+    }
+}
+
+impl Add for Vec2 {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self::new(self.x + other.x, self.y + other.y)
     }
 }
 

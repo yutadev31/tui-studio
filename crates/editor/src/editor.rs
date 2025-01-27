@@ -108,7 +108,14 @@ impl Component for Editor {
 
         let current = self.buffer_manager.get_current_mut();
         if let Some(current) = current {
-            current.on_event(evt, &self.mode, &mut self.clipboard)?;
+            if let Some(mode) = current.on_event(evt, &self.mode, &mut self.clipboard)? {
+                match mode {
+                    EditorMode::Command => self.set_command_mode()?,
+                    EditorMode::Normal => self.set_normal_mode()?,
+                    EditorMode::Visual { start } => self.mode = EditorMode::Visual { start },
+                    EditorMode::Insert { append } => self.set_insert_mode(append)?,
+                }
+            }
         }
 
         Ok(())
@@ -314,6 +321,17 @@ impl KeybindingComponent for Editor {
             KeyConfigType::Normal,
             vec![Key::Char('p')],
             "editor.edit.paste",
+        );
+
+        key_config.register(
+            KeyConfigType::Visual,
+            vec![Key::Char('d')],
+            "editor.edit.delete",
+        );
+        key_config.register(
+            KeyConfigType::Visual,
+            vec![Key::Char('y')],
+            "editor.edit.yank",
         );
 
         // Commands

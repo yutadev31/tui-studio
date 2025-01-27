@@ -1,8 +1,11 @@
-use std::fmt::{self, Display, Formatter};
+use std::{
+    fmt::{self, Display, Formatter},
+    fs::write,
+};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use arboard::Clipboard;
-use utils::mode::EditorMode;
+use utils::{mode::EditorMode, vec2::Vec2};
 
 use super::cursor::EditorCursor;
 
@@ -35,7 +38,9 @@ impl EditorCodeBuffer {
     }
 
     pub fn append_str(&mut self, x: usize, y: usize, s: &str) {
-        s.chars().for_each(|c| self.append(x, y, c));
+        s.chars()
+            .enumerate()
+            .for_each(|(index, c)| self.append(x + index, y, c));
     }
 
     pub fn split_line(&mut self, x: usize, y: usize) {
@@ -70,15 +75,115 @@ impl EditorCodeBuffer {
         Ok(())
     }
 
+    pub fn delete_selection(
+        &mut self,
+        cursor: &mut EditorCursor,
+        mode: &EditorMode,
+        clipboard: &mut Clipboard,
+    ) -> Result<()> {
+        let start = cursor.get(self, mode);
+        let end = if let EditorMode::Visual { start } = mode.clone() {
+            start
+        } else {
+            return Err(anyhow!("No selection to delete."));
+        };
+
+        let min = start.min(end);
+        let max = start.max(end) + Vec2::new(1, 0);
+
+        if min.y == max.y {
+            let line = self.lines[min.y].clone();
+            let x = self.byte_index_to_char_index(min.x, min.y);
+            let (p0, p1) = line.split_at(x);
+            let (text, p1) = p1.split_at(self.byte_index_to_char_index(max.x, max.y) - x);
+            self.lines[min.y] = p0.to_string() + p1;
+            clipboard.set_text(text)?;
+        } else {
+            let line = self.lines[min.y].clone();
+            let (p1, top_line) = line.split_at(self.byte_index_to_char_index(min.x, min.y));
+            self.lines[min.y] = p1.to_string();
+
+            let mut text = top_line.to_string() + "\n";
+
+            let line = self.lines[max.y].clone();
+            let (bottom_line, p1) = line.split_at(self.byte_index_to_char_index(max.x, max.y));
+            self.lines[max.y] = p1.to_string();
+
+            if max.y - min.y > 1 {
+                for y in min.y + 1..max.y {
+                    let line = self.get_line(y);
+                    text.push_str(line.as_str());
+                    text.push('\n');
+
+                    self.lines.remove(y);
+                }
+            }
+
+            text.push_str(bottom_line);
+            text.push('\n');
+
+            clipboard.set_text(text)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn yank_selection(
+        &self,
+        cursor: &mut EditorCursor,
+        mode: &EditorMode,
+        clipboard: &mut Clipboard,
+    ) -> Result<()> {
+        let start = cursor.get(self, mode);
+        let end = if let EditorMode::Visual { start } = mode.clone() {
+            start
+        } else {
+            return Err(anyhow!("No selection to delete."));
+        };
+
+        let min = start.min(end);
+        let max = start.max(end) + Vec2::new(1, 0);
+
+        if min.y == max.y {
+            let line = self.lines[min.y].clone();
+            let x = self.byte_index_to_char_index(min.x, min.y);
+            let (_, p1) = line.split_at(x);
+            let (text, _) = p1.split_at(self.byte_index_to_char_index(max.x, max.y) - x);
+            clipboard.set_text(text)?;
+        } else {
+            let line = self.lines[min.y].clone();
+            let (_, top_line) = line.split_at(self.byte_index_to_char_index(min.x, min.y));
+
+            let mut text = top_line.to_string() + "\n";
+
+            let line = self.lines[max.y].clone();
+            let (bottom_line, _) = line.split_at(self.byte_index_to_char_index(max.x, max.y));
+
+            if max.y - min.y > 1 {
+                for y in min.y + 1..max.y {
+                    let line = self.get_line(y);
+                    text.push_str(line.as_str());
+                    text.push('\n');
+                }
+            }
+
+            text.push_str(bottom_line);
+            text.push('\n');
+
+            clipboard.set_text(text)?;
+        }
+        Ok(())
+    }
+
     pub fn yank_line(&self, y: usize, clipboard: &mut Clipboard) -> Result<()> {
         clipboard.set_text(self.lines[y].clone())?;
         Ok(())
     }
 
-    pub fn paste(&mut self, x: usize, y: usize, clipboard: &mut Clipboard) -> Result<()> {
+    pub fn paste(&mut self, x: usize, y: usize, clipboard: &mut Clipboard) -> Result<usize> {
         let text = clipboard.get_text()?;
         self.append_str(x, y, text.as_str());
-        Ok(())
+        Ok(text.chars().count())
     }
 
     pub fn backspace(&mut self, cursor: &mut EditorCursor, mode: &EditorMode) -> Result<()> {

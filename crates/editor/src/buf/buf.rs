@@ -79,7 +79,7 @@ impl EditorBuffer {
         evt: Event,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
-    ) -> Result<()> {
+    ) -> Result<Option<EditorMode>> {
         let cursor_pos = self.cursor.get(&self.code, mode);
         let cursor_x = cursor_pos.x;
         let cursor_y = cursor_pos.y;
@@ -102,7 +102,11 @@ impl EditorBuffer {
                 }
                 "editor.edit.line_delete" => self.code.delete_line(cursor_y, clipboard)?,
                 "editor.edit.line_yank" => self.code.yank_line(cursor_y, clipboard)?,
-                "editor.edit.line_paste" => self.code.paste(cursor_x, cursor_y, clipboard)?,
+                "editor.edit.paste" => {
+                    let text_len = self.code.paste(cursor_x, cursor_y, clipboard)?;
+                    self.cursor
+                        .move_by(text_len as isize, 0, &self.code, mode)?;
+                }
                 _ => {}
             },
             _ => {}
@@ -141,6 +145,24 @@ impl EditorBuffer {
                 }
                 _ => {}
             },
+            EditorMode::Visual { start } => match evt {
+                Event::Command(cmd) => match cmd.as_str() {
+                    "editor.edit.delete" => {
+                        self.code
+                            .delete_selection(&mut self.cursor, mode, clipboard)?;
+                        self.cursor.move_y_to(start.y, &self.code)?;
+                        self.cursor.move_x_to(start.x, &self.code, mode);
+                        return Ok(Some(EditorMode::Normal));
+                    }
+                    "editor.edit.yank" => {
+                        self.code
+                            .yank_selection(&mut self.cursor, mode, clipboard)?;
+                        return Ok(Some(EditorMode::Normal));
+                    }
+                    _ => {}
+                },
+                _ => {}
+            },
             EditorMode::Command => match evt {
                 Event::Command(cmd) => match cmd.as_str() {
                     "editor.save" => self.save()?,
@@ -148,10 +170,9 @@ impl EditorBuffer {
                 },
                 _ => {}
             },
-            _ => {}
         }
 
-        Ok(())
+        Ok(None)
     }
 }
 
