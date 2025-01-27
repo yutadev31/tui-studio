@@ -243,7 +243,6 @@ dependencies = [
  "fluent",
  "fluent-templates",
  "key_binding",
- "side_view",
  "utils",
 ]
 
@@ -415,16 +414,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e6853b52649d4ac5c0bd02320cddc5ba956bdb407c4b75a2c6b75bf51500f8c"
 dependencies = [
  "simd-adler32",
-]
-
-[[package]]
-name = "file_manager"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "command",
- "crossterm",
- "utils",
 ]
 
 [[package]]
@@ -628,16 +617,6 @@ dependencies = [
  "num-traits",
  "png",
  "tiff",
-]
-
-[[package]]
-name = "info_bar"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "command",
- "crossterm",
- "utils",
 ]
 
 [[package]]
@@ -1025,16 +1004,6 @@ name = "shlex"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
-
-[[package]]
-name = "side_view"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "command",
- "crossterm",
- "utils",
-]
 
 [[package]]
 name = "signal-hook"

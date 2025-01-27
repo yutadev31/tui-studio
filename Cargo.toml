@@ -3,10 +3,7 @@ members = [
   "crates/cli",
   "crates/command",
   "crates/editor",
-  "crates/file_manager",
-  "crates/info_bar",
   "crates/key_binding",
-  "crates/side_view",
   "crates/utils",
 ]
 resolver = "2"

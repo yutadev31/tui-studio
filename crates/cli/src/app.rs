@@ -4,7 +4,6 @@ use command::CommandManager;
 use crossterm::event::Event as CrosstermEvent;
 use editor::Editor;
 use key_binding::{Key, KeyConfig};
-use side_view::SideView;
 use utils::{
     component::{CommandComponent, Component, DrawableComponent},
     event::Event,
@@ -16,7 +15,6 @@ use key_binding::component::KeybindingComponent;
 
 pub struct App {
     editor: Editor,
-    side_view: SideView,
 
     cmd_manager: CommandManager,
     key_config: KeyConfig,
@@ -31,7 +29,6 @@ impl App {
 
         Ok(Self {
             editor: Editor::new(path, Rect::new(0, 0, term_w, term_h))?,
-            side_view: SideView::new()?,
             cmd_manager: CommandManager::default(),
             key_config: KeyConfig::default(),
             key_buf: Vec::new(),
@@ -43,9 +40,6 @@ impl App {
         // Editor
         self.editor.register_commands(&mut self.cmd_manager);
         self.editor.register_keybindings(&mut self.key_config);
-
-        // Side View
-        self.side_view.register_commands(&mut self.cmd_manager);
     }
 }
 
@@ -80,8 +74,7 @@ impl Component for App {
             }
         }
 
-        self.editor.on_event(evt.clone())?;
-        self.side_view.on_event(evt)?;
+        self.editor.on_event(evt)?;
 
         Ok(())
     }
@@ -90,8 +83,6 @@ impl Component for App {
 impl DrawableComponent for App {
     fn draw(&self) -> Result<()> {
         self.editor.draw()?;
-        self.side_view.draw()?;
-
         Ok(())
     }
 }
