@@ -1,5 +1,4 @@
 pub(crate) mod buf;
-// Test
 use std::io::stdout;
 
 use anyhow::{anyhow, Result};
