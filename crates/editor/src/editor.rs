@@ -4,7 +4,7 @@ use std::io::stdout;
 
 use anyhow::{anyhow, Result};
 use arboard::Clipboard;
-use buf::buf_manager::EditorBufferManager;
+use buf::{buf::EditorBuffer, buf_manager::EditorBufferManager};
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
     execute,
@@ -87,6 +87,176 @@ impl Editor {
         self.mode = EditorMode::Command;
         Ok(())
     }
+
+    fn draw_number(&self, current: &EditorBuffer, lines: Vec<String>) {
+        let scroll_y = current.get_scroll_position().y;
+
+        (0..lines.len())
+            .skip(scroll_y)
+            .take(self.rect.h.into())
+            .enumerate()
+            .for_each(|(draw_y, y)| {
+                let draw_y: u16 = draw_y.try_into().unwrap();
+                execute!(
+                    stdout(),
+                    MoveTo(self.rect.x, self.rect.y + draw_y),
+                    Print(y + 1)
+                )
+                .unwrap();
+            });
+    }
+
+    fn draw_code_line(
+        &self,
+        current: &EditorBuffer,
+        offset_x: u16,
+        y: usize,
+        index: usize,
+        line: String,
+    ) -> Result<()> {
+        let highlight_tokens = self.highlight_tokens[y].clone();
+
+        if let EditorMode::Visual { start: start_pos } = self.mode {
+            let cursor_pos = current.get_draw_cursor_position(&self.mode);
+            let (cursor_x, cursor_y) = cursor_pos.into();
+            let (start_x, start_y) = start_pos.into();
+
+            let (min_y, max_y) = (start_y.min(cursor_y), start_y.max(cursor_y));
+            if min_y <= y && max_y >= y {
+                let start = if start_y == y {
+                    if start_pos < cursor_pos || line.len() == 0 {
+                        start_x
+                    } else {
+                        start_x + 1
+                    }
+                } else if start_y < y {
+                    0
+                } else {
+                    line.len()
+                };
+
+                let end = if cursor_y == y {
+                    if start_pos < cursor_pos || line.len() == 0 {
+                        cursor_x
+                    } else {
+                        cursor_x + 1
+                    }
+                } else if cursor_y < y {
+                    0
+                } else {
+                    line.len()
+                };
+
+                let front_text = if start <= end {
+                    &line[..start]
+                } else {
+                    &line[..end]
+                };
+
+                let select_text = if start <= end {
+                    &line[start..end]
+                } else {
+                    &line[end..start]
+                };
+
+                let back_text = if start <= end {
+                    &line[end..]
+                } else {
+                    &line[start..]
+                };
+
+                let y: u16 = index.try_into()?;
+                execute!(
+                    stdout(),
+                    MoveTo(self.rect.x + offset_x, self.rect.y + y),
+                    Print(front_text),
+                    SetBackgroundColor(Color::White),
+                    Print(select_text),
+                    ResetColor,
+                    Print(back_text)
+                )?;
+            } else {
+                execute!(
+                    stdout(),
+                    MoveTo(self.rect.x + offset_x, self.rect.y + index as u16),
+                    Print(line)
+                )?;
+            }
+        } else {
+            execute!(
+                stdout(),
+                MoveTo(self.rect.x + offset_x, self.rect.y + index as u16),
+            )?;
+
+            for highlight_token in highlight_tokens {
+                let start_char_index = line
+                    .chars()
+                    .take(highlight_token.start)
+                    .map(|c| c.len_utf8())
+                    .sum();
+
+                let end_char_index = line
+                    .chars()
+                    .take(highlight_token.end)
+                    .map(|c| c.len_utf8())
+                    .sum();
+
+                match highlight_token.kind {
+                    None => {
+                        execute!(stdout(), ResetColor)?;
+                    }
+                    Some(kind) => match kind.as_str() {
+                        "keyword" => execute!(stdout(), SetForegroundColor(Color::Magenta))?,
+                        _ => execute!(stdout(), ResetColor)?,
+                    },
+                };
+
+                execute!(stdout(), Print(&line[start_char_index..end_char_index]))?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn draw_code(&self, current: &EditorBuffer, lines: Vec<String>, offset_x: u16) -> Result<()> {
+        if self.highlight_tokens.len() == 0 {
+            return Ok(());
+        }
+
+        let scroll_y = current.get_scroll_position().y;
+
+        for (index, line) in lines
+            .iter()
+            .skip(scroll_y)
+            .take(self.rect.h.into())
+            .enumerate()
+        {
+            self.draw_code_line(current, offset_x, index + scroll_y, index, line.clone())?;
+        }
+
+        Ok(())
+    }
+
+    fn draw_cursor(&self, x: u16, y: u16) -> Result<()> {
+        execute!(stdout(), MoveTo(x, y))?;
+
+        match self.mode {
+            EditorMode::Normal => {
+                execute!(stdout(), SetCursorStyle::SteadyBlock)?;
+            }
+            EditorMode::Visual { start: _ } => {
+                execute!(stdout(), SetCursorStyle::SteadyBlock)?;
+            }
+            EditorMode::Insert { append: _ } => {
+                execute!(stdout(), SetCursorStyle::SteadyBar)?;
+            }
+            EditorMode::Command => {
+                execute!(stdout(), SetCursorStyle::SteadyBar)?;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl Component for Editor {
@@ -131,167 +301,21 @@ impl DrawableComponent for Editor {
     fn draw(&self) -> Result<()> {
         execute!(stdout(), Clear(ClearType::All))?;
 
-        if let Some(buffer) = self.buffer_manager.get_current() {
-            let scroll_y = buffer.get_scroll_position().y;
-            let lines = buffer.get_code_buf().get_lines();
-
-            (0..lines.len())
-                .skip(scroll_y)
-                .take(self.rect.h.into())
-                .enumerate()
-                .for_each(|(draw_y, y)| {
-                    let draw_y: u16 = draw_y.try_into().unwrap();
-                    execute!(
-                        stdout(),
-                        MoveTo(self.rect.x, self.rect.y + draw_y),
-                        Print(y + 1)
-                    )
-                    .unwrap();
-                });
+        if let Some(current) = self.buffer_manager.get_current() {
+            let lines = current.get_code_buf().get_lines();
+            let (cursor_x, cursor_y) = current.get_draw_cursor_position(&self.mode).into();
 
             let num_len = (lines.len() - 1).to_string().len();
             let offset_x = (num_len + 1) as u16;
 
-            if self.highlight_tokens.len() == 0 {
-                return Ok(());
-            }
+            let scroll_y = current.get_scroll_position().y;
 
-            for (index, line) in lines
-                .iter()
-                .skip(scroll_y)
-                .take(self.rect.h.into())
-                .enumerate()
-            {
-                let highlight_tokens = self.highlight_tokens[index + scroll_y].clone();
-
-                if let EditorMode::Visual { start: start_pos } = self.mode {
-                    let cursor_pos = buffer.get_draw_cursor_position(&self.mode);
-                    let (cursor_x, cursor_y) = cursor_pos.into();
-                    let (start_x, start_y) = start_pos.into();
-                    let y = index + scroll_y;
-
-                    let (min_y, max_y) = (start_y.min(cursor_y), start_y.max(cursor_y));
-                    if min_y <= y && max_y >= y {
-                        let start = if start_y == y {
-                            if start_pos < cursor_pos || line.len() == 0 {
-                                start_x
-                            } else {
-                                start_x + 1
-                            }
-                        } else if start_y < y {
-                            0
-                        } else {
-                            line.len()
-                        };
-
-                        let end = if cursor_y == y {
-                            if start_pos < cursor_pos || line.len() == 0 {
-                                cursor_x
-                            } else {
-                                cursor_x + 1
-                            }
-                        } else if cursor_y < y {
-                            0
-                        } else {
-                            line.len()
-                        };
-
-                        let front_text = if start <= end {
-                            &line[..start]
-                        } else {
-                            &line[..end]
-                        };
-
-                        let select_text = if start <= end {
-                            &line[start..end]
-                        } else {
-                            &line[end..start]
-                        };
-
-                        let back_text = if start <= end {
-                            &line[end..]
-                        } else {
-                            &line[start..]
-                        };
-
-                        let y: u16 = index.try_into()?;
-                        execute!(
-                            stdout(),
-                            MoveTo(self.rect.x + offset_x, self.rect.y + y),
-                            Print(front_text),
-                            SetBackgroundColor(Color::White),
-                            Print(select_text),
-                            ResetColor,
-                            Print(back_text)
-                        )?;
-                    } else {
-                        execute!(
-                            stdout(),
-                            MoveTo(self.rect.x + offset_x, self.rect.y + index as u16),
-                            Print(line)
-                        )?;
-                    }
-                } else {
-                    execute!(
-                        stdout(),
-                        MoveTo(self.rect.x + offset_x, self.rect.y + index as u16),
-                    )?;
-
-                    for highlight_token in highlight_tokens {
-                        let start_char_index = line
-                            .chars()
-                            .take(highlight_token.start)
-                            .map(|c| c.len_utf8())
-                            .sum();
-                        let end_char_index = line
-                            .chars()
-                            .take(highlight_token.end)
-                            .map(|c| c.len_utf8())
-                            .sum();
-
-                        match highlight_token.kind {
-                            None => {
-                                execute!(stdout(), ResetColor)?;
-                            }
-                            Some(kind) => match kind.as_str() {
-                                "keyword" => {
-                                    execute!(stdout(), SetForegroundColor(Color::Magenta))?
-                                }
-                                _ => execute!(stdout(), ResetColor)?,
-                            },
-                        };
-
-                        execute!(stdout(), Print(&line[start_char_index..end_char_index]))?;
-                    }
-                }
-            }
-
-            let (cursor_x, cursor_y) = buffer.get_draw_cursor_position(&self.mode).into();
-            let (cursor_x, cursor_y): (u16, u16) = (cursor_x as u16, cursor_y as u16);
-
-            let scroll_y: u16 = scroll_y.try_into()?;
-            execute!(
-                stdout(),
-                MoveTo(
-                    cursor_x + self.rect.x + offset_x,
-                    cursor_y - scroll_y + self.rect.y
-                )
+            self.draw_code(current, lines.clone(), offset_x)?;
+            self.draw_number(current, lines.clone());
+            self.draw_cursor(
+                cursor_x as u16 + offset_x as u16 + self.rect.x,
+                cursor_y as u16 - scroll_y as u16 + self.rect.y,
             )?;
-
-            match self.mode {
-                EditorMode::Normal => {
-                    execute!(stdout(), SetCursorStyle::SteadyBlock)?;
-                }
-                EditorMode::Visual { start: _ } => {
-                    execute!(stdout(), SetCursorStyle::SteadyBlock)?;
-                }
-                EditorMode::Insert { append: _ } => {
-                    execute!(stdout(), SetCursorStyle::SteadyBar)?;
-                }
-                EditorMode::Command => {
-                    execute!(stdout(), SetCursorStyle::SteadyBar)?;
-                }
-            }
         }
 
         Ok(())
