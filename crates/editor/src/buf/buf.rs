@@ -8,14 +8,15 @@ use anyhow::{anyhow, Result};
 use arboard::Clipboard;
 use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use syntax_highlight::{SyntaxHighlight, SyntaxHighlightToken};
-use utils::{event::Event, mode::EditorMode, vec2::Vec2};
+use utils::{event::Event, file_type::FileType, mode::EditorMode, vec2::Vec2};
 
 use super::{code_buf::EditorCodeBuffer, cursor::EditorCursor};
 
 pub struct EditorBuffer {
     code: EditorCodeBuffer,
     cursor: EditorCursor,
-    syntax_highlight: SyntaxHighlight,
+    syntax_highlight: Option<SyntaxHighlight>,
+    file_type: FileType,
     file: Option<File>,
 }
 
@@ -25,16 +26,20 @@ impl EditorBuffer {
             .read(true)
             .write(true)
             .create(true)
-            .open(path)?;
+            .open(path.clone())?;
 
         let mut buf = String::new();
         file.read_to_string(&mut buf)?;
+
+        let file_type =
+            FileType::file_name_to_type(path.file_name().unwrap().to_str().unwrap().to_string());
 
         Ok(Self {
             code: EditorCodeBuffer::from(buf),
             cursor: EditorCursor::default(),
             file: Some(file),
-            syntax_highlight: SyntaxHighlight::new_rust_highlight(),
+            syntax_highlight: SyntaxHighlight::new_with_file_type(&file_type),
+            file_type,
         })
     }
 
@@ -77,11 +82,28 @@ impl EditorBuffer {
         &self.code
     }
 
-    pub fn highlight(&mut self) -> Result<Vec<Vec<SyntaxHighlightToken>>> {
+    pub fn highlight(
+        &mut self,
+        top_y: usize,
+        length: usize,
+    ) -> Result<Vec<Vec<SyntaxHighlightToken>>> {
+        let Some(syntax_highlight) = &mut self.syntax_highlight else {
+            let mut tokens: Vec<Vec<SyntaxHighlightToken>> = vec![];
+            for line in self.code.get_lines().iter().skip(top_y).take(length) {
+                tokens.push(vec![SyntaxHighlightToken {
+                    start: 0,
+                    end: line.len(),
+                    kind: None,
+                }]);
+            }
+
+            return Ok(tokens);
+        };
+
         let mut tokens: Vec<Vec<SyntaxHighlightToken>> = vec![];
 
-        for line in self.code.get_lines() {
-            tokens.push(self.syntax_highlight.highlight(line.as_str())?);
+        for line in self.code.get_lines().iter().skip(top_y).take(length) {
+            tokens.push(syntax_highlight.highlight(line.as_str())?);
         }
 
         Ok(tokens)
@@ -197,7 +219,8 @@ impl Default for EditorBuffer {
         Self {
             code: EditorCodeBuffer::default(),
             cursor: EditorCursor::default(),
-            syntax_highlight: SyntaxHighlight::new_rust_highlight(),
+            file_type: FileType::new("planetext"),
+            syntax_highlight: SyntaxHighlight::new_with_file_type(&FileType::new("planetext")),
             file: None,
         }
     }

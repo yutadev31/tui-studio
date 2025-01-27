@@ -1082,6 +1082,7 @@ dependencies = [
  "tree-sitter",
  "tree-sitter-highlight",
  "tree-sitter-rust",
+ "utils",
 ]
 
 [[package]]

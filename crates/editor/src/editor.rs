@@ -1,5 +1,5 @@
 pub(crate) mod buf;
-
+// Test
 use std::io::stdout;
 
 use anyhow::{anyhow, Result};
@@ -88,7 +88,7 @@ impl Editor {
         Ok(())
     }
 
-    fn draw_number(&self, current: &EditorBuffer, lines: Vec<String>) {
+    fn draw_number(&self, current: &EditorBuffer, lines: Vec<String>, offset_x: usize) {
         let scroll_y = current.get_scroll_position().y;
 
         (0..lines.len())
@@ -100,7 +100,7 @@ impl Editor {
                 execute!(
                     stdout(),
                     MoveTo(self.rect.x, self.rect.y + draw_y),
-                    Print(y + 1)
+                    Print(format!("{:<offset_x$}", y + 1))
                 )
                 .unwrap();
             });
@@ -114,7 +114,7 @@ impl Editor {
         index: usize,
         line: String,
     ) -> Result<()> {
-        let highlight_tokens = self.highlight_tokens[y].clone();
+        let highlight_tokens = self.highlight_tokens[index].clone();
 
         if let EditorMode::Visual { start: start_pos } = self.mode {
             let cursor_pos = current.get_draw_cursor_position(&self.mode);
@@ -206,13 +206,26 @@ impl Editor {
                         execute!(stdout(), ResetColor)?;
                     }
                     Some(kind) => match kind.as_str() {
+                        "comment" => execute!(stdout(), SetForegroundColor(Color::Grey))?,
                         "keyword" => execute!(stdout(), SetForegroundColor(Color::Magenta))?,
+                        "type" => execute!(stdout(), SetForegroundColor(Color::Yellow))?,
+                        "variable.builtin" => execute!(stdout(), SetForegroundColor(Color::Red))?,
+                        "variable" | "property" => {
+                            execute!(stdout(), SetForegroundColor(Color::Red))?
+                        }
+                        "function" | "function.method" => {
+                            execute!(stdout(), SetForegroundColor(Color::Blue))?
+                        }
+                        "string" => execute!(stdout(), SetForegroundColor(Color::Green))?,
                         _ => execute!(stdout(), ResetColor)?,
                     },
                 };
 
                 execute!(stdout(), Print(&line[start_char_index..end_char_index]))?;
             }
+
+            let space_w = self.rect.w as usize - (offset_x as usize + line.len());
+            execute!(stdout(), Print(" ".repeat(space_w)))?;
         }
 
         Ok(())
@@ -279,10 +292,7 @@ impl Component for Editor {
             _ => {}
         }
 
-        let current = self.buffer_manager.get_current_mut();
-        if let Some(current) = current {
-            self.highlight_tokens = current.highlight()?;
-
+        if let Some(current) = self.buffer_manager.get_current_mut() {
             if let Some(mode) = current.on_event(evt, &self.mode, &mut self.clipboard)? {
                 match mode {
                     EditorMode::Command => self.set_command_mode()?,
@@ -293,14 +303,18 @@ impl Component for Editor {
             }
         }
 
+        if let Some(current) = self.buffer_manager.get_current_mut() {
+            let scroll_y = current.get_scroll_position().y;
+            let length = self.rect.h as usize;
+            self.highlight_tokens = current.highlight(scroll_y, length)?;
+        }
+
         Ok(())
     }
 }
 
 impl DrawableComponent for Editor {
     fn draw(&self) -> Result<()> {
-        execute!(stdout(), Clear(ClearType::All))?;
-
         if let Some(current) = self.buffer_manager.get_current() {
             let lines = current.get_code_buf().get_lines();
             let (cursor_x, cursor_y) = current.get_draw_cursor_position(&self.mode).into();
@@ -311,7 +325,7 @@ impl DrawableComponent for Editor {
             let scroll_y = current.get_scroll_position().y;
 
             self.draw_code(current, lines.clone(), offset_x)?;
-            self.draw_number(current, lines.clone());
+            self.draw_number(current, lines.clone(), offset_x as usize);
             self.draw_cursor(
                 cursor_x as u16 + offset_x as u16 + self.rect.x,
                 cursor_y as u16 - scroll_y as u16 + self.rect.y,

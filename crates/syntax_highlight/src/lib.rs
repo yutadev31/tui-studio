@@ -1,6 +1,7 @@
 use anyhow::Result;
 use tree_sitter::Language;
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter};
+use utils::file_type::{self, FileType};
 
 pub struct SyntaxHighlight {
     highlighter: Highlighter,
@@ -41,14 +42,26 @@ impl SyntaxHighlight {
         }
     }
 
-    pub fn new_rust_highlight() -> Self {
-        Self::new(
-            tree_sitter_rust::LANGUAGE.into(),
-            tree_sitter_rust::HIGHLIGHTS_QUERY,
-            tree_sitter_rust::INJECTIONS_QUERY,
-            "",
-            &["keyword"],
-        )
+    pub fn new_with_file_type(file_type: &FileType) -> Option<Self> {
+        match file_type.get().as_str() {
+            file_type::RUST => Some(Self::new(
+                tree_sitter_rust::LANGUAGE.into(),
+                tree_sitter_rust::HIGHLIGHTS_QUERY,
+                tree_sitter_rust::INJECTIONS_QUERY,
+                "",
+                &[
+                    "comment",
+                    "keyword",
+                    "type",
+                    "variable",
+                    "property",
+                    "function",
+                    "function.method",
+                    "string",
+                ],
+            )),
+            _ => None,
+        }
     }
 
     pub fn highlight(&mut self, code: &str) -> Result<Vec<SyntaxHighlightToken>> {
