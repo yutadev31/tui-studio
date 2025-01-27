@@ -1,6 +1,6 @@
 pub(crate) mod buf;
 
-use std::{io::stdout, thread::current};
+use std::io::stdout;
 
 use anyhow::{anyhow, Result};
 use arboard::Clipboard;

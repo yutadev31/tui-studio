@@ -66,19 +66,6 @@ impl EditorCursor {
         }
     }
 
-    pub fn index_to_vec2(index: usize, code: &EditorCodeBuffer) -> Option<Vec2> {
-        let mut tmp = 0;
-        for y in 0..code.get_line_count() {
-            let line_len = code.get_line_length(y);
-            if tmp + line_len <= index {
-                return Some(Vec2::new(index - tmp, y));
-            }
-            tmp += line_len;
-        }
-
-        None
-    }
-
     pub fn move_x_to(&mut self, x: usize, code: &EditorCodeBuffer, mode: &EditorMode) {
         self.position.x = self.clamp_x(x, code, mode);
     }
