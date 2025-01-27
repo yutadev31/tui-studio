@@ -101,7 +101,7 @@ impl Editor {
             .enumerate()
             .for_each(|(draw_y, y)| {
                 draw_data[self.rect.y as usize + draw_y]
-                    .push_str(format!("{:<offset_x$}", y + 1).as_str());
+                    .push_str(format!("{}{:<offset_x$}", ResetColor, y + 1).as_str());
             });
     }
 
