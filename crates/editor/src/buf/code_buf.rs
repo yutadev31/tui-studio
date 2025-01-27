@@ -200,7 +200,10 @@ impl EditorCodeBuffer {
         } else {
             let remove_x = self.byte_index_to_char_index(cursor_pos.x - 1, cursor_pos.y);
             self.lines[cursor_pos.y].remove(remove_x);
-            cursor.move_by(-1, 0, &self, mode)?;
+
+            if !remove_x == self.get_line_length(cursor_pos.y) {
+                cursor.move_by(-1, 0, &self, mode)?;
+            }
         }
 
         Ok(())
