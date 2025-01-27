@@ -1,13 +1,12 @@
 [package]
-name = "syntax_highlight"
+name = "lang_support"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
 authors.workspace = true
 
+[lib]
+path = "src/lang_support.rs"
+
 [dependencies]
-tree-sitter = "0.24.7"
-tree-sitter-highlight = "0.24.7"
-tree-sitter-rust = "0.23.2"
-anyhow.workspace = true
 utils.path = "../utils"

@@ -2,8 +2,9 @@
 members = [
   "crates/editor",
   "crates/key_binding",
-  "crates/syntax_highlight",
+  "crates/lang_support",
   "crates/utils",
+  "langs",
 ]
 resolver = "2"
 

@@ -1,0 +1,10 @@
+[package]
+name = "langs"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+lang_support.path = "../crates/lang_support"
+utils.path = "../crates/utils"

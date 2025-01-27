@@ -10,7 +10,7 @@ use crossterm::{
     style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
 };
 use key_binding::{component::KeybindingComponent, Key, KeyConfig, KeyConfigType};
-use syntax_highlight::SyntaxHighlightToken;
+use lang_support::highlight::{HighlightToken, TokenKind};
 use utils::{
     component::Component, event::Event, mode::EditorMode, rect::Rect, term::get_term_size,
 };
@@ -21,7 +21,7 @@ pub struct Editor {
     buffer_manager: EditorBufferManager,
     mode: EditorMode,
     clipboard: Clipboard,
-    highlight_tokens: Vec<Vec<SyntaxHighlightToken>>,
+    highlight_tokens: Vec<Vec<HighlightToken>>,
 }
 
 impl Editor {
@@ -197,48 +197,54 @@ impl Editor {
                     .map(|c| c.len_utf8())
                     .sum();
 
-                match highlight_token.kind {
-                    None => {
-                        draw_data[y].push_str(format!("{}", ResetColor).as_str());
+                draw_data[y].push_str(
+                    match highlight_token.kind {
+                        TokenKind::Comment => format!(
+                            "{}",
+                            SetForegroundColor(Color::Rgb {
+                                r: 128,
+                                g: 128,
+                                b: 128,
+                            })
+                        ),
+                        TokenKind::Keyword => format!(
+                            "{}",
+                            SetForegroundColor(Color::Rgb {
+                                r: 146,
+                                g: 98,
+                                b: 208
+                            })
+                        ),
+                        _ => format!("{}", ResetColor),
+                        //     "keyword" | "variable.builtin" => format!(
+                        //         "{}",
+                        //         SetForegroundColor(Color::Rgb {
+                        //             r: 146,
+                        //             g: 98,
+                        //             b: 208
+                        //         })
+                        //     ),
+                        //     "type" => format!("{}", SetForegroundColor(Color::Yellow)),
+                        //     "variable" | "property" => {
+                        //         format!(
+                        //             "{}",
+                        //             SetForegroundColor(Color::Rgb {
+                        //                 r: 212,
+                        //                 g: 100,
+                        //                 b: 97
+                        //             })
+                        //         )
+                        //     }
+                        //     "function" | "function.method" => {
+                        //         format!("{}", SetForegroundColor(Color::Blue))
+                        //     }
+                        //     "string" => format!("{}", SetForegroundColor(Color::Green)),
+                        //     _ => format!("{}", ResetColor),
+                        // }
+                        // .as_str(),
                     }
-                    Some(kind) => draw_data[y].push_str(
-                        match kind.as_str() {
-                            "comment" => format!(
-                                "{}",
-                                SetForegroundColor(Color::Rgb {
-                                    r: 128,
-                                    g: 128,
-                                    b: 128,
-                                })
-                            ),
-                            "keyword" | "variable.builtin" => format!(
-                                "{}",
-                                SetForegroundColor(Color::Rgb {
-                                    r: 146,
-                                    g: 98,
-                                    b: 208
-                                })
-                            ),
-                            "type" => format!("{}", SetForegroundColor(Color::Yellow)),
-                            "variable" | "property" => {
-                                format!(
-                                    "{}",
-                                    SetForegroundColor(Color::Rgb {
-                                        r: 212,
-                                        g: 100,
-                                        b: 97
-                                    })
-                                )
-                            }
-                            "function" | "function.method" => {
-                                format!("{}", SetForegroundColor(Color::Blue))
-                            }
-                            "string" => format!("{}", SetForegroundColor(Color::Green)),
-                            _ => format!("{}", ResetColor),
-                        }
-                        .as_str(),
-                    ),
-                };
+                    .as_str(),
+                );
 
                 let draw_str = &line[start_char_index..end_char_index];
                 draw_data[self.rect.y as usize + index].push_str(draw_str);
@@ -258,10 +264,6 @@ impl Editor {
         lines: Vec<String>,
         offset_x: u16,
     ) -> Result<()> {
-        if self.highlight_tokens.len() == 0 {
-            return Ok(());
-        }
-
         let scroll_y = current.get_scroll_position().y;
 
         for (index, line) in lines
@@ -337,9 +339,7 @@ impl Component for Editor {
         }
 
         if let Some(current) = self.buffer_manager.get_current_mut() {
-            let scroll_y = current.get_scroll_position().y;
-            let length = self.rect.h as usize;
-            self.highlight_tokens = current.highlight(scroll_y, length)?;
+            self.highlight_tokens = current.highlight();
         }
 
         Ok(())
@@ -366,7 +366,15 @@ impl DrawableComponent for Editor {
             self.draw_code(&mut draw_data, current, lines.clone(), offset_x)?;
 
             for (index, draw_data) in draw_data.iter().enumerate() {
-                execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))?;
+                if draw_data.is_empty() {
+                    execute!(
+                        stdout(),
+                        MoveTo(0, index as u16),
+                        Print(" ".repeat(self.rect.w as usize))
+                    )?;
+                } else {
+                    execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))?;
+                }
             }
 
             self.draw_cursor(
