@@ -1,6 +1,5 @@
 pub(crate) mod buf;
 
-use core::num;
 use std::io::stdout;
 
 use anyhow::{anyhow, Result};
@@ -9,7 +8,7 @@ use buf::buf_manager::EditorBufferManager;
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
     execute,
-    style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
+    style::{Color, Print, ResetColor, SetBackgroundColor},
     terminal::{Clear, ClearType},
 };
 use key_binding::{component::KeybindingComponent, Key, KeyConfig, KeyConfigType};
