@@ -9,7 +9,6 @@ use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
     execute,
     style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
-    terminal::{Clear, ClearType},
 };
 use key_binding::{component::KeybindingComponent, Key, KeyConfig, KeyConfigType};
 use syntax_highlight::SyntaxHighlightToken;
