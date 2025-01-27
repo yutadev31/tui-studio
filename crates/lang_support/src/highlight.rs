@@ -1,5 +1,3 @@
-use utils::vec2::Vec2;
-
 #[derive(Clone)]
 pub struct HighlightToken {
     pub start: usize,
