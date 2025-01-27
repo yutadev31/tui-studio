@@ -1,10 +1,5 @@
 [workspace]
-members = [
-  "crates/command",
-  "crates/editor",
-  "crates/key_binding",
-  "crates/utils",
-]
+members = ["crates/editor", "crates/key_binding", "crates/utils"]
 resolver = "2"
 
 [workspace.package]
@@ -33,7 +28,6 @@ authors.workspace = true
 [dependencies]
 anyhow.workspace = true
 crossterm.workspace = true
-command.path = "crates/command"
 key_binding.path = "crates/key_binding"
 editor.path = "crates/editor"
 utils.path = "crates/utils"

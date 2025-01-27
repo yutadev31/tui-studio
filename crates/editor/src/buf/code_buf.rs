@@ -54,13 +54,13 @@ impl EditorCodeBuffer {
     }
 
     pub fn delete(&mut self, cursor: &mut EditorCursor, mode: &EditorMode) {
-        let (x, y) = cursor.get(self, mode);
-        let x = self.byte_index_to_char_index(x, y);
+        let cursor_pos = cursor.get(self, mode);
+        let x = self.byte_index_to_char_index(cursor_pos.x, cursor_pos.y);
 
-        if x == self.get_line_length(y) {
-            self.join_lines(y);
+        if x == self.get_line_length(cursor_pos.y) {
+            self.join_lines(cursor_pos.y);
         } else {
-            self.lines[y].remove(x);
+            self.lines[cursor_pos.y].remove(x);
         }
     }
 
@@ -82,22 +82,22 @@ impl EditorCodeBuffer {
     }
 
     pub fn backspace(&mut self, cursor: &mut EditorCursor, mode: &EditorMode) -> Result<()> {
-        let (x, y) = cursor.get(&self, mode);
+        let cursor_pos = cursor.get(&self, mode);
 
-        if x == 0 {
-            if y == 0 {
+        if cursor_pos.x == 0 {
+            if cursor_pos.y == 0 {
                 return Ok(());
             }
 
-            let line_length = self.get_line_length(y - 1);
+            let line_length = self.get_line_length(cursor_pos.y - 1);
             cursor.move_by(0, -1, &self, mode)?;
 
             // line_length - 1 するのが本来は良いが usize が 0 以下になるのを防ぐため、- 1 はしない
             cursor.move_x_to(line_length, &self, mode);
-            self.join_lines(y - 1);
+            self.join_lines(cursor_pos.y - 1);
         } else {
-            let remove_x = self.byte_index_to_char_index(x - 1, y);
-            self.lines[y].remove(remove_x);
+            let remove_x = self.byte_index_to_char_index(cursor_pos.x - 1, cursor_pos.y);
+            self.lines[cursor_pos.y].remove(remove_x);
             cursor.move_by(-1, 0, &self, mode)?;
         }
 

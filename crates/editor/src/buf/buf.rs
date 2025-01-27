@@ -7,7 +7,7 @@ use std::{
 use anyhow::{anyhow, Result};
 use arboard::Clipboard;
 use crossterm::event::{Event as CrosstermEvent, KeyCode};
-use utils::{event::Event, mode::EditorMode};
+use utils::{event::Event, mode::EditorMode, vec2::Vec2};
 
 use super::{code_buf::EditorCodeBuffer, cursor::EditorCursor};
 
@@ -50,11 +50,15 @@ impl EditorBuffer {
         }
     }
 
-    pub fn get_scroll_position(&self) -> (usize, usize) {
+    pub fn get_cursor_position(&self, mode: &EditorMode) -> Vec2 {
+        self.cursor.get(&self.code, mode)
+    }
+
+    pub fn get_scroll_position(&self) -> Vec2 {
         self.cursor.get_scroll_position()
     }
 
-    pub fn get_draw_cursor_position(&self, mode: &EditorMode) -> (usize, usize) {
+    pub fn get_draw_cursor_position(&self, mode: &EditorMode) -> Vec2 {
         self.cursor.get_draw_position(&self.code, mode)
     }
 
@@ -76,33 +80,36 @@ impl EditorBuffer {
         mode: &EditorMode,
         clipboard: &mut Clipboard,
     ) -> Result<()> {
-        let (cursor_x, cursor_y) = self.cursor.get(&self.code, mode);
+        let cursor_pos = self.cursor.get(&self.code, mode);
+        let cursor_x = cursor_pos.x;
+        let cursor_y = cursor_pos.y;
+
+        match evt.clone() {
+            Event::Command(cmd) => match cmd.as_str() {
+                "editor.cursor.left" => self.cursor.move_by(-1, 0, &self.code, mode)?,
+                "editor.cursor.down" => self.cursor.move_by(0, 1, &self.code, mode)?,
+                "editor.cursor.up" => self.cursor.move_by(0, -1, &self.code, mode)?,
+                "editor.cursor.right" => self.cursor.move_by(1, 0, &self.code, mode)?,
+                "editor.cursor.line_start" => self.cursor.move_x_to(0, &self.code, mode),
+                "editor.cursor.line_end" => {
+                    self.cursor
+                        .move_x_to(self.code.get_line_length(cursor_y), &self.code, mode);
+                }
+                "editor.cursor.top" => self.cursor.move_y_to(0, &self.code)?,
+                "editor.cursor.end" => {
+                    self.cursor
+                        .move_y_to(self.code.get_line_count() - 1, &self.code)?;
+                }
+                "editor.edit.line_delete" => self.code.delete_line(cursor_y, clipboard)?,
+                "editor.edit.line_yank" => self.code.yank_line(cursor_y, clipboard)?,
+                "editor.edit.line_paste" => self.code.paste(cursor_x, cursor_y, clipboard)?,
+                _ => {}
+            },
+            _ => {}
+        }
 
         match mode {
             EditorMode::Normal => match evt {
-                Event::Command(cmd) => match cmd.as_str() {
-                    "editor.cursor.left" => self.cursor.move_by(-1, 0, &self.code, mode)?,
-                    "editor.cursor.down" => self.cursor.move_by(0, 1, &self.code, mode)?,
-                    "editor.cursor.up" => self.cursor.move_by(0, -1, &self.code, mode)?,
-                    "editor.cursor.right" => self.cursor.move_by(1, 0, &self.code, mode)?,
-                    "editor.cursor.line_start" => self.cursor.move_x_to(0, &self.code, mode),
-                    "editor.cursor.line_end" => {
-                        self.cursor.move_x_to(
-                            self.code.get_line_length(cursor_y),
-                            &self.code,
-                            mode,
-                        );
-                    }
-                    "editor.cursor.top" => self.cursor.move_y_to(0, &self.code)?,
-                    "editor.cursor.end" => {
-                        self.cursor
-                            .move_y_to(self.code.get_line_count() - 1, &self.code)?;
-                    }
-                    "editor.edit.line_delete" => self.code.delete_line(cursor_y, clipboard)?,
-                    "editor.edit.line_yank" => self.code.yank_line(cursor_y, clipboard)?,
-                    "editor.edit.line_paste" => self.code.paste(cursor_x, cursor_y, clipboard)?,
-                    _ => {}
-                },
                 Event::Click(x, y) => {
                     self.cursor.move_y_to(y, &self.code)?;
                     self.cursor.move_x_to(x, &self.code, mode);
@@ -141,6 +148,7 @@ impl EditorBuffer {
                 },
                 _ => {}
             },
+            _ => {}
         }
 
         Ok(())

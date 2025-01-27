@@ -246,13 +246,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 
 [[package]]
-name = "command"
-version = "0.1.0"
-dependencies = [
- "anyhow",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -368,7 +361,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "arboard",
- "command",
  "crossterm",
  "key_binding",
  "unicode-width",
@@ -1104,7 +1096,6 @@ dependencies = [
  "anyhow",
  "chrono",
  "clap",
- "command",
  "crossterm",
  "editor",
  "fluent",
@@ -1188,7 +1179,6 @@ name = "utils"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "command",
  "crossterm",
 ]
 

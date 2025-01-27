@@ -1,44 +1,42 @@
 use anyhow::Result;
 use unicode_width::UnicodeWidthChar;
-use utils::{mode::EditorMode, term::get_term_size};
+use utils::{mode::EditorMode, term::get_term_size, vec2::Vec2};
 
 use crate::buf::code_buf::EditorCodeBuffer;
 
 #[derive(Clone)]
 pub struct EditorCursor {
-    x: usize,
-    y: usize,
-    scroll_x: usize,
-    scroll_y: usize,
+    position: Vec2,
+    scroll: Vec2,
 }
 
 impl EditorCursor {
-    pub fn get(&self, code: &EditorCodeBuffer, mode: &EditorMode) -> (usize, usize) {
-        (self.clamp_x(self.x, code, mode), self.y)
+    pub fn get(&self, code: &EditorCodeBuffer, mode: &EditorMode) -> Vec2 {
+        Vec2::new(self.clamp_x(self.position.x, code, mode), self.position.y)
     }
 
-    pub fn get_draw_position(&self, code: &EditorCodeBuffer, mode: &EditorMode) -> (usize, usize) {
-        let line = code.get_line(self.y);
-        let x = self.clamp_x(self.x, code, mode);
+    pub fn get_draw_position(&self, code: &EditorCodeBuffer, mode: &EditorMode) -> Vec2 {
+        let line = code.get_line(self.position.y);
+        let x = self.clamp_x(self.position.x, code, mode);
 
-        (
+        Vec2::new(
             line.chars()
                 .take(x)
                 .filter_map(|c| c.width())
                 .fold(0, |sum, x| sum + x),
-            self.y,
+            self.position.y,
         )
     }
 
-    pub fn get_scroll_position(&self) -> (usize, usize) {
-        (self.scroll_x, self.scroll_y)
+    pub fn get_scroll_position(&self) -> Vec2 {
+        self.scroll.clone()
     }
 
     fn clamp_x(&self, x: usize, code: &EditorCodeBuffer, mode: &EditorMode) -> usize {
-        let line_len = code.get_line_length(self.y);
+        let line_len = code.get_line_length(self.position.y);
 
         match mode {
-            EditorMode::Normal => {
+            EditorMode::Normal | EditorMode::Visual { .. } => {
                 if line_len == 0 {
                     0
                 } else if x > line_len - 1 {
@@ -47,7 +45,7 @@ impl EditorCursor {
                     x
                 }
             }
-            EditorMode::Insert { append: _ } => {
+            EditorMode::Insert { .. } => {
                 if x > line_len {
                     line_len
                 } else {
@@ -69,18 +67,18 @@ impl EditorCursor {
     }
 
     pub fn move_x_to(&mut self, x: usize, code: &EditorCodeBuffer, mode: &EditorMode) {
-        self.x = self.clamp_x(x, code, mode);
+        self.position.x = self.clamp_x(x, code, mode);
     }
 
     pub fn move_y_to(&mut self, y: usize, code: &EditorCodeBuffer) -> Result<()> {
         let (_, term_h) = get_term_size()?;
 
-        self.y = self.clamp_y(y, code);
+        self.position.y = self.clamp_y(y, code);
 
-        if self.y as usize > self.scroll_y + term_h as usize + 1 {
-            self.scroll_y_to(self.y - term_h as usize + 1);
-        } else if self.y < self.scroll_y {
-            self.scroll_y_to(self.y);
+        if self.position.y as usize > self.scroll.y + term_h as usize + 1 {
+            self.scroll_y_to(self.position.y - term_h as usize + 1);
+        } else if self.position.y < self.scroll.y {
+            self.scroll_y_to(self.position.y);
         }
 
         Ok(())
@@ -109,30 +107,32 @@ impl EditorCursor {
         let term_h = term_h - 1;
 
         if x > 0 {
-            self.x = self.clamp_x(self.x + x as usize, code, mode);
+            self.sync(code, mode);
+            self.position.x = self.clamp_x(self.position.x + x as usize, code, mode);
         } else if x < 0 {
-            if self.x < -x as usize {
-                self.x = 0;
+            self.sync(code, mode);
+            if self.position.x < -x as usize {
+                self.position.x = 0;
             } else {
-                self.x -= -x as usize;
+                self.position.x -= -x as usize;
             }
         }
 
         if y > 0 {
-            self.y = self.clamp_y(self.y + y as usize, code);
+            self.position.y = self.clamp_y(self.position.y + y as usize, code);
 
-            if self.y >= self.scroll_y + term_h as usize {
-                self.scroll_y = self.y - term_h as usize;
+            if self.position.y >= self.scroll.y + term_h as usize {
+                self.scroll.y = self.position.y - term_h as usize;
             }
         } else if y < 0 {
-            if self.y < -y as usize {
-                self.y = 0;
+            if self.position.y < -y as usize {
+                self.position.y = 0;
             } else {
-                self.y -= -y as usize;
+                self.position.y -= -y as usize;
             }
 
-            if self.y < self.scroll_y {
-                self.scroll_y = self.y;
+            if self.position.y < self.scroll.y {
+                self.scroll.y = self.position.y;
             }
         }
 
@@ -166,26 +166,24 @@ impl EditorCursor {
     // }
 
     pub fn sync_x(&mut self, code: &EditorCodeBuffer, mode: &EditorMode) {
-        self.x = self.clamp_x(self.x, code, mode);
+        self.position.x = self.clamp_x(self.position.x, code, mode);
     }
 
     pub fn sync(&mut self, code: &EditorCodeBuffer, mode: &EditorMode) {
         self.sync_x(code, mode);
-        self.y = self.clamp_y(self.y, code);
+        self.position.y = self.clamp_y(self.position.y, code);
     }
 
     pub fn scroll_y_to(&mut self, y: usize) {
-        self.scroll_y = y;
+        self.scroll.y = y;
     }
 }
 
 impl Default for EditorCursor {
     fn default() -> Self {
         Self {
-            x: 0,
-            y: 0,
-            scroll_x: 0,
-            scroll_y: 0,
+            position: Vec2::default(),
+            scroll: Vec2::default(),
         }
     }
 }

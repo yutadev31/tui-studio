@@ -1,11 +1,10 @@
 use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
-use command::CommandManager;
 use crossterm::event::{Event as CrosstermEvent, MouseEventKind};
 use editor::Editor;
 use key_binding::{Key, KeyConfig};
 use utils::{
-    component::{CommandComponent, Component, DrawableComponent},
+    component::{Component, DrawableComponent},
     event::Event,
     rect::Rect,
     term::get_term_size,
@@ -16,7 +15,6 @@ use key_binding::component::KeybindingComponent;
 pub struct App {
     editor: Editor,
 
-    cmd_manager: CommandManager,
     key_config: KeyConfig,
 
     first_key_time: Option<DateTime<Utc>>,
@@ -29,7 +27,6 @@ impl App {
 
         Ok(Self {
             editor: Editor::new(path, Rect::new(0, 0, term_w, term_h))?,
-            cmd_manager: CommandManager::default(),
             key_config: KeyConfig::default(),
             key_buf: Vec::new(),
             first_key_time: None,
@@ -38,7 +35,6 @@ impl App {
 
     pub fn init(&mut self) {
         // Editor
-        self.editor.register_commands(&mut self.cmd_manager);
         self.editor.register_keybindings(&mut self.key_config);
     }
 }
