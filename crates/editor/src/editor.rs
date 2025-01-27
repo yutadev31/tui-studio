@@ -125,8 +125,6 @@ impl DrawableComponent for Editor {
                 execute!(stdout(), MoveTo(self.rect.x, self.rect.y + y), Print(line))?;
             }
 
-            execute!(stdout(), Print(self.mode.to_string()))?;
-
             let (cursor_x, cursor_y) = buffer.get_draw_cursor_position(&self.mode);
             let (cursor_x, cursor_y): (u16, u16) = (cursor_x as u16, cursor_y as u16);
 

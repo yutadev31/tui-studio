@@ -15,7 +15,7 @@ use utils::term::init_term;
 
 static_loader! {
     pub static LOCALES = {
-        locales: "../../locales",
+        locales: "./locales",
         fallback_language: "en-US",
     };
 }

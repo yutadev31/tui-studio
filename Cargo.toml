@@ -1,6 +1,5 @@
 [workspace]
 members = [
-  "crates/cli",
   "crates/command",
   "crates/editor",
   "crates/key_binding",
@@ -18,7 +17,27 @@ authors = ["Yuta"]
 anyhow = "1.0.95"
 arboard = "3.4.1"
 crossterm = { version = "0.28.1", features = ["events"] }
+clap = { version = "4.5.27", features = ["derive"] }
 fluent = "0.16.1"
 fluent-templates = "0.13.0"
 chrono = "0.4.39"
 unicode-width = "0.2.0"
+
+[package]
+name = "tui-studio"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+crossterm.workspace = true
+command.path = "crates/command"
+key_binding.path = "crates/key_binding"
+editor.path = "crates/editor"
+utils.path = "crates/utils"
+fluent.workspace = true
+fluent-templates.workspace = true
+clap.workspace = true
+chrono.workspace = true

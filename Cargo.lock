@@ -231,22 +231,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f46ad14479a25103f283c0f10005961cf086d8dc42205bb44c46ac563475dca6"
 
 [[package]]
-name = "cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "clap",
- "command",
- "crossterm",
- "editor",
- "fluent",
- "fluent-templates",
- "key_binding",
- "utils",
-]
-
-[[package]]
 name = "clipboard-win"
 version = "5.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1111,6 +1095,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9117f5d4db391c1cf6927e7bea3db74b9a1c1add8f7eda9ffd5364f40f57b82f"
 dependencies = [
  "displaydoc",
+]
+
+[[package]]
+name = "tui-studio"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "command",
+ "crossterm",
+ "editor",
+ "fluent",
+ "fluent-templates",
+ "key_binding",
+ "utils",
 ]
 
 [[package]]
