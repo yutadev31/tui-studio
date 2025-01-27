@@ -86,7 +86,13 @@ impl Editor {
         Ok(())
     }
 
-    fn draw_number(&self, current: &EditorBuffer, lines: Vec<String>, offset_x: usize) {
+    fn draw_number(
+        &self,
+        draw_data: &mut Vec<String>,
+        current: &EditorBuffer,
+        lines: Vec<String>,
+        offset_x: usize,
+    ) {
         let scroll_y = current.get_scroll_position().y;
 
         (0..lines.len())
@@ -94,18 +100,14 @@ impl Editor {
             .take(self.rect.h.into())
             .enumerate()
             .for_each(|(draw_y, y)| {
-                let draw_y: u16 = draw_y.try_into().unwrap();
-                execute!(
-                    stdout(),
-                    MoveTo(self.rect.x, self.rect.y + draw_y),
-                    Print(format!("{:<offset_x$}", y + 1))
-                )
-                .unwrap();
+                draw_data[self.rect.y as usize + draw_y]
+                    .push_str(format!("{:<offset_x$}", y + 1).as_str());
             });
     }
 
     fn draw_code_line(
         &self,
+        draw_data: &mut Vec<String>,
         current: &EditorBuffer,
         offset_x: u16,
         y: usize,
@@ -181,11 +183,7 @@ impl Editor {
                 )?;
             }
         } else {
-            execute!(
-                stdout(),
-                MoveTo(self.rect.x + offset_x, self.rect.y + index as u16),
-            )?;
-
+            let y = self.rect.y as usize + index;
             for highlight_token in highlight_tokens {
                 let start_char_index = line
                     .chars()
@@ -201,35 +199,65 @@ impl Editor {
 
                 match highlight_token.kind {
                     None => {
-                        execute!(stdout(), ResetColor)?;
+                        draw_data[y].push_str(format!("{}", ResetColor).as_str());
                     }
-                    Some(kind) => match kind.as_str() {
-                        "comment" => execute!(stdout(), SetForegroundColor(Color::Grey))?,
-                        "keyword" => execute!(stdout(), SetForegroundColor(Color::Magenta))?,
-                        "type" => execute!(stdout(), SetForegroundColor(Color::Yellow))?,
-                        "variable.builtin" => execute!(stdout(), SetForegroundColor(Color::Red))?,
-                        "variable" | "property" => {
-                            execute!(stdout(), SetForegroundColor(Color::Red))?
+                    Some(kind) => draw_data[y].push_str(
+                        match kind.as_str() {
+                            "comment" => format!(
+                                "{}",
+                                SetForegroundColor(Color::Rgb {
+                                    r: 128,
+                                    g: 128,
+                                    b: 128,
+                                })
+                            ),
+                            "keyword" | "variable.builtin" => format!(
+                                "{}",
+                                SetForegroundColor(Color::Rgb {
+                                    r: 146,
+                                    g: 98,
+                                    b: 208
+                                })
+                            ),
+                            "type" => format!("{}", SetForegroundColor(Color::Yellow)),
+                            "variable" | "property" => {
+                                format!(
+                                    "{}",
+                                    SetForegroundColor(Color::Rgb {
+                                        r: 212,
+                                        g: 100,
+                                        b: 97
+                                    })
+                                )
+                            }
+                            "function" | "function.method" => {
+                                format!("{}", SetForegroundColor(Color::Blue))
+                            }
+                            "string" => format!("{}", SetForegroundColor(Color::Green)),
+                            _ => format!("{}", ResetColor),
                         }
-                        "function" | "function.method" => {
-                            execute!(stdout(), SetForegroundColor(Color::Blue))?
-                        }
-                        "string" => execute!(stdout(), SetForegroundColor(Color::Green))?,
-                        _ => execute!(stdout(), ResetColor)?,
-                    },
+                        .as_str(),
+                    ),
                 };
 
-                execute!(stdout(), Print(&line[start_char_index..end_char_index]))?;
+                let draw_str = &line[start_char_index..end_char_index];
+                draw_data[self.rect.y as usize + index].push_str(draw_str);
             }
 
-            let space_w = self.rect.w as usize - (offset_x as usize + line.len());
-            execute!(stdout(), Print(" ".repeat(space_w)))?;
+            let n = self.rect.w as usize - (offset_x as usize + line.len());
+            draw_data[self.rect.y as usize + index].push_str(" ".repeat(n).as_str());
         }
 
         Ok(())
     }
 
-    fn draw_code(&self, current: &EditorBuffer, lines: Vec<String>, offset_x: u16) -> Result<()> {
+    fn draw_code(
+        &self,
+        draw_data: &mut Vec<String>,
+        current: &EditorBuffer,
+        lines: Vec<String>,
+        offset_x: u16,
+    ) -> Result<()> {
         if self.highlight_tokens.len() == 0 {
             return Ok(());
         }
@@ -242,7 +270,14 @@ impl Editor {
             .take(self.rect.h.into())
             .enumerate()
         {
-            self.draw_code_line(current, offset_x, index + scroll_y, index, line.clone())?;
+            self.draw_code_line(
+                draw_data,
+                current,
+                offset_x,
+                index + scroll_y,
+                index,
+                line.clone(),
+            )?;
         }
 
         Ok(())
@@ -313,6 +348,11 @@ impl Component for Editor {
 
 impl DrawableComponent for Editor {
     fn draw(&self) -> Result<()> {
+        let mut draw_data: Vec<String> = Vec::new();
+        for _ in 0..self.rect.h {
+            draw_data.push(String::new());
+        }
+
         if let Some(current) = self.buffer_manager.get_current() {
             let lines = current.get_code_buf().get_lines();
             let (cursor_x, cursor_y) = current.get_draw_cursor_position(&self.mode).into();
@@ -322,8 +362,13 @@ impl DrawableComponent for Editor {
 
             let scroll_y = current.get_scroll_position().y;
 
-            self.draw_code(current, lines.clone(), offset_x)?;
-            self.draw_number(current, lines.clone(), offset_x as usize);
+            self.draw_number(&mut draw_data, current, lines.clone(), offset_x as usize);
+            self.draw_code(&mut draw_data, current, lines.clone(), offset_x)?;
+
+            for (index, draw_data) in draw_data.iter().enumerate() {
+                execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))?;
+            }
+
             self.draw_cursor(
                 cursor_x as u16 + offset_x as u16 + self.rect.x,
                 cursor_y as u16 - scroll_y as u16 + self.rect.y,
