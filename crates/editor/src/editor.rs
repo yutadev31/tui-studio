@@ -91,7 +91,7 @@ impl Component for Editor {
         let (term_w, term_h) = get_term_size()?;
 
         self.rect.w = term_w;
-        self.rect.h = term_h - 1;
+        self.rect.h = term_h;
 
         match evt.clone() {
             Event::Command(cmd) => match cmd.as_str() {
