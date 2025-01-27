@@ -115,7 +115,9 @@ impl EditorCodeBuffer {
 
 impl Default for EditorCodeBuffer {
     fn default() -> Self {
-        Self { lines: Vec::new() }
+        Self {
+            lines: vec![String::new()],
+        }
     }
 }
 

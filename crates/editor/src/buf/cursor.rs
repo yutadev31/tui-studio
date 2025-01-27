@@ -170,8 +170,12 @@ impl EditorCursor {
         Ok(())
     }
 
-    pub fn sync(&mut self, code: &EditorCodeBuffer, mode: &EditorMode) {
+    pub fn sync_x(&mut self, code: &EditorCodeBuffer, mode: &EditorMode) {
         self.x = self.clamp_x(self.x, code, mode);
+    }
+
+    pub fn sync(&mut self, code: &EditorCodeBuffer, mode: &EditorMode) {
+        self.sync_x(code, mode);
         self.y = self.clamp_y(self.y, code);
     }
 

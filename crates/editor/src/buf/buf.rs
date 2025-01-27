@@ -1,6 +1,6 @@
 use std::{
-    fs::{read_to_string, File},
-    io::Write,
+    fs::{write, File, OpenOptions},
+    io::{Read, Seek, SeekFrom, Write},
     path::PathBuf,
 };
 
@@ -19,12 +19,19 @@ pub struct EditorBuffer {
 
 impl EditorBuffer {
     pub fn open(path: PathBuf) -> Result<Self> {
-        let code = read_to_string(path.clone())?;
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(path)?;
+
+        let mut buf = String::new();
+        file.read_to_string(&mut buf)?;
 
         Ok(Self {
-            code: EditorCodeBuffer::from(code),
+            code: EditorCodeBuffer::from(buf),
             cursor: EditorCursor::default(),
-            file: Some(File::open(path)?),
+            file: Some(file),
         })
     }
 
@@ -35,7 +42,9 @@ impl EditorBuffer {
 
     pub fn save(&mut self) -> Result<()> {
         if let Some(file) = &mut self.file {
-            file.write(self.code.to_string().as_bytes())?;
+            file.seek(SeekFrom::Start(0))?;
+            file.write_all(self.code.to_string().as_bytes())?;
+            write("./a.log", self.code.to_string().as_bytes())?;
             Ok(())
         } else {
             Err(anyhow!("Cannot save the file because it is not open."))
@@ -73,7 +82,6 @@ impl EditorBuffer {
         match mode {
             EditorMode::Normal => match evt {
                 Event::Command(cmd) => match cmd.as_str() {
-                    "editor.save" => self.save()?,
                     "editor.cursor.left" => self.cursor.move_by(-1, 0, &self.code, mode)?,
                     "editor.cursor.down" => self.cursor.move_by(0, 1, &self.code, mode)?,
                     "editor.cursor.up" => self.cursor.move_by(0, -1, &self.code, mode)?,
@@ -121,6 +129,13 @@ impl EditorBuffer {
                         }
                     }
                 }
+                _ => {}
+            },
+            EditorMode::Command => match evt {
+                Event::Command(cmd) => match cmd.as_str() {
+                    "editor.save" => self.save()?,
+                    _ => {}
+                },
                 _ => {}
             },
             _ => {}

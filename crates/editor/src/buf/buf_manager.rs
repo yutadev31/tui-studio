@@ -13,8 +13,8 @@ impl EditorBufferManager {
     pub fn new(path: Option<String>) -> Result<Self> {
         Ok(match path {
             None => Self {
-                buffers: Vec::new(),
-                current_index: None,
+                buffers: vec![EditorBuffer::default()],
+                current_index: Some(0),
             },
             Some(path) => Self {
                 buffers: vec![EditorBuffer::open(PathBuf::from(path))?],
