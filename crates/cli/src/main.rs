@@ -1,8 +1,8 @@
 mod app;
 
 use std::sync::{Arc, Mutex};
+use std::thread;
 use std::time::Duration;
-use std::{panic, thread};
 
 use anyhow::Result;
 use app::App;
@@ -11,7 +11,7 @@ use crossterm::event;
 use fluent_templates::static_loader;
 use utils::component::{Component, DrawableComponent};
 use utils::event::Event;
-use utils::term::{init_term, safe_exit};
+use utils::term::init_term;
 
 static_loader! {
     pub static LOCALES = {

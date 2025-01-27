@@ -1,7 +1,7 @@
 use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
 use command::CommandManager;
-use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
+use crossterm::event::Event as CrosstermEvent;
 use editor::Editor;
 use key_binding::{Key, KeyConfig};
 use side_view::SideView;

@@ -1,7 +1,4 @@
-use std::{
-    fmt::{self, Display, Formatter},
-    fs::write,
-};
+use std::fmt::{self, Display, Formatter};
 
 use anyhow::Result;
 use utils::mode::EditorMode;

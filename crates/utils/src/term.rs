@@ -2,7 +2,6 @@ use std::{io::stdout, process::exit};
 
 use anyhow::Result;
 use crossterm::{
-    event::EnableMouseCapture,
     execute,
     terminal::{
         disable_raw_mode, enable_raw_mode, size, EnterAlternateScreen, LeaveAlternateScreen,
