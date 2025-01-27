@@ -1,4 +1,5 @@
 use std::{
+    arch::x86_64,
     fs::{write, File, OpenOptions},
     io::{Read, Seek, SeekFrom, Write},
     path::PathBuf,
@@ -104,6 +105,10 @@ impl EditorBuffer {
                     "editor.edit.line_paste" => self.code.paste(cursor_x, cursor_y, clipboard)?,
                     _ => {}
                 },
+                Event::Click(x, y) => {
+                    self.cursor.move_y_to(y, &self.code)?;
+                    self.cursor.move_x_to(x, &self.code, mode);
+                }
                 _ => {}
             },
             EditorMode::Insert { append: _ } => match evt {

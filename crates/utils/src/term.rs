@@ -2,6 +2,8 @@ use std::{io::stdout, process::exit};
 
 use anyhow::Result;
 use crossterm::{
+    cursor::SetCursorStyle,
+    event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{
         disable_raw_mode, enable_raw_mode, size, EnterAlternateScreen, LeaveAlternateScreen,
@@ -10,13 +12,18 @@ use crossterm::{
 
 pub fn init_term() -> Result<()> {
     enable_raw_mode()?;
-    execute!(stdout(), EnterAlternateScreen)?;
+    execute!(stdout(), EnterAlternateScreen, EnableMouseCapture)?;
     Ok(())
 }
 
 pub fn clean_term() -> Result<()> {
     disable_raw_mode()?;
-    execute!(stdout(), LeaveAlternateScreen)?;
+    execute!(
+        stdout(),
+        LeaveAlternateScreen,
+        DisableMouseCapture,
+        SetCursorStyle::DefaultUserShape
+    )?;
     Ok(())
 }
 
