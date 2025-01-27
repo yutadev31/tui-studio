@@ -35,10 +35,10 @@ impl EditorBuffer {
         })
     }
 
-    pub fn set_path(&mut self, path: PathBuf) -> Result<()> {
-        self.file = Some(File::open(path)?);
-        Ok(())
-    }
+    // pub fn set_path(&mut self, path: PathBuf) -> Result<()> {
+    //     self.file = Some(File::open(path)?);
+    //     Ok(())
+    // }
 
     pub fn save(&mut self) -> Result<()> {
         if let Some(file) = &mut self.file {
@@ -94,10 +94,10 @@ impl EditorBuffer {
                             mode,
                         );
                     }
-                    "editor.cursor.top" => self.cursor.move_y_to(0, &self.code, mode)?,
+                    "editor.cursor.top" => self.cursor.move_y_to(0, &self.code)?,
                     "editor.cursor.end" => {
                         self.cursor
-                            .move_y_to(self.code.get_line_count() - 1, &self.code, mode)?;
+                            .move_y_to(self.code.get_line_count() - 1, &self.code)?;
                     }
                     "editor.edit.line_delete" => self.code.delete_line(cursor_y, clipboard)?,
                     "editor.edit.line_yank" => self.code.yank_line(cursor_y, clipboard)?,
@@ -138,7 +138,6 @@ impl EditorBuffer {
                 },
                 _ => {}
             },
-            _ => {}
         }
 
         Ok(())

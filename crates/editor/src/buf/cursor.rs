@@ -72,36 +72,31 @@ impl EditorCursor {
         self.x = self.clamp_x(x, code, mode);
     }
 
-    pub fn move_y_to(
-        &mut self,
-        y: usize,
-        code: &EditorCodeBuffer,
-        mode: &EditorMode,
-    ) -> Result<()> {
+    pub fn move_y_to(&mut self, y: usize, code: &EditorCodeBuffer) -> Result<()> {
         let (_, term_h) = get_term_size()?;
 
         self.y = self.clamp_y(y, code);
 
         if self.y as usize > self.scroll_y + term_h as usize + 1 {
-            self.scroll_y_to(self.y - term_h as usize + 1, code, mode);
+            self.scroll_y_to(self.y - term_h as usize + 1);
         } else if self.y < self.scroll_y {
-            self.scroll_y_to(self.y, code, mode);
+            self.scroll_y_to(self.y);
         }
 
         Ok(())
     }
 
-    pub fn move_to(
-        &mut self,
-        x: usize,
-        y: usize,
-        code: &EditorCodeBuffer,
-        mode: &EditorMode,
-    ) -> Result<()> {
-        self.move_x_to(x, code, mode);
-        self.move_y_to(y, code, mode)?;
-        Ok(())
-    }
+    // pub fn move_to(
+    //     &mut self,
+    //     x: usize,
+    //     y: usize,
+    //     code: &EditorCodeBuffer,
+    //     mode: &EditorMode,
+    // ) -> Result<()> {
+    //     self.move_x_to(x, code, mode);
+    //     self.move_y_to(y, code, mode)?;
+    //     Ok(())
+    // }
 
     pub fn move_by(
         &mut self,
@@ -144,31 +139,31 @@ impl EditorCursor {
         Ok(())
     }
 
-    pub fn scroll_by(&mut self, _x: isize, y: isize, code: &EditorCodeBuffer) -> Result<()> {
-        let (_term_w, term_h) = get_term_size()?;
+    // pub fn scroll_by(&mut self, _x: isize, y: isize, code: &EditorCodeBuffer) -> Result<()> {
+    //     let (_term_w, term_h) = get_term_size()?;
 
-        // todo
+    //     // todo
 
-        // if (self.scroll_x != 0 || x > 0)
-        //     && (self.scroll_y <= lines.len() - term_w as usize || x < 0)
-        // {
-        //     let mut scroll_x: isize = self.scroll_x.try_into()?;
-        //     scroll_x += x;
-        //     self.scroll_x = scroll_x.try_into()?;
-        // }
+    //     // if (self.scroll_x != 0 || x > 0)
+    //     //     && (self.scroll_y <= lines.len() - term_w as usize || x < 0)
+    //     // {
+    //     //     let mut scroll_x: isize = self.scroll_x.try_into()?;
+    //     //     scroll_x += x;
+    //     //     self.scroll_x = scroll_x.try_into()?;
+    //     // }
 
-        if (self.scroll_y != 0 || y > 0)
-            && (code.get_line_count() >= term_h as usize
-                && self.scroll_y <= code.get_line_count() - term_h as usize
-                || y < 0)
-        {
-            let mut scroll_y: isize = self.scroll_y.try_into()?;
-            scroll_y += y;
-            self.scroll_y = scroll_y.try_into()?;
-        }
+    //     if (self.scroll_y != 0 || y > 0)
+    //         && (code.get_line_count() >= term_h as usize
+    //             && self.scroll_y <= code.get_line_count() - term_h as usize
+    //             || y < 0)
+    //     {
+    //         let mut scroll_y: isize = self.scroll_y.try_into()?;
+    //         scroll_y += y;
+    //         self.scroll_y = scroll_y.try_into()?;
+    //     }
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     pub fn sync_x(&mut self, code: &EditorCodeBuffer, mode: &EditorMode) {
         self.x = self.clamp_x(self.x, code, mode);
@@ -179,7 +174,7 @@ impl EditorCursor {
         self.y = self.clamp_y(self.y, code);
     }
 
-    pub fn scroll_y_to(&mut self, y: usize, code: &EditorCodeBuffer, mode: &EditorMode) {
+    pub fn scroll_y_to(&mut self, y: usize) {
         self.scroll_y = y;
     }
 }

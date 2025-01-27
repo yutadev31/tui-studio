@@ -1,10 +1,10 @@
 pub(crate) mod buf;
 
-use std::{f32::consts::E, io::stdout};
+use std::io::stdout;
 
 use anyhow::{anyhow, Result};
 use arboard::Clipboard;
-use buf::{buf::EditorBuffer, buf_manager::EditorBufferManager};
+use buf::buf_manager::EditorBufferManager;
 use command::CommandManager;
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},

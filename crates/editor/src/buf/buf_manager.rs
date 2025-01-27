@@ -23,24 +23,24 @@ impl EditorBufferManager {
         })
     }
 
-    pub fn open_new_file(&mut self) {
-        self.buffers.push(EditorBuffer::default());
-    }
+    // pub fn open_new_file(&mut self) {
+    //     self.buffers.push(EditorBuffer::default());
+    // }
 
-    pub fn open(&mut self, path: PathBuf) -> Result<()> {
-        self.buffers.push(EditorBuffer::open(path)?);
-        Ok(())
-    }
+    // pub fn open(&mut self, path: PathBuf) -> Result<()> {
+    //     self.buffers.push(EditorBuffer::open(path)?);
+    //     Ok(())
+    // }
 
-    pub fn close(&mut self, index: usize) {
-        self.buffers.remove(index);
-    }
+    // pub fn close(&mut self, index: usize) {
+    //     self.buffers.remove(index);
+    // }
 
-    pub fn close_current(&mut self) {
-        if let Some(index) = self.current_index {
-            self.close(index);
-        }
-    }
+    // pub fn close_current(&mut self) {
+    //     if let Some(index) = self.current_index {
+    //         self.close(index);
+    //     }
+    // }
 
     pub fn get_current(&self) -> Option<&EditorBuffer> {
         match self.current_index {
