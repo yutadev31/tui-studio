@@ -1,5 +1,6 @@
 pub(crate) mod buf;
 
+use core::num;
 use std::io::stdout;
 
 use anyhow::{anyhow, Result};
@@ -8,7 +9,7 @@ use buf::buf_manager::EditorBufferManager;
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
     execute,
-    style::{Color, Print, ResetColor, SetBackgroundColor},
+    style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
     terminal::{Clear, ClearType},
 };
 use key_binding::{component::KeybindingComponent, Key, KeyConfig, KeyConfigType};
@@ -130,6 +131,23 @@ impl DrawableComponent for Editor {
             let scroll_y = buffer.get_scroll_position().y;
             let lines = buffer.get_code_buf().get_lines();
 
+            (0..lines.len())
+                .skip(scroll_y)
+                .take(self.rect.h.into())
+                .enumerate()
+                .for_each(|(draw_y, y)| {
+                    let draw_y: u16 = draw_y.try_into().unwrap();
+                    execute!(
+                        stdout(),
+                        MoveTo(self.rect.x, self.rect.y + draw_y),
+                        Print(y + 1)
+                    )
+                    .unwrap();
+                });
+
+            let num_len = (lines.len() - 1).to_string().len();
+            let offset_x = (num_len + 1) as u16;
+
             for (index, line) in lines
                 .iter()
                 .skip(scroll_y)
@@ -189,7 +207,7 @@ impl DrawableComponent for Editor {
                         let y: u16 = index.try_into()?;
                         execute!(
                             stdout(),
-                            MoveTo(self.rect.x, self.rect.y + y),
+                            MoveTo(self.rect.x + offset_x, self.rect.y + y),
                             Print(front_text),
                             SetBackgroundColor(Color::White),
                             Print(select_text),
@@ -198,11 +216,19 @@ impl DrawableComponent for Editor {
                         )?;
                     } else {
                         let y: u16 = index.try_into()?;
-                        execute!(stdout(), MoveTo(self.rect.x, self.rect.y + y), Print(line))?;
+                        execute!(
+                            stdout(),
+                            MoveTo(self.rect.x + offset_x, self.rect.y + y),
+                            Print(line)
+                        )?;
                     }
                 } else {
                     let y: u16 = index.try_into()?;
-                    execute!(stdout(), MoveTo(self.rect.x, self.rect.y + y), Print(line))?;
+                    execute!(
+                        stdout(),
+                        MoveTo(self.rect.x + offset_x, self.rect.y + y),
+                        Print(line)
+                    )?;
                 }
             }
 
@@ -212,7 +238,10 @@ impl DrawableComponent for Editor {
             let scroll_y: u16 = scroll_y.try_into()?;
             execute!(
                 stdout(),
-                MoveTo(cursor_x + self.rect.x, cursor_y - scroll_y + self.rect.y)
+                MoveTo(
+                    cursor_x + self.rect.x + offset_x,
+                    cursor_y - scroll_y + self.rect.y
+                )
             )?;
 
             match self.mode {
