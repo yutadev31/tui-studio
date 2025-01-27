@@ -1,5 +1,4 @@
 use std::{
-    arch::x86_64,
     fs::{write, File, OpenOptions},
     io::{Read, Seek, SeekFrom, Write},
     path::PathBuf,
