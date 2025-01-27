@@ -117,7 +117,8 @@ impl EditorBuffer {
         match mode {
             EditorMode::Normal => match evt {
                 Event::Click(x, y) => {
-                    self.cursor.move_y_to(y, &self.code)?;
+                    let scroll_y = self.cursor.get_scroll_position().y;
+                    self.cursor.move_y_to(y + scroll_y, &self.code)?;
                     self.cursor.move_x_to(x, &self.code, mode);
                 }
                 _ => {}
