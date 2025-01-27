@@ -62,10 +62,6 @@ impl EditorBuffer {
         &self.code
     }
 
-    pub fn get_code_buf_mut(&mut self) -> &mut EditorCodeBuffer {
-        &mut self.code
-    }
-
     pub fn on_event(
         &mut self,
         evt: Event,
@@ -77,6 +73,7 @@ impl EditorBuffer {
         match mode {
             EditorMode::Normal => match evt {
                 Event::Command(cmd) => match cmd.as_str() {
+                    "editor.save" => self.save()?,
                     "editor.cursor.left" => self.cursor.move_by(-1, 0, &self.code, mode)?,
                     "editor.cursor.down" => self.cursor.move_by(0, 1, &self.code, mode)?,
                     "editor.cursor.up" => self.cursor.move_by(0, -1, &self.code, mode)?,

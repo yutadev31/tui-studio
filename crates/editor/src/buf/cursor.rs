@@ -178,14 +178,6 @@ impl EditorCursor {
     pub fn scroll_y_to(&mut self, y: usize, code: &EditorCodeBuffer, mode: &EditorMode) {
         self.scroll_y = y;
     }
-
-    pub fn move_left(&mut self) {
-        self.x -= 1;
-    }
-
-    pub fn move_right(&mut self) {
-        self.x += 1;
-    }
 }
 
 impl Default for EditorCursor {

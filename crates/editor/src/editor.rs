@@ -155,6 +155,7 @@ impl DrawableComponent for Editor {
 impl CommandComponent for Editor {
     fn register_commands(&self, cmd_manager: &mut CommandManager) {
         cmd_manager.register("editor.quit");
+        cmd_manager.register("editor.save");
 
         // Editor Mode
         cmd_manager.register("editor.mode.normal");
@@ -263,5 +264,6 @@ impl KeybindingComponent for Editor {
         );
 
         key_config.register(EditorMode::Command, vec![Key::Char('q')], "editor.quit");
+        key_config.register(EditorMode::Command, vec![Key::Char('w')], "editor.save");
     }
 }
