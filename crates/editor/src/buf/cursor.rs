@@ -30,7 +30,7 @@ impl EditorCursor {
         )
     }
 
-    pub fn get_scroll(&self) -> (usize, usize) {
+    pub fn get_scroll_position(&self) -> (usize, usize) {
         (self.scroll_x, self.scroll_y)
     }
 

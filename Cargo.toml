@@ -19,6 +19,7 @@ authors = ["Yuta"]
 
 [workspace.dependencies]
 anyhow = "1.0.95"
+arboard = "3.4.1"
 crossterm = { version = "0.28.1", features = ["events"] }
 fluent = "0.16.1"
 fluent-templates = "0.13.0"

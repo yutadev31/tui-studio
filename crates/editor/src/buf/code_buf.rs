@@ -1,6 +1,7 @@
 use std::fmt::{self, Display, Formatter};
 
 use anyhow::Result;
+use arboard::Clipboard;
 use utils::mode::EditorMode;
 
 use super::cursor::EditorCursor;
@@ -19,7 +20,7 @@ impl EditorCodeBuffer {
         self.lines[y].clone()
     }
 
-    fn byte_index_to_char_index(&self, x: usize, y: usize) -> usize {
+    pub fn byte_index_to_char_index(&self, x: usize, y: usize) -> usize {
         self.lines[y].chars().take(x).map(|c| c.len_utf8()).sum()
     }
 
@@ -63,9 +64,25 @@ impl EditorCodeBuffer {
         }
     }
 
+    pub fn delete_line(&mut self, y: usize, clipboard: &mut Clipboard) -> Result<()> {
+        clipboard.set_text(self.lines[y].clone())?;
+        self.lines.remove(y);
+        Ok(())
+    }
+
+    pub fn yank_line(&self, y: usize, clipboard: &mut Clipboard) -> Result<()> {
+        clipboard.set_text(self.lines[y].clone())?;
+        Ok(())
+    }
+
+    pub fn paste(&mut self, x: usize, y: usize, clipboard: &mut Clipboard) -> Result<()> {
+        let text = clipboard.get_text()?;
+        self.append_str(x, y, text.as_str());
+        Ok(())
+    }
+
     pub fn backspace(&mut self, cursor: &mut EditorCursor, mode: &EditorMode) -> Result<()> {
         let (x, y) = cursor.get(&self, mode);
-        let x = self.byte_index_to_char_index(x, y);
 
         if x == 0 {
             if y == 0 {
@@ -79,7 +96,8 @@ impl EditorCodeBuffer {
             cursor.move_x_to(line_length, &self, mode);
             self.join_lines(y - 1);
         } else {
-            self.lines[y].remove(x - 1);
+            let remove_x = self.byte_index_to_char_index(x - 1, y);
+            self.lines[y].remove(remove_x);
             cursor.move_by(-1, 0, &self, mode)?;
         }
 
