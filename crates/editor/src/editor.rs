@@ -163,6 +163,7 @@ impl DrawableComponent for Editor {
                 .enumerate()
             {
                 let highlight_tokens = self.highlight_tokens[index + scroll_y].clone();
+
                 if let EditorMode::Visual { start: start_pos } = self.mode {
                     let cursor_pos = buffer.get_draw_cursor_position(&self.mode);
                     let (cursor_x, cursor_y) = cursor_pos.into();
@@ -224,7 +225,11 @@ impl DrawableComponent for Editor {
                             Print(back_text)
                         )?;
                     } else {
-                        execute!(stdout(), Print(line))?;
+                        execute!(
+                            stdout(),
+                            MoveTo(self.rect.x + offset_x, self.rect.y + index as u16),
+                            Print(line)
+                        )?;
                     }
                 } else {
                     execute!(
