@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 #[derive(Clone)]
 pub struct HighlightToken {
     pub text: String,
