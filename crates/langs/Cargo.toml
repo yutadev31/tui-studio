@@ -6,5 +6,5 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
-lang_support.path = "../crates/lang_support"
-utils.path = "../crates/utils"
+lang_support.path = "../lang_support"
+utils.path = "../utils"

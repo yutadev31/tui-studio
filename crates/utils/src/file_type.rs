@@ -43,6 +43,7 @@ pub const DART: &str = "dart";
 pub const OBJECTIVE_C: &str = "objective-c";
 pub const CSHARP: &str = "csharp";
 pub const COBOL: &str = "cobol";
+pub const PLANETEXT: &str = "planetext";
 
 pub struct FileType {
     name: String,
@@ -147,6 +148,12 @@ impl FileType {
             }
         }
 
-        Self::new("planetext")
+        Self::new(PLANETEXT)
+    }
+}
+
+impl Default for FileType {
+    fn default() -> Self {
+        Self::new(PLANETEXT)
     }
 }

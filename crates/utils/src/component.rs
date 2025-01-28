@@ -1,11 +1,14 @@
 use anyhow::Result;
+use async_trait::async_trait;
 
 use crate::event::Event;
 
-pub trait Component {
-    fn on_event(&mut self, evt: Event) -> Result<()>;
+#[async_trait]
+pub trait Component: Send {
+    async fn on_event(&mut self, evt: Event) -> Result<()>;
 }
 
+#[async_trait]
 pub trait DrawableComponent: Component {
-    fn draw(&self) -> Result<()>;
+    async fn draw(&self) -> Result<()>;
 }

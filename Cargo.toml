@@ -4,7 +4,7 @@ members = [
   "crates/key_binding",
   "crates/lang_support",
   "crates/utils",
-  "langs",
+  "crates/langs",
 ]
 resolver = "2"
 
@@ -23,6 +23,10 @@ fluent = "0.16.1"
 fluent-templates = "0.13.0"
 chrono = "0.4.39"
 unicode-width = "0.2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+async-trait = "0.1"
 
 [package]
 name = "tui-studio"
@@ -41,3 +45,5 @@ fluent.workspace = true
 fluent-templates.workspace = true
 clap.workspace = true
 chrono.workspace = true
+tokio.workspace = true
+async-trait.workspace = true

@@ -3,6 +3,7 @@ use std::io::stdout;
 
 use anyhow::{anyhow, Result};
 use arboard::Clipboard;
+use async_trait::async_trait;
 use buf::{buf::EditorBuffer, buf_manager::EditorBufferManager};
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
@@ -114,8 +115,6 @@ impl Editor {
         index: usize,
         line: String,
     ) -> Result<()> {
-        let highlight_tokens = self.highlight_tokens[index].clone();
-
         if let EditorMode::Visual { start: start_pos } = self.mode {
             let cursor_pos = current.get_draw_cursor_position(&self.mode);
             let (cursor_x, cursor_y) = cursor_pos.into();
@@ -183,71 +182,77 @@ impl Editor {
                 )?;
             }
         } else {
-            let y = self.rect.y as usize + index;
-            for highlight_token in highlight_tokens {
-                let start_char_index = line
-                    .chars()
-                    .take(highlight_token.start)
-                    .map(|c| c.len_utf8())
-                    .sum();
+            if self.highlight_tokens.len() == 0 {
+                draw_data[self.rect.y as usize + index].push_str(line.as_str());
+            } else {
+                let highlight_tokens = self.highlight_tokens[index].clone();
+                let y = self.rect.y as usize + index;
 
-                let end_char_index = line
-                    .chars()
-                    .take(highlight_token.end)
-                    .map(|c| c.len_utf8())
-                    .sum();
+                for highlight_token in highlight_tokens {
+                    let start_char_index = line
+                        .chars()
+                        .take(highlight_token.start)
+                        .map(|c| c.len_utf8())
+                        .sum();
 
-                draw_data[y].push_str(
-                    match highlight_token.kind {
-                        TokenKind::Comment => format!(
-                            "{}",
-                            SetForegroundColor(Color::Rgb {
-                                r: 128,
-                                g: 128,
-                                b: 128,
-                            })
-                        ),
-                        TokenKind::Keyword => format!(
-                            "{}",
-                            SetForegroundColor(Color::Rgb {
-                                r: 146,
-                                g: 98,
-                                b: 208
-                            })
-                        ),
-                        _ => format!("{}", ResetColor),
-                        //     "keyword" | "variable.builtin" => format!(
-                        //         "{}",
-                        //         SetForegroundColor(Color::Rgb {
-                        //             r: 146,
-                        //             g: 98,
-                        //             b: 208
-                        //         })
-                        //     ),
-                        //     "type" => format!("{}", SetForegroundColor(Color::Yellow)),
-                        //     "variable" | "property" => {
-                        //         format!(
-                        //             "{}",
-                        //             SetForegroundColor(Color::Rgb {
-                        //                 r: 212,
-                        //                 g: 100,
-                        //                 b: 97
-                        //             })
-                        //         )
-                        //     }
-                        //     "function" | "function.method" => {
-                        //         format!("{}", SetForegroundColor(Color::Blue))
-                        //     }
-                        //     "string" => format!("{}", SetForegroundColor(Color::Green)),
-                        //     _ => format!("{}", ResetColor),
-                        // }
-                        // .as_str(),
-                    }
-                    .as_str(),
-                );
+                    let end_char_index = line
+                        .chars()
+                        .take(highlight_token.end)
+                        .map(|c| c.len_utf8())
+                        .sum();
 
-                let draw_str = &line[start_char_index..end_char_index];
-                draw_data[self.rect.y as usize + index].push_str(draw_str);
+                    draw_data[y].push_str(
+                        match highlight_token.kind {
+                            TokenKind::Comment => format!(
+                                "{}",
+                                SetForegroundColor(Color::Rgb {
+                                    r: 128,
+                                    g: 128,
+                                    b: 128,
+                                })
+                            ),
+                            TokenKind::Keyword => format!(
+                                "{}",
+                                SetForegroundColor(Color::Rgb {
+                                    r: 146,
+                                    g: 98,
+                                    b: 208
+                                })
+                            ),
+                            _ => format!("{}", ResetColor),
+                            //     "keyword" | "variable.builtin" => format!(
+                            //         "{}",
+                            //         SetForegroundColor(Color::Rgb {
+                            //             r: 146,
+                            //             g: 98,
+                            //             b: 208
+                            //         })
+                            //     ),
+                            //     "type" => format!("{}", SetForegroundColor(Color::Yellow)),
+                            //     "variable" | "property" => {
+                            //         format!(
+                            //             "{}",
+                            //             SetForegroundColor(Color::Rgb {
+                            //                 r: 212,
+                            //                 g: 100,
+                            //                 b: 97
+                            //             })
+                            //         )
+                            //     }
+                            //     "function" | "function.method" => {
+                            //         format!("{}", SetForegroundColor(Color::Blue))
+                            //     }
+                            //     "string" => format!("{}", SetForegroundColor(Color::Green)),
+                            //     _ => format!("{}", ResetColor),
+                            // }
+                            // .as_str(),
+                        }
+                        .as_str(),
+                    );
+
+                    let draw_str = &line[start_char_index..end_char_index];
+                    draw_data[self.rect.y as usize + index].push_str(draw_str);
+                }
             }
 
             let n = self.rect.w as usize - (offset_x as usize + line.len());
@@ -307,8 +312,9 @@ impl Editor {
     }
 }
 
+#[async_trait]
 impl Component for Editor {
-    fn on_event(&mut self, evt: Event) -> Result<()> {
+    async fn on_event(&mut self, evt: Event) -> Result<()> {
         let (term_w, term_h) = get_term_size()?;
 
         self.rect.w = term_w;
@@ -339,15 +345,16 @@ impl Component for Editor {
         }
 
         if let Some(current) = self.buffer_manager.get_current_mut() {
-            self.highlight_tokens = current.highlight();
+            self.highlight_tokens = current.highlight(self.rect.h as usize);
         }
 
         Ok(())
     }
 }
 
+#[async_trait]
 impl DrawableComponent for Editor {
-    fn draw(&self) -> Result<()> {
+    async fn draw(&self) -> Result<()> {
         let mut draw_data: Vec<String> = Vec::new();
         for _ in 0..self.rect.h {
             draw_data.push(String::new());

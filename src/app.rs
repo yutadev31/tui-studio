@@ -1,4 +1,5 @@
 use anyhow::Result;
+use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
 use crossterm::event::{Event as CrosstermEvent, MouseEventKind};
 use editor::Editor;
@@ -39,8 +40,9 @@ impl App {
     }
 }
 
+#[async_trait]
 impl Component for App {
-    fn on_event(&mut self, evt: Event) -> Result<()> {
+    async fn on_event(&mut self, evt: Event) -> Result<()> {
         if let Event::CrosstermEvent(evt) = evt.clone() {
             match evt {
                 CrosstermEvent::Key(evt) => {
@@ -64,7 +66,7 @@ impl Component for App {
                         None => {}
                         Some(command) => {
                             self.key_buf = Vec::new();
-                            self.on_event(Event::Command(command.clone()))?;
+                            self.on_event(Event::Command(command.clone())).await?;
                             return Ok(());
                         }
                     };
@@ -72,7 +74,8 @@ impl Component for App {
                 CrosstermEvent::Mouse(evt) => match evt.kind {
                     MouseEventKind::Down(btn) => {
                         if btn == crossterm::event::MouseButton::Left {
-                            self.on_event(Event::Click(evt.column.into(), evt.row.into()))?;
+                            self.on_event(Event::Click(evt.column.into(), evt.row.into()))
+                                .await?;
                         }
                     }
                     _ => {}
@@ -81,15 +84,16 @@ impl Component for App {
             }
         }
 
-        self.editor.on_event(evt)?;
+        self.editor.on_event(evt).await?;
 
         Ok(())
     }
 }
 
+#[async_trait]
 impl DrawableComponent for App {
-    fn draw(&self) -> Result<()> {
-        self.editor.draw()?;
+    async fn draw(&self) -> Result<()> {
+        self.editor.draw().await?;
         Ok(())
     }
 }

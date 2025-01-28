@@ -10,3 +10,8 @@ path = "src/lang_support.rs"
 
 [dependencies]
 utils.path = "../utils"
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+async-trait.workspace = true

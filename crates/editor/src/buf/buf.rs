@@ -7,11 +7,11 @@ use std::{
 use anyhow::{anyhow, Result};
 use arboard::Clipboard;
 use crossterm::event::{Event as CrosstermEvent, KeyCode};
-use lang_support::{highlight::HighlightToken, LanguageSupport};
-use langs::html::HTMLLanguageSupport;
+use lang_support::{highlight::HighlightToken, lsp::LSPClient, LanguageSupport};
+use langs::{html::HTMLLanguageSupport, rust::RustLanguageSupport};
 use utils::{
     event::Event,
-    file_type::{FileType, HTML},
+    file_type::{FileType, HTML, RUST},
     mode::EditorMode,
     vec2::Vec2,
 };
@@ -22,6 +22,7 @@ pub struct EditorBuffer {
     code: EditorCodeBuffer,
     cursor: EditorCursor,
     lang_support: Option<Box<dyn LanguageSupport>>,
+    lsp_client: Option<LSPClient>,
     file_type: FileType,
     file: Option<File>,
 }
@@ -40,14 +41,24 @@ impl EditorBuffer {
         let file_type =
             FileType::file_name_to_type(path.file_name().unwrap().to_str().unwrap().to_string());
 
+        let lang_support: Option<Box<dyn LanguageSupport>> = match file_type.get().as_str() {
+            HTML => Some(Box::new(HTMLLanguageSupport::new())),
+            RUST => Some(Box::new(RustLanguageSupport::new())),
+            _ => None,
+        };
+
         Ok(Self {
             code: EditorCodeBuffer::from(buf),
             cursor: EditorCursor::default(),
             file: Some(file),
-            lang_support: match file_type.get().as_str() {
-                HTML => Some(Box::new(HTMLLanguageSupport::new())),
-                _ => None,
+            lsp_client: match &lang_support {
+                None => None,
+                Some(lang_support) => match lang_support.get_lsp_server_cmd() {
+                    None => None,
+                    Some(cmd) => Some(LSPClient::new(cmd)),
+                },
             },
+            lang_support,
             file_type,
         })
     }
@@ -91,16 +102,19 @@ impl EditorBuffer {
         &self.code
     }
 
-    pub fn highlight(&self) -> Vec<Vec<HighlightToken>> {
+    pub fn highlight(&self, draw_h: usize) -> Vec<Vec<HighlightToken>> {
         let Some(lang_support) = &self.lang_support else {
             return vec![];
         };
 
+        let scroll_y = self.cursor.get_scroll_position().y;
         let syntax_definition = lang_support.get_syntax_definition().unwrap();
 
         self.code
             .get_lines()
             .iter()
+            .skip(scroll_y)
+            .take(draw_h)
             .map(|line| syntax_definition.tokenize(line.as_str()))
             .collect()
     }
@@ -215,9 +229,10 @@ impl Default for EditorBuffer {
         Self {
             code: EditorCodeBuffer::default(),
             cursor: EditorCursor::default(),
-            file_type: FileType::new("planetext"),
+            file_type: FileType::default(),
             lang_support: None,
             file: None,
+            lsp_client: None,
         }
     }
 }

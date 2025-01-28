@@ -1,6 +1,7 @@
 pub mod complete;
 pub mod highlight;
 pub mod lint;
+pub mod lsp;
 pub mod snippets;
 
 use std::any::Any;
@@ -39,6 +40,11 @@ pub trait LanguageSupport: Any + Send + Sync {
 
     /// スニペットのリストを取得
     fn snippets(&self) -> Option<Vec<Snippet>> {
+        None
+    }
+
+    /// LSPサーバーのコマンドを取得
+    fn get_lsp_server_cmd(&self) -> Option<String> {
         None
     }
 }

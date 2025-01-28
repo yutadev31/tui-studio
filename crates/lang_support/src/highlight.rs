@@ -34,16 +34,17 @@ pub struct SyntaxDefinition {
     pub comment: Comment,
     pub brackets: Vec<Pair>,
 }
+
 impl SyntaxDefinition {
     pub fn tokenize(&self, line_code: &str) -> Vec<HighlightToken> {
         let mut tokens = Vec::new();
         let mut current_index = 0;
-        let chars: Vec<char> = line_code.chars().collect();
+        let code_len = line_code.len();
 
-        while current_index < chars.len() {
+        while current_index < code_len {
             // コメントの検出
             if let Some((token, length)) =
-                self.detect_comment(&chars[current_index..], current_index)
+                self.detect_comment(&line_code[current_index..], current_index)
             {
                 tokens.push(token);
                 current_index += length;
@@ -52,7 +53,7 @@ impl SyntaxDefinition {
 
             // 括弧の検出
             if let Some((token, length)) =
-                self.detect_bracket(&chars[current_index..], current_index)
+                self.detect_bracket(&line_code[current_index..], current_index)
             {
                 tokens.push(token);
                 current_index += length;
@@ -61,7 +62,7 @@ impl SyntaxDefinition {
 
             // キーワードの検出
             if let Some((token, length)) =
-                self.detect_keyword(&chars[current_index..], current_index)
+                self.detect_keyword(&line_code[current_index..], current_index)
             {
                 tokens.push(token);
                 current_index += length;
@@ -80,33 +81,24 @@ impl SyntaxDefinition {
         tokens
     }
 
-    /// コメントを検出
-    fn detect_comment(&self, chars: &[char], start: usize) -> Option<(HighlightToken, usize)> {
-        let code: String = chars.iter().collect();
-
+    fn detect_comment(&self, code: &str, start: usize) -> Option<(HighlightToken, usize)> {
         // 行コメントの検出
         for prefix in &self.comment.line {
             if code.starts_with(prefix) {
-                let end = chars.len(); // 行の終わりまでがコメント
                 return Some((
                     HighlightToken {
                         start,
-                        end,
+                        end: start + prefix.len(),
                         kind: TokenKind::Comment,
                     },
-                    end - start,
+                    prefix.len(),
                 ));
             }
         }
-
-        // ブロックコメントは行単位では検出しない（この場合、ブロックコメントの開始位置で分割されていると仮定）
         None
     }
 
-    /// 括弧を検出
-    fn detect_bracket(&self, chars: &[char], start: usize) -> Option<(HighlightToken, usize)> {
-        let code: String = chars.iter().collect();
-
+    fn detect_bracket(&self, code: &str, start: usize) -> Option<(HighlightToken, usize)> {
         for pair in &self.brackets {
             if code.starts_with(&pair.start) {
                 return Some((
@@ -118,7 +110,6 @@ impl SyntaxDefinition {
                     pair.start.len(),
                 ));
             }
-
             if code.starts_with(&pair.end) {
                 return Some((
                     HighlightToken {
@@ -130,32 +121,26 @@ impl SyntaxDefinition {
                 ));
             }
         }
-
         None
     }
 
-    /// キーワードを検出
-    fn detect_keyword(&self, chars: &[char], start: usize) -> Option<(HighlightToken, usize)> {
-        let code: String = chars.iter().collect();
-
+    fn detect_keyword(&self, code: &str, start: usize) -> Option<(HighlightToken, usize)> {
         for keyword in &self.keywords {
-            if code.starts_with(keyword)
-                && (code
-                    .chars()
-                    .nth(keyword.len())
-                    .map_or(true, |c| !c.is_alphanumeric()))
-            {
-                return Some((
-                    HighlightToken {
-                        start,
-                        end: start + keyword.len(),
-                        kind: TokenKind::Keyword,
-                    },
-                    keyword.len(),
-                ));
+            if code.starts_with(keyword) {
+                // 次の文字が識別子の一部でないことを確認
+                let next_char = code[keyword.len()..].chars().next();
+                if next_char.map_or(true, |c| !c.is_alphanumeric()) {
+                    return Some((
+                        HighlightToken {
+                            start,
+                            end: start + keyword.len(),
+                            kind: TokenKind::Keyword,
+                        },
+                        keyword.len(),
+                    ));
+                }
             }
         }
-
         None
     }
 }
