@@ -43,10 +43,10 @@ impl LanguageSupport for CommitMessageLanguageSupport {
 
     fn highlight(&self, source_code: &str) -> Option<Vec<HighlightToken>> {
         let regex_patterns = vec![
-            (r"(^[a-zA-Z_-]+):", TokenKind::Prefix),    // "prefix:"
-            (r"^[a-zA-Z_-]+(:)", TokenKind::Separator), // ":"
-            (r"(#.*)", TokenKind::Comment),             // "# comment"
-            (r": (.+)$", TokenKind::Message),           // 残りのメッセージ部分
+            (r"(^[a-zA-Z_-]+):", TokenKind::Prefix),
+            (r"^[a-zA-Z_-]+(:)", TokenKind::Separator),
+            (r"(#.*)", TokenKind::Comment),
+            (r": (.+)$", TokenKind::Message),
         ];
 
         Some(regex_tokenize(source_code, regex_patterns))
