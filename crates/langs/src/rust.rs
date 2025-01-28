@@ -37,7 +37,6 @@ impl LanguageSupport for RustLanguageSupport {
         let mut in_string = false;
         let mut in_comment = false;
         let mut identifier_or_keyword = false;
-        let mut start_index = 0;
 
         let is_identifier_or_keyword = |token: &str| -> TokenKind {
             if KEYWORDS.contains(&token) {
@@ -61,8 +60,7 @@ impl LanguageSupport for RustLanguageSupport {
                 current_token.push(ch);
                 if ch == '"' {
                     tokens.push(HighlightToken {
-                        start: start_index,
-                        end: i + 1,
+                        text: current_token.clone(),
                         kind: TokenKind::String,
                     });
                     current_token.clear();
@@ -77,13 +75,11 @@ impl LanguageSupport for RustLanguageSupport {
                     // もし識別子やキーワードがあればそれを登録
                     let kind = is_identifier_or_keyword(&current_token);
                     tokens.push(HighlightToken {
-                        start: start_index,
-                        end: i,
+                        text: current_token.clone(),
                         kind,
                     });
                     current_token.clear();
                 }
-                start_index = i;
                 in_string = true;
                 current_token.push(ch);
                 continue;
@@ -94,13 +90,11 @@ impl LanguageSupport for RustLanguageSupport {
                 if !current_token.is_empty() {
                     let kind = is_identifier_or_keyword(&current_token);
                     tokens.push(HighlightToken {
-                        start: start_index,
-                        end: i,
+                        text: current_token.clone(),
                         kind,
                     });
                     current_token.clear();
                 }
-                start_index = i;
                 in_comment = true;
                 current_token.push(ch);
                 continue;
@@ -111,18 +105,15 @@ impl LanguageSupport for RustLanguageSupport {
                 if !current_token.is_empty() {
                     let kind = is_identifier_or_keyword(&current_token);
                     tokens.push(HighlightToken {
-                        start: start_index,
-                        end: i,
+                        text: current_token.clone(),
                         kind,
                     });
                     current_token.clear();
                 }
                 tokens.push(HighlightToken {
-                    start: i,
-                    end: i + 1,
+                    text: ch.to_string(),
                     kind: TokenKind::Other, // スペースを"Other"として扱う
                 });
-                start_index = i + 1;
                 continue;
             }
 
@@ -131,18 +122,15 @@ impl LanguageSupport for RustLanguageSupport {
                 if !current_token.is_empty() {
                     let kind = is_identifier_or_keyword(&current_token);
                     tokens.push(HighlightToken {
-                        start: start_index,
-                        end: i,
+                        text: current_token.clone(),
                         kind,
                     });
                     current_token.clear();
                 }
                 tokens.push(HighlightToken {
-                    start: i,
-                    end: i + 1,
+                    text: ch.to_string(),
                     kind: TokenKind::Symbol,
                 });
-                start_index = i + 1;
                 continue;
             }
 
@@ -156,12 +144,10 @@ impl LanguageSupport for RustLanguageSupport {
                 if !current_token.is_empty() && !identifier_or_keyword {
                     let kind = is_identifier_or_keyword(&current_token);
                     tokens.push(HighlightToken {
-                        start: start_index,
-                        end: i,
+                        text: current_token.clone(),
                         kind,
                     });
                     current_token.clear();
-                    start_index = i;
                 }
                 identifier_or_keyword = true;
                 current_token.push(ch);
@@ -169,12 +155,10 @@ impl LanguageSupport for RustLanguageSupport {
                 if !current_token.is_empty() {
                     let kind = is_identifier_or_keyword(&current_token);
                     tokens.push(HighlightToken {
-                        start: start_index,
-                        end: i,
+                        text: current_token.clone(),
                         kind,
                     });
                     current_token.clear();
-                    start_index = i;
                 }
                 identifier_or_keyword = false;
                 current_token.push(ch);
@@ -183,12 +167,12 @@ impl LanguageSupport for RustLanguageSupport {
 
         // 最後のトークンを追加
         if !current_token.is_empty() {
-            let kind = is_identifier_or_keyword(&current_token);
+            let kind = is_identifier_or_keyword(&current_token.clone());
             tokens.push(HighlightToken {
-                start: start_index,
-                end: source_code.len(),
+                text: current_token.clone(),
                 kind,
             });
+            current_token.clear();
         }
 
         Some(tokens)

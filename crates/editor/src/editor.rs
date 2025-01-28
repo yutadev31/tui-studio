@@ -189,18 +189,6 @@ impl Editor {
                 let y = self.rect.y as usize + index;
 
                 for highlight_token in highlight_tokens {
-                    let start_char_index = line
-                        .chars()
-                        .take(highlight_token.start)
-                        .map(|c| c.len_utf8())
-                        .sum();
-
-                    let end_char_index = line
-                        .chars()
-                        .take(highlight_token.end)
-                        .map(|c| c.len_utf8())
-                        .sum();
-
                     draw_data[y].push_str(
                         match highlight_token.kind {
                             TokenKind::Comment => format!(
@@ -233,8 +221,7 @@ impl Editor {
                         .as_str(),
                     );
 
-                    let draw_str = &line[start_char_index..end_char_index];
-                    draw_data[self.rect.y as usize + index].push_str(draw_str);
+                    draw_data[self.rect.y as usize + index].push_str(highlight_token.text.as_str());
                 }
             }
 
