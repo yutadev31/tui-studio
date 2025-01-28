@@ -36,3 +36,7 @@ impl Into<CrosstermColor> for Color {
         }
     }
 }
+
+pub trait ToColor {
+    fn to_color(self) -> Color;
+}
