@@ -29,7 +29,6 @@ impl LanguageSupport for RustLanguageSupport {
     }
 
     fn highlight(&self, source_code: &str) -> Option<Vec<HighlightToken>> {
-        // Some(self.tokenizer.tokenize(source_code, &KEYWORDS, &SYMBOLS))
         None
     }
 
