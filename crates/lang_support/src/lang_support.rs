@@ -7,7 +7,7 @@ pub mod snippets;
 use std::any::Any;
 
 use complete::CompletionItem;
-use highlight::SyntaxDefinition;
+use highlight::HighlightToken;
 use lint::LintError;
 use snippets::Snippet;
 
@@ -15,8 +15,9 @@ use snippets::Snippet;
 pub trait LanguageSupport: Any + Send + Sync {
     fn file_type(&self) -> &'static str;
 
-    // シンタックスハイライト用の構文を取得
-    fn get_syntax_definition(&self) -> Option<&SyntaxDefinition> {
+    // シンタックスハイライト
+    fn highlight(&self, source_code: &str) -> Option<Vec<HighlightToken>> {
+        let _ = source_code;
         None
     }
 

@@ -102,21 +102,22 @@ impl EditorBuffer {
         &self.code
     }
 
-    pub fn highlight(&self, draw_h: usize) -> Vec<Vec<HighlightToken>> {
+    pub fn highlight(&self, draw_h: usize) -> Option<Vec<Vec<HighlightToken>>> {
         let Some(lang_support) = &self.lang_support else {
-            return vec![];
+            return None;
         };
 
+        let mut tokens = Vec::new();
         let scroll_y = self.cursor.get_scroll_position().y;
-        let syntax_definition = lang_support.get_syntax_definition().unwrap();
 
-        self.code
-            .get_lines()
-            .iter()
-            .skip(scroll_y)
-            .take(draw_h)
-            .map(|line| syntax_definition.tokenize(line.as_str()))
-            .collect()
+        for line in self.code.get_lines().iter().skip(scroll_y).take(draw_h) {
+            match lang_support.highlight(line.as_str()) {
+                Some(line_tokens) => tokens.push(line_tokens),
+                None => return None,
+            }
+        }
+
+        Some(tokens)
     }
 
     pub fn on_event(

@@ -219,33 +219,16 @@ impl Editor {
                                     b: 208
                                 })
                             ),
+                            TokenKind::String => format!("{}", SetForegroundColor(Color::Green)),
+                            TokenKind::Identifier => format!(
+                                "{}",
+                                SetForegroundColor(Color::Rgb {
+                                    r: 229,
+                                    g: 164,
+                                    b: 75
+                                })
+                            ),
                             _ => format!("{}", ResetColor),
-                            //     "keyword" | "variable.builtin" => format!(
-                            //         "{}",
-                            //         SetForegroundColor(Color::Rgb {
-                            //             r: 146,
-                            //             g: 98,
-                            //             b: 208
-                            //         })
-                            //     ),
-                            //     "type" => format!("{}", SetForegroundColor(Color::Yellow)),
-                            //     "variable" | "property" => {
-                            //         format!(
-                            //             "{}",
-                            //             SetForegroundColor(Color::Rgb {
-                            //                 r: 212,
-                            //                 g: 100,
-                            //                 b: 97
-                            //             })
-                            //         )
-                            //     }
-                            //     "function" | "function.method" => {
-                            //         format!("{}", SetForegroundColor(Color::Blue))
-                            //     }
-                            //     "string" => format!("{}", SetForegroundColor(Color::Green)),
-                            //     _ => format!("{}", ResetColor),
-                            // }
-                            // .as_str(),
                         }
                         .as_str(),
                     );
@@ -345,7 +328,9 @@ impl Component for Editor {
         }
 
         if let Some(current) = self.buffer_manager.get_current_mut() {
-            self.highlight_tokens = current.highlight(self.rect.h as usize);
+            if let Some(tokens) = current.highlight(self.rect.h as usize) {
+                self.highlight_tokens = tokens;
+            }
         }
 
         Ok(())
