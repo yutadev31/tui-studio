@@ -44,6 +44,7 @@ pub const OBJECTIVE_C: &str = "objective-c";
 pub const CSHARP: &str = "csharp";
 pub const COBOL: &str = "cobol";
 pub const PLANETEXT: &str = "planetext";
+pub const TOML: &str = "toml";
 
 pub struct FileType {
     name: String,
@@ -144,6 +145,7 @@ impl FileType {
                 "cs" => return Self::new(CSHARP),
                 "cbl" => return Self::new(COBOL),
                 "cob" => return Self::new(COBOL),
+                "toml" => return Self::new(TOML),
                 _ => {}
             }
         }
