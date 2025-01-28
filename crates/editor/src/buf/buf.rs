@@ -8,10 +8,13 @@ use anyhow::{anyhow, Result};
 use arboard::Clipboard;
 use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use lang_support::{highlight::HighlightToken, lsp::LSPClient, LanguageSupport};
-use langs::{html::HTMLLanguageSupport, rust::RustLanguageSupport};
+use langs::{
+    commit_message::CommitMessageLanguageSupport, html::HTMLLanguageSupport,
+    rust::RustLanguageSupport,
+};
 use utils::{
     event::Event,
-    file_type::{FileType, HTML, RUST},
+    file_type::{FileType, COMMIT_MESSAGE, HTML, RUST},
     mode::EditorMode,
     vec2::Vec2,
 };
@@ -43,6 +46,7 @@ impl EditorBuffer {
 
         let lang_support: Option<Box<dyn LanguageSupport>> = match file_type.get().as_str() {
             HTML => Some(Box::new(HTMLLanguageSupport::new())),
+            COMMIT_MESSAGE => Some(Box::new(CommitMessageLanguageSupport::new())),
             RUST => Some(Box::new(RustLanguageSupport::new())),
             _ => None,
         };

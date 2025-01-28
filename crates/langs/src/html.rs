@@ -1,4 +1,4 @@
-use lang_support::{highlight::Tokenizer, LanguageSupport};
+use lang_support::{highlight::HighlightToken, LanguageSupport};
 
 use utils::file_type::HTML;
 
@@ -10,13 +10,13 @@ const KEYWORDS: [&str; 15] = [
 const SYMBOLS: [&str; 3] = ["<", ">", "/"];
 
 pub struct HTMLLanguageSupport {
-    tokenizer: Tokenizer,
+    // tokenizer: Tokenizer,
 }
 
 impl HTMLLanguageSupport {
     pub fn new() -> Self {
         Self {
-            tokenizer: Tokenizer::new(),
+            // tokenizer: Tokenizer::new(),
         }
     }
 }
@@ -25,7 +25,8 @@ impl LanguageSupport for HTMLLanguageSupport {
     fn file_type(&self) -> &'static str {
         HTML
     }
-    fn highlight(&self, source_code: &str) -> Option<Vec<lang_support::highlight::HighlightToken>> {
-        Some(self.tokenizer.tokenize(source_code, &KEYWORDS, &SYMBOLS))
+    fn highlight(&self, source_code: &str) -> Option<Vec<HighlightToken>> {
+        // Some(self.tokenizer.tokenize(source_code, &KEYWORDS, &SYMBOLS))
+        None
     }
 }

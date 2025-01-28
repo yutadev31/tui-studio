@@ -11,7 +11,7 @@ use crossterm::{
     style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
 };
 use key_binding::{component::KeybindingComponent, Key, KeyConfig, KeyConfigType};
-use lang_support::highlight::{HighlightToken, TokenKind};
+use lang_support::highlight::HighlightToken;
 use utils::{
     component::Component, event::Event, mode::EditorMode, rect::Rect, term::get_term_size,
 };
@@ -188,41 +188,22 @@ impl Editor {
                 let highlight_tokens = self.highlight_tokens[index].clone();
                 let y = self.rect.y as usize + index;
 
-                for highlight_token in highlight_tokens {
-                    draw_data[y].push_str(
-                        match highlight_token.kind {
-                            TokenKind::Comment => format!(
-                                "{}",
-                                SetForegroundColor(Color::Rgb {
-                                    r: 128,
-                                    g: 128,
-                                    b: 128,
-                                })
-                            ),
-                            TokenKind::Keyword => format!(
-                                "{}",
-                                SetForegroundColor(Color::Rgb {
-                                    r: 146,
-                                    g: 98,
-                                    b: 208
-                                })
-                            ),
-                            TokenKind::String => format!("{}", SetForegroundColor(Color::Green)),
-                            TokenKind::Identifier => format!(
-                                "{}",
-                                SetForegroundColor(Color::Rgb {
-                                    r: 229,
-                                    g: 164,
-                                    b: 75
-                                })
-                            ),
-                            _ => format!("{}", ResetColor),
-                        }
+                let mut mut_line = line.clone();
+
+                for highlight_token in highlight_tokens.iter().rev() {
+                    mut_line.insert_str(highlight_token.end, format!("{}", ResetColor).as_str());
+
+                    mut_line.insert_str(
+                        highlight_token.start,
+                        format!(
+                            "{}",
+                            SetForegroundColor(highlight_token.clone().color.into()),
+                        )
                         .as_str(),
                     );
-
-                    draw_data[self.rect.y as usize + index].push_str(highlight_token.text.as_str());
                 }
+
+                draw_data[y].push_str(mut_line.as_str());
             }
 
             let n = self.rect.w as usize - (offset_x as usize + line.len());

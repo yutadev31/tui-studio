@@ -1,7 +1,4 @@
-use lang_support::{
-    highlight::{HighlightToken, Tokenizer},
-    LanguageSupport,
-};
+use lang_support::{highlight::HighlightToken, LanguageSupport};
 
 use utils::file_type::RUST;
 
@@ -18,15 +15,11 @@ const SYMBOLS: [&str; 49] = [
 ];
 
 #[derive(Clone)]
-pub struct RustLanguageSupport {
-    tokenizer: Tokenizer,
-}
+pub struct RustLanguageSupport {}
 
 impl RustLanguageSupport {
     pub fn new() -> Self {
-        Self {
-            tokenizer: Tokenizer::new(),
-        }
+        Self {}
     }
 }
 
@@ -36,7 +29,8 @@ impl LanguageSupport for RustLanguageSupport {
     }
 
     fn highlight(&self, source_code: &str) -> Option<Vec<HighlightToken>> {
-        Some(self.tokenizer.tokenize(source_code, &KEYWORDS, &SYMBOLS))
+        // Some(self.tokenizer.tokenize(source_code, &KEYWORDS, &SYMBOLS))
+        None
     }
 
     fn get_lsp_server_cmd(&self) -> Option<String> {

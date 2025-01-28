@@ -45,6 +45,8 @@ pub const CSHARP: &str = "csharp";
 pub const COBOL: &str = "cobol";
 pub const PLANETEXT: &str = "planetext";
 pub const TOML: &str = "toml";
+pub const GIT_IGNORE: &str = "git-ignore";
+pub const COMMIT_MESSAGE: &str = "commit-message";
 
 pub struct FileType {
     name: String,
@@ -67,6 +69,8 @@ impl FileType {
         match file_name.as_str() {
             "Makefile" => return Self::new(MAKEFILE),
             "Dockerfile" => return Self::new(DOCKERFILE),
+            ".gitignore" => return Self::new(GIT_IGNORE),
+            "COMMIT_EDITMSG" => return Self::new(COMMIT_MESSAGE),
             _ => {}
         }
 
