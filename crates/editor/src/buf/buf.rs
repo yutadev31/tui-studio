@@ -10,11 +10,11 @@ use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use lang_support::{highlight::HighlightToken, lsp::LSPClient, LanguageSupport};
 use langs::{
     commit_message::CommitMessageLanguageSupport, css::CSSLanguageSupport,
-    html::HTMLLanguageSupport, rust::RustLanguageSupport,
+    html::HTMLLanguageSupport, markdown::MarkdownLanguageSupport, rust::RustLanguageSupport,
 };
 use utils::{
     event::Event,
-    file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, RUST},
+    file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN, RUST},
     mode::EditorMode,
     vec2::Vec2,
 };
@@ -47,6 +47,7 @@ impl EditorBuffer {
         let lang_support: Option<Box<dyn LanguageSupport>> = match file_type.get().as_str() {
             HTML => Some(Box::new(HTMLLanguageSupport::new())),
             CSS => Some(Box::new(CSSLanguageSupport::new())),
+            MARKDOWN => Some(Box::new(MarkdownLanguageSupport::new())),
             COMMIT_MESSAGE => Some(Box::new(CommitMessageLanguageSupport::new())),
             RUST => Some(Box::new(RustLanguageSupport::new())),
             _ => None,
@@ -107,20 +108,14 @@ impl EditorBuffer {
         &self.code
     }
 
-    pub fn highlight(&self, draw_h: usize) -> Option<Vec<Vec<HighlightToken>>> {
+    pub fn highlight(&self) -> Option<Vec<HighlightToken>> {
         let Some(lang_support) = &self.lang_support else {
             return None;
         };
 
-        let mut tokens = Vec::new();
-        let scroll_y = self.cursor.get_scroll_position().y;
-
-        for line in self.code.get_lines().iter().skip(scroll_y).take(draw_h) {
-            match lang_support.highlight(line.as_str()) {
-                Some(line_tokens) => tokens.push(line_tokens),
-                None => return None,
-            }
-        }
+        let Some(tokens) = lang_support.highlight(self.code.to_string().as_str()) else {
+            return None;
+        };
 
         Some(tokens)
     }

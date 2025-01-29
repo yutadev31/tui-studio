@@ -14,7 +14,7 @@ const SYNTAX: [(&str, TokenKind); 6] = [
     (r"(\#[a-zA-Z0-9\-]+)\s*\{", TokenKind::IdSelector),
     (r"([a-zA-Z0-9\-]+)\s*\{", TokenKind::TagSelector),
     (r"([a-zA-Z\-]+)\s*:", TokenKind::Property),
-    (r"[a-zA-Z\-]+\s*:\s*(.*);$", TokenKind::Value),
+    (r"(?m)[a-zA-Z\-]+\s*:\s*(.*);$", TokenKind::Value),
 ];
 
 #[derive(Clone)]

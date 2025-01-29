@@ -10,10 +10,10 @@ use utils::{
 };
 
 const SYNTAX: [(&str, TokenKind); 4] = [
-    (r"(^[a-zA-Z_-]+):", TokenKind::Prefix),
-    (r"^[a-zA-Z_-]+(:)", TokenKind::Separator),
     (r"(#.*)", TokenKind::Comment),
-    (r": (.+)$", TokenKind::Message),
+    (r"(?m)^([a-zA-Z_-]+):", TokenKind::Prefix),
+    (r"[a-zA-Z_-]+(:)", TokenKind::Separator),
+    (r"(?m): (.+)$", TokenKind::Message),
 ];
 
 #[derive(Clone)]

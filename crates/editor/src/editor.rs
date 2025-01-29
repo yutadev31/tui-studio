@@ -22,7 +22,7 @@ pub struct Editor {
     buffer_manager: EditorBufferManager,
     mode: EditorMode,
     clipboard: Clipboard,
-    highlight_tokens: Vec<Vec<HighlightToken>>,
+    highlight_tokens: Vec<HighlightToken>,
 }
 
 impl Editor {
@@ -111,6 +111,7 @@ impl Editor {
         draw_data: &mut Vec<String>,
         current: &EditorBuffer,
         offset_x: u16,
+        scroll_y: usize,
         y: usize,
         index: usize,
         line: String,
@@ -185,25 +186,29 @@ impl Editor {
             if self.highlight_tokens.len() == 0 {
                 draw_data[self.rect.y as usize + index].push_str(line.as_str());
             } else {
-                let highlight_tokens = self.highlight_tokens[index].clone();
-                let y = self.rect.y as usize + index;
+                let draw_y = self.rect.y as usize + index;
 
                 let mut mut_line = line.clone();
 
-                for highlight_token in highlight_tokens.iter().rev() {
-                    mut_line.insert_str(highlight_token.end, format!("{}", ResetColor).as_str());
+                for highlight_token in self.highlight_tokens.iter().skip(scroll_y).rev() {
+                    if highlight_token.end.y == y {
+                        mut_line
+                            .insert_str(highlight_token.end.x, format!("{}", ResetColor).as_str());
+                    }
 
-                    mut_line.insert_str(
-                        highlight_token.start,
-                        format!(
-                            "{}",
-                            SetForegroundColor(highlight_token.clone().color.into()),
-                        )
-                        .as_str(),
-                    );
+                    if highlight_token.start.y == y {
+                        mut_line.insert_str(
+                            highlight_token.start.x,
+                            format!(
+                                "{}",
+                                SetForegroundColor(highlight_token.clone().color.into()),
+                            )
+                            .as_str(),
+                        );
+                    }
                 }
 
-                draw_data[y].push_str(mut_line.as_str());
+                draw_data[draw_y].push_str(mut_line.as_str());
             }
 
             let n = self.rect.w as usize - (offset_x as usize + line.len());
@@ -232,6 +237,7 @@ impl Editor {
                 draw_data,
                 current,
                 offset_x,
+                scroll_y,
                 index + scroll_y,
                 index,
                 line.clone(),
@@ -296,7 +302,7 @@ impl Component for Editor {
         }
 
         if let Some(current) = self.buffer_manager.get_current_mut() {
-            if let Some(tokens) = current.highlight(self.rect.h as usize) {
+            if let Some(tokens) = current.highlight() {
                 self.highlight_tokens = tokens;
             }
         }
