@@ -7,7 +7,7 @@ use std::{
 use anyhow::{anyhow, Result};
 use arboard::Clipboard;
 use crossterm::event::{Event as CrosstermEvent, KeyCode};
-use lang_support::{highlight::HighlightToken, lsp::LSPClient, LanguageSupport};
+use lang_support::{highlight::HighlightToken, LanguageSupport};
 use langs::{
     commit_message::CommitMessageLanguageSupport, css::CSSLanguageSupport,
     html::HTMLLanguageSupport, markdown::MarkdownLanguageSupport, rust::RustLanguageSupport,
@@ -25,7 +25,6 @@ pub struct EditorBuffer {
     code: EditorCodeBuffer,
     cursor: EditorCursor,
     lang_support: Option<Box<dyn LanguageSupport>>,
-    lsp_client: Option<LSPClient>,
     file_type: FileType,
     file: Option<File>,
 }
@@ -57,13 +56,6 @@ impl EditorBuffer {
             code: EditorCodeBuffer::from(buf),
             cursor: EditorCursor::default(),
             file: Some(file),
-            lsp_client: match &lang_support {
-                None => None,
-                Some(lang_support) => match lang_support.get_lsp_server_cmd() {
-                    None => None,
-                    Some(cmd) => Some(LSPClient::new(cmd)),
-                },
-            },
             lang_support,
             file_type,
         })
@@ -113,11 +105,11 @@ impl EditorBuffer {
             return None;
         };
 
-        let Some(tokens) = lang_support.highlight(self.code.to_string().as_str()) else {
-            return None;
-        };
+        Some(lang_support.highlight(self.code.to_string().as_str())?)
+    }
 
-        Some(tokens)
+    pub fn _get_file_type(&self) -> String {
+        self.file_type.get()
     }
 
     pub fn on_event(
@@ -233,7 +225,6 @@ impl Default for EditorBuffer {
             file_type: FileType::default(),
             lang_support: None,
             file: None,
-            lsp_client: None,
         }
     }
 }
