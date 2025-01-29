@@ -11,5 +11,5 @@ This editor is currently under development, and not all planned features have be
 To install the project, run the following command in the project's directory:
 
 ```sh
-cargo install --path .
+./install
 ```
