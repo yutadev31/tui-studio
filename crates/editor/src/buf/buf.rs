@@ -25,7 +25,6 @@ pub struct EditorBuffer {
     code: EditorCodeBuffer,
     cursor: EditorCursor,
     lang_support: Option<Box<dyn LanguageSupport>>,
-    file_type: FileType,
     file: Option<File>,
 }
 
@@ -57,7 +56,6 @@ impl EditorBuffer {
             cursor: EditorCursor::default(),
             file: Some(file),
             lang_support,
-            file_type,
         })
     }
 
@@ -106,10 +104,6 @@ impl EditorBuffer {
         };
 
         Some(lang_support.highlight(self.code.to_string().as_str())?)
-    }
-
-    pub fn _get_file_type(&self) -> String {
-        self.file_type.get()
     }
 
     pub fn on_event(

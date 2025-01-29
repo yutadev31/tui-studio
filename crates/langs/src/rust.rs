@@ -1,4 +1,4 @@
-use lang_support::{highlight::HighlightToken, LanguageSupport};
+use lang_support::LanguageSupport;
 
 use utils::file_type::RUST;
 
