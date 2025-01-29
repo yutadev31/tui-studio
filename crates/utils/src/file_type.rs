@@ -71,6 +71,7 @@ impl FileType {
             "Dockerfile" => return Self::new(DOCKERFILE),
             ".gitignore" => return Self::new(GIT_IGNORE),
             "COMMIT_EDITMSG" => return Self::new(COMMIT_MESSAGE),
+            "README" => return Self::new(MARKDOWN),
             _ => {}
         }
 
