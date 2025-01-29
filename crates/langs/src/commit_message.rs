@@ -1,7 +1,5 @@
 use lang_support::{
-    complete::CompletionItem,
     highlight::{regex_tokenize, HighlightToken},
-    snippets::Snippet,
     LanguageSupport,
 };
 use utils::{
@@ -50,13 +48,5 @@ impl LanguageSupport for CommitMessageLanguageSupport {
 
     fn highlight(&self, source_code: &str) -> Option<Vec<HighlightToken>> {
         Some(regex_tokenize(source_code, SYNTAX.to_vec()))
-    }
-
-    fn complete(&self, cursor_position: usize, source_code: &str) -> Option<Vec<CompletionItem>> {
-        None
-    }
-
-    fn snippets(&self) -> Option<Vec<Snippet>> {
-        None
     }
 }

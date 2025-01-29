@@ -1,5 +1,3 @@
-use std::fs::write;
-
 use regex::Regex;
 use utils::{
     color::{Color, ToColor},
