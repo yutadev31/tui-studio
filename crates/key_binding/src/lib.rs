@@ -16,6 +16,7 @@ pub enum Key {
     Up,
     Down,
     Esc,
+    InvalidKey,
 }
 
 #[derive(Hash, PartialEq, Eq, Clone)]
@@ -49,7 +50,7 @@ impl From<KeyEvent> for Key {
             KeyCode::Up => Key::Up,
             KeyCode::Down => Key::Down,
             KeyCode::Esc => Key::Esc,
-            _ => panic!("Invalid key event"),
+            _ => Key::InvalidKey,
         }
     }
 }
