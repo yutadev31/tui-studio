@@ -216,7 +216,6 @@ impl Default for EditorBuffer {
         Self {
             code: EditorCodeBuffer::default(),
             cursor: EditorCursor::default(),
-            file_type: FileType::default(),
             lang_support: None,
             file: None,
         }
