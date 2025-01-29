@@ -8,6 +8,16 @@ use utils::{
     file_type::HTML,
 };
 
+const SYNTAX: [(&str, TokenKind); 7] = [
+    (r"(<!--.*?-->)", TokenKind::Comment),
+    (r"<!(DOCTYPE) html>", TokenKind::Tag),
+    (r"<!DOCTYPE (html)>", TokenKind::Attribute),
+    (r"<\s*/?([a-zA-Z]+)[^>]*>", TokenKind::Tag),
+    (r#"([a-zA-Z\-]+)=\s*['\"].*?['\"]"#, TokenKind::Attribute),
+    (r#"[a-zA-Z\-]+=\s*(['\"].*?['\"])"#, TokenKind::Value),
+    (r"([^<]+)", TokenKind::Text),
+];
+
 #[derive(Clone)]
 enum TokenKind {
     Tag,
@@ -43,16 +53,6 @@ impl LanguageSupport for HTMLLanguageSupport {
     }
 
     fn highlight(&self, source_code: &str) -> Option<Vec<HighlightToken>> {
-        let regex_patterns = vec![
-            (r"(<!--.*?-->)", TokenKind::Comment),
-            (r"<!(DOCTYPE) html>", TokenKind::Tag),
-            (r"<!DOCTYPE (html)>", TokenKind::Attribute),
-            (r"<\s*/?([a-zA-Z]+)[^>]*>", TokenKind::Tag),
-            (r#"([a-zA-Z\-]+)=\s*['\"].*?['\"]"#, TokenKind::Attribute),
-            (r#"[a-zA-Z\-]+=\s*(['\"].*?['\"])"#, TokenKind::Value),
-            (r"([^<]+)", TokenKind::Text),
-        ];
-
-        Some(regex_tokenize(source_code, regex_patterns))
+        Some(regex_tokenize(source_code, SYNTAX.to_vec()))
     }
 }

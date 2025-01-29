@@ -9,6 +9,13 @@ use utils::{
     file_type::COMMIT_MESSAGE,
 };
 
+const SYNTAX: [(&str, TokenKind); 4] = [
+    (r"(^[a-zA-Z_-]+):", TokenKind::Prefix),
+    (r"^[a-zA-Z_-]+(:)", TokenKind::Separator),
+    (r"(#.*)", TokenKind::Comment),
+    (r": (.+)$", TokenKind::Message),
+];
+
 #[derive(Clone)]
 enum TokenKind {
     Prefix,
@@ -42,14 +49,7 @@ impl LanguageSupport for CommitMessageLanguageSupport {
     }
 
     fn highlight(&self, source_code: &str) -> Option<Vec<HighlightToken>> {
-        let regex_patterns = vec![
-            (r"(^[a-zA-Z_-]+):", TokenKind::Prefix),
-            (r"^[a-zA-Z_-]+(:)", TokenKind::Separator),
-            (r"(#.*)", TokenKind::Comment),
-            (r": (.+)$", TokenKind::Message),
-        ];
-
-        Some(regex_tokenize(source_code, regex_patterns))
+        Some(regex_tokenize(source_code, SYNTAX.to_vec()))
     }
 
     fn complete(&self, cursor_position: usize, source_code: &str) -> Option<Vec<CompletionItem>> {

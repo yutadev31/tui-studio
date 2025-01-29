@@ -10,36 +10,28 @@ pub struct HighlightToken {
 
 pub fn regex_tokenize<T: ToColor + Clone>(
     source_code: &str,
-    regex_patterns: Vec<(&str, T)>,
+    syntax: Vec<(&str, T)>,
 ) -> Vec<HighlightToken> {
     let mut tokens: Vec<HighlightToken> = Vec::new();
 
-    let regex_list: Vec<(Regex, &T)> = regex_patterns
+    let regex_list: Vec<(Regex, &T)> = syntax
         .iter()
         .map(|(pattern, kind)| (Regex::new(pattern).unwrap(), kind))
         .collect();
 
     for (regex, kind) in regex_list {
-        for cap in regex.captures_iter(source_code) {
-            if let Some(m) = cap.get(1) {
-                let new_token = HighlightToken {
-                    start: m.start(),
-                    end: m.end(),
-                    color: kind.clone().to_color(),
-                };
+        for cap in regex.captures_iter(source_code).filter_map(|c| c.get(1)) {
+            let new_token = HighlightToken {
+                start: cap.start(),
+                end: cap.end(),
+                color: kind.clone().to_color(),
+            };
 
-                let mut overlap = false;
-                for token in &tokens {
-                    let token = token.clone();
-                    if new_token.start < token.end && new_token.end > token.start {
-                        overlap = true;
-                        break;
-                    }
-                }
-
-                if !overlap {
-                    tokens.push(new_token);
-                }
+            if !tokens
+                .iter()
+                .any(|t| new_token.start < t.end && new_token.end > t.start)
+            {
+                tokens.push(new_token);
             }
         }
     }
