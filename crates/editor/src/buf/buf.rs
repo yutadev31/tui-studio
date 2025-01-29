@@ -140,6 +140,7 @@ impl EditorBuffer {
                     self.cursor
                         .move_by(text_len as isize, 0, &self.code, mode)?;
                 }
+                "editor.save" => self.save()?,
                 _ => {}
             },
             _ => {}
@@ -197,13 +198,7 @@ impl EditorBuffer {
                 },
                 _ => {}
             },
-            EditorMode::Command => match evt {
-                Event::Command(cmd) => match cmd.as_str() {
-                    "editor.save" => self.save()?,
-                    _ => {}
-                },
-                _ => {}
-            },
+            _ => {}
         }
 
         Ok(None)

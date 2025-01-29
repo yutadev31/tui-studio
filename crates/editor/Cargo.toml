@@ -10,12 +10,12 @@ anyhow.workspace = true
 crossterm.workspace = true
 utils.path = "../utils"
 key_binding.path = "../key_binding"
+command.path = "../command"
 unicode-width.workspace = true
 arboard.workspace = true
 lang_support.path = "../lang_support"
 langs.path = "../langs"
 tokio.workspace = true
-async-trait.workspace = true
 
 [lib]
 path = "src/editor.rs"

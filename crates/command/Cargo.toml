@@ -1,11 +1,9 @@
 [package]
-name = "utils"
+name = "command"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
 authors.workspace = true
 
 [dependencies]
-anyhow.workspace = true
-crossterm.workspace = true
-tokio.workspace = true
+utils.path = "../utils"

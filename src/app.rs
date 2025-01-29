@@ -1,6 +1,7 @@
 use anyhow::Result;
-use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
+use command::component::CommandComponent;
+use command::CommandManager;
 use crossterm::event::{Event as CrosstermEvent, MouseEventKind};
 use editor::Editor;
 use key_binding::{Key, KeyConfig};
@@ -17,6 +18,7 @@ pub struct App {
     editor: Editor,
 
     key_config: KeyConfig,
+    cmd_mgr: CommandManager,
 
     first_key_time: Option<DateTime<Utc>>,
     key_buf: Vec<Key>,
@@ -29,6 +31,7 @@ impl App {
         Ok(Self {
             editor: Editor::new(path, Rect::new(0, 0, term_w, term_h))?,
             key_config: KeyConfig::default(),
+            cmd_mgr: CommandManager::default(),
             key_buf: Vec::new(),
             first_key_time: None,
         })
@@ -37,14 +40,24 @@ impl App {
     pub fn init(&mut self) {
         // Editor
         self.editor.register_keybindings(&mut self.key_config);
+        self.editor.register_commands(&mut self.cmd_mgr);
     }
 }
 
-#[async_trait]
 impl Component for App {
-    async fn on_event(&mut self, evt: Event) -> Result<()> {
-        if let Event::CrosstermEvent(evt) = evt.clone() {
-            match evt {
+    fn on_event(&mut self, evt: Event) -> Result<Vec<Event>> {
+        match evt.clone() {
+            Event::RunCommand(cmd) => {
+                let commands = self.cmd_mgr.clone();
+                if let Some(commands) = commands.get_command(cmd.as_str()) {
+                    for cmd in commands {
+                        self.on_event(Event::Command(cmd.clone()))?;
+                    }
+                }
+
+                return Ok(vec![]);
+            }
+            Event::CrosstermEvent(evt) => match evt {
                 CrosstermEvent::Key(evt) => {
                     if self.key_buf.len() == 0 {
                         self.first_key_time = Some(Utc::now())
@@ -66,34 +79,36 @@ impl Component for App {
                         None => {}
                         Some(command) => {
                             self.key_buf = Vec::new();
-                            self.on_event(Event::Command(command.clone())).await?;
-                            return Ok(());
+                            self.on_event(Event::Command(command.clone()))?;
+
+                            return Ok(vec![]);
                         }
                     };
                 }
                 CrosstermEvent::Mouse(evt) => match evt.kind {
                     MouseEventKind::Down(btn) => {
                         if btn == crossterm::event::MouseButton::Left {
-                            self.on_event(Event::Click(evt.column.into(), evt.row.into()))
-                                .await?;
+                            self.on_event(Event::Click(evt.column.into(), evt.row.into()))?;
                         }
                     }
                     _ => {}
                 },
                 _ => {}
-            }
+            },
+            _ => {}
         }
 
-        self.editor.on_event(evt).await?;
+        for event in self.editor.on_event(evt)? {
+            self.on_event(event)?;
+        }
 
-        Ok(())
+        Ok(vec![])
     }
 }
 
-#[async_trait]
 impl DrawableComponent for App {
-    async fn draw(&self) -> Result<()> {
-        self.editor.draw().await?;
+    fn draw(&self) -> Result<()> {
+        self.editor.draw()?;
         Ok(())
     }
 }

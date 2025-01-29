@@ -3,10 +3,11 @@ use std::io::stdout;
 
 use anyhow::{anyhow, Result};
 use arboard::Clipboard;
-use async_trait::async_trait;
 use buf::{buf::EditorBuffer, buf_manager::EditorBufferManager};
+use command::component::CommandComponent;
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
+    event::{Event as CrosstermEvent, KeyCode},
     execute,
     style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
 };
@@ -24,6 +25,7 @@ pub struct Editor {
     mode: EditorMode,
     clipboard: Clipboard,
     highlight_tokens: Vec<HighlightToken>,
+    command_input_buf: String,
 }
 
 impl Editor {
@@ -34,6 +36,7 @@ impl Editor {
             mode: EditorMode::Normal,
             clipboard: Clipboard::new()?,
             highlight_tokens: vec![],
+            command_input_buf: String::new(),
         })
     }
 
@@ -85,6 +88,7 @@ impl Editor {
 
     fn set_command_mode(&mut self) -> Result<()> {
         self.mode = EditorMode::Command;
+        self.command_input_buf = String::new();
         Ok(())
     }
 
@@ -248,6 +252,15 @@ impl Editor {
         Ok(())
     }
 
+    fn draw_command_box(&self, draw_data: &mut Vec<String>) {
+        let y = draw_data.len() - 1;
+        draw_data[y] = ":".to_string();
+        draw_data[y].push_str(self.command_input_buf.as_str());
+
+        let len = draw_data[y].len();
+        draw_data[y].push_str(" ".repeat(self.rect.w as usize - len).as_str());
+    }
+
     fn draw_cursor(&self, x: u16, y: u16) -> Result<()> {
         execute!(stdout(), MoveTo(x, y))?;
 
@@ -270,9 +283,9 @@ impl Editor {
     }
 }
 
-#[async_trait]
 impl Component for Editor {
-    async fn on_event(&mut self, evt: Event) -> Result<()> {
+    fn on_event(&mut self, evt: Event) -> Result<Vec<Event>> {
+        let mut events = vec![];
         let (term_w, term_h) = get_term_size()?;
 
         self.rect.w = term_w;
@@ -286,6 +299,24 @@ impl Component for Editor {
                 "editor.mode.insert" => self.set_insert_mode(false)?,
                 "editor.mode.append" => self.set_insert_mode(true)?,
                 "editor.mode.visual" => self.set_visual_mode()?,
+                _ => {}
+            },
+            Event::CrosstermEvent(evt) => match evt {
+                CrosstermEvent::Key(evt) => match evt.code {
+                    KeyCode::Enter => {
+                        events.push(Event::RunCommand(self.command_input_buf.clone()));
+                        self.set_normal_mode()?;
+                    }
+                    KeyCode::Backspace => {
+                        if self.command_input_buf.len() == 0 {
+                            self.set_normal_mode()?;
+                        } else {
+                            self.command_input_buf.pop();
+                        }
+                    }
+                    KeyCode::Char(c) => self.command_input_buf.push(c),
+                    _ => {}
+                },
                 _ => {}
             },
             _ => {}
@@ -308,13 +339,12 @@ impl Component for Editor {
             }
         }
 
-        Ok(())
+        Ok(events)
     }
 }
 
-#[async_trait]
 impl DrawableComponent for Editor {
-    async fn draw(&self) -> Result<()> {
+    fn draw(&self) -> Result<()> {
         let mut draw_data: Vec<String> = Vec::new();
         for _ in 0..self.rect.h {
             draw_data.push(String::new());
@@ -332,6 +362,10 @@ impl DrawableComponent for Editor {
             self.draw_number(&mut draw_data, current, lines.clone(), offset_x as usize);
             self.draw_code(&mut draw_data, current, lines.clone(), offset_x)?;
 
+            if let EditorMode::Command = self.mode {
+                self.draw_command_box(&mut draw_data);
+            }
+
             for (index, draw_data) in draw_data.iter().enumerate() {
                 if draw_data.is_empty() {
                     execute!(
@@ -344,10 +378,13 @@ impl DrawableComponent for Editor {
                 }
             }
 
-            self.draw_cursor(
-                cursor_x as u16 + offset_x as u16 + self.rect.x,
-                cursor_y as u16 - scroll_y as u16 + self.rect.y,
-            )?;
+            if let EditorMode::Command = self.mode {
+            } else {
+                self.draw_cursor(
+                    cursor_x as u16 + offset_x as u16 + self.rect.x,
+                    cursor_y as u16 - scroll_y as u16 + self.rect.y,
+                )?;
+            }
         }
 
         Ok(())
@@ -463,9 +500,14 @@ impl KeybindingComponent for Editor {
             vec![Key::Char('y')],
             "editor.edit.yank",
         );
+    }
+}
 
-        // Commands
-        key_config.register(KeyConfigType::Command, vec![Key::Char('q')], "editor.quit");
-        key_config.register(KeyConfigType::Command, vec![Key::Char('w')], "editor.save");
+impl CommandComponent for Editor {
+    fn register_commands(&self, cmd_manager: &mut command::CommandManager) {
+        cmd_manager.register("q", vec!["editor.quit"]);
+        cmd_manager.register("w", vec!["editor.save"]);
+        cmd_manager.register("x", vec!["editor.save", "editor.quit"]);
+        cmd_manager.register("wq", vec!["editor.save", "editor.quit"]);
     }
 }
