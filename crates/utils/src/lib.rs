@@ -4,5 +4,6 @@ pub mod event;
 pub mod file_type;
 pub mod mode;
 pub mod rect;
+pub mod string;
 pub mod term;
 pub mod vec2;

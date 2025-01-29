@@ -13,7 +13,8 @@ use crossterm::{
 use key_binding::{component::KeybindingComponent, Key, KeyConfig, KeyConfigType};
 use lang_support::highlight::HighlightToken;
 use utils::{
-    component::Component, event::Event, mode::EditorMode, rect::Rect, term::get_term_size,
+    component::Component, event::Event, mode::EditorMode, rect::Rect, string::CodeString,
+    term::get_term_size,
 };
 use utils::{component::DrawableComponent, term::safe_exit};
 
@@ -91,7 +92,7 @@ impl Editor {
         &self,
         draw_data: &mut Vec<String>,
         current: &EditorBuffer,
-        lines: Vec<String>,
+        lines: Vec<CodeString>,
         offset_x: usize,
     ) {
         let scroll_y = current.get_scroll_position().y;
@@ -222,7 +223,7 @@ impl Editor {
         &self,
         draw_data: &mut Vec<String>,
         current: &EditorBuffer,
-        lines: Vec<String>,
+        lines: Vec<CodeString>,
         offset_x: u16,
     ) -> Result<()> {
         let scroll_y = current.get_scroll_position().y;
@@ -240,7 +241,7 @@ impl Editor {
                 scroll_y,
                 index + scroll_y,
                 index,
-                line.clone(),
+                line.to_string(),
             )?;
         }
 
@@ -361,6 +362,7 @@ impl KeybindingComponent for Editor {
             vec![Key::Ctrl('c')],
             "editor.mode.normal",
         );
+        key_config.register(KeyConfigType::All, vec![Key::Esc], "editor.mode.normal");
         key_config.register(
             KeyConfigType::Normal,
             vec![Key::Char(':')],

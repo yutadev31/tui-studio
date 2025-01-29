@@ -20,7 +20,8 @@ impl EditorCursor {
         let x = self.clamp_x(self.position.x, code, mode);
 
         Vec2::new(
-            line.chars()
+            line.to_string()
+                .chars()
                 .take(x)
                 .filter_map(|c| c.width())
                 .fold(0, |sum, x| sum + x),
@@ -84,18 +85,6 @@ impl EditorCursor {
         Ok(())
     }
 
-    // pub fn move_to(
-    //     &mut self,
-    //     x: usize,
-    //     y: usize,
-    //     code: &EditorCodeBuffer,
-    //     mode: &EditorMode,
-    // ) -> Result<()> {
-    //     self.move_x_to(x, code, mode);
-    //     self.move_y_to(y, code, mode)?;
-    //     Ok(())
-    // }
-
     pub fn move_by(
         &mut self,
         x: isize,
@@ -153,7 +142,7 @@ impl EditorCursor {
         }
 
         while x > 0 {
-            let Some(c) = line.chars().nth(x - 1) else {
+            let Some(c) = line.to_string().chars().nth(x - 1) else {
                 x -= 1;
                 continue;
             };
@@ -183,7 +172,7 @@ impl EditorCursor {
         }
 
         while x < code.get_line_length(self.position.y) {
-            let c = line.chars().nth(x).unwrap();
+            let c = line.to_string().chars().nth(x).unwrap();
             if c.is_whitespace() && x != self.position.x {
                 break;
             }
@@ -193,32 +182,6 @@ impl EditorCursor {
 
         self.position.x = x;
     }
-
-    // pub fn scroll_by(&mut self, _x: isize, y: isize, code: &EditorCodeBuffer) -> Result<()> {
-    //     let (_term_w, term_h) = get_term_size()?;
-
-    //     // todo
-
-    //     // if (self.scroll_x != 0 || x > 0)
-    //     //     && (self.scroll_y <= lines.len() - term_w as usize || x < 0)
-    //     // {
-    //     //     let mut scroll_x: isize = self.scroll_x.try_into()?;
-    //     //     scroll_x += x;
-    //     //     self.scroll_x = scroll_x.try_into()?;
-    //     // }
-
-    //     if (self.scroll_y != 0 || y > 0)
-    //         && (code.get_line_count() >= term_h as usize
-    //             && self.scroll_y <= code.get_line_count() - term_h as usize
-    //             || y < 0)
-    //     {
-    //         let mut scroll_y: isize = self.scroll_y.try_into()?;
-    //         scroll_y += y;
-    //         self.scroll_y = scroll_y.try_into()?;
-    //     }
-
-    //     Ok(())
-    // }
 
     pub fn sync_x(&mut self, code: &EditorCodeBuffer, mode: &EditorMode) {
         self.position.x = self.clamp_x(self.position.x, code, mode);
