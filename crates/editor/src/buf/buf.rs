@@ -10,11 +10,11 @@ use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use lang_support::{highlight::HighlightToken, LanguageSupport};
 use langs::{
     commit_message::CommitMessageLanguageSupport, css::CSSLanguageSupport,
-    html::HTMLLanguageSupport, markdown::MarkdownLanguageSupport, rust::RustLanguageSupport,
+    html::HTMLLanguageSupport, markdown::MarkdownLanguageSupport,
 };
 use utils::{
     event::Event,
-    file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN, RUST},
+    file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
     mode::EditorMode,
     vec2::Vec2,
 };
@@ -47,7 +47,6 @@ impl EditorBuffer {
             CSS => Some(Box::new(CSSLanguageSupport::new())),
             MARKDOWN => Some(Box::new(MarkdownLanguageSupport::new())),
             COMMIT_MESSAGE => Some(Box::new(CommitMessageLanguageSupport::new())),
-            RUST => Some(Box::new(RustLanguageSupport::new())),
             _ => None,
         };
 
