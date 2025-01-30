@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::editor::buf::buf::EditorBuffer;
+use crate::editor::buf::EditorBuffer;
 
 use super::error::EditorApiError;
 
