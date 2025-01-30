@@ -1,6 +1,5 @@
 pub mod color;
 pub mod command;
-pub mod component;
 pub mod event;
 pub mod file_type;
 pub mod key_binding;

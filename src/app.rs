@@ -5,7 +5,6 @@ pub(crate) mod plugin;
 pub mod utils;
 
 use std::{
-    env::current_exe,
     io,
     sync::{Arc, Mutex},
     thread,
@@ -19,7 +18,6 @@ use plugin::{PluginManager, PluginManagerError};
 use thiserror::Error;
 use utils::{
     command::CommandManager,
-    component::{CommandComponent, Component, DrawableComponent, KeybindingComponent},
     event::Event,
     key_binding::{Key, KeyConfig},
     rect::Rect,
@@ -75,10 +73,8 @@ impl App {
 
         Ok(())
     }
-}
 
-impl Component<AppError> for App {
-    fn on_event(&mut self, evt: Event) -> Result<Vec<Event>, AppError> {
+    pub fn on_event(&mut self, evt: Event) -> Result<Vec<Event>, AppError> {
         match evt.clone() {
             Event::RunCommand(cmd) => {
                 let commands = self.cmd_mgr.clone();
@@ -137,10 +133,8 @@ impl Component<AppError> for App {
 
         Ok(vec![])
     }
-}
 
-impl DrawableComponent<AppError> for App {
-    fn draw(&self) -> Result<(), AppError> {
+    pub fn draw(&self) -> Result<(), AppError> {
         self.editor.draw()?;
         Ok(())
     }

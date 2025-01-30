@@ -13,7 +13,6 @@ use crate::{
     lang_support::highlight::HighlightToken,
     utils::{
         command::CommandManager,
-        component::{CommandComponent, Component, DrawableComponent, KeybindingComponent},
         event::Event,
         key_binding::{Key, KeyConfig, KeyConfigType},
         mode::EditorMode,
@@ -321,10 +320,8 @@ impl Editor {
 
         Ok(())
     }
-}
 
-impl Component<EditorError> for Editor {
-    fn on_event(&mut self, evt: Event) -> Result<Vec<Event>, EditorError> {
+    pub(crate) fn on_event(&mut self, evt: Event) -> Result<Vec<Event>, EditorError> {
         let mut events = vec![];
         let (term_w, term_h) = get_term_size()?;
 
@@ -395,10 +392,8 @@ impl Component<EditorError> for Editor {
 
         Ok(events)
     }
-}
 
-impl DrawableComponent<EditorError> for Editor {
-    fn draw(&self) -> Result<(), EditorError> {
+    pub(crate) fn draw(&self) -> Result<(), EditorError> {
         let mut draw_data: Vec<String> = Vec::new();
         for _ in 0..self.rect.h {
             draw_data.push(String::new());
@@ -454,10 +449,8 @@ impl DrawableComponent<EditorError> for Editor {
 
         Ok(())
     }
-}
 
-impl KeybindingComponent<EditorError> for Editor {
-    fn register_keybindings(&self, key_config: &mut KeyConfig) {
+    pub fn register_keybindings(&self, key_config: &mut KeyConfig) {
         // Mode
         key_config.register(
             KeyConfigType::All,
@@ -566,10 +559,8 @@ impl KeybindingComponent<EditorError> for Editor {
             "editor.edit.yank",
         );
     }
-}
 
-impl CommandComponent<EditorError> for Editor {
-    fn register_commands(&self, cmd_manager: &mut CommandManager) {
+    pub fn register_commands(&self, cmd_manager: &mut CommandManager) {
         cmd_manager.register("q", vec!["editor.quit"]);
         cmd_manager.register("w", vec!["editor.save"]);
         cmd_manager.register("x", vec!["editor.save", "editor.quit"]);
