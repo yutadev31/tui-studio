@@ -4,5 +4,5 @@ fn main() -> Result<(), PluginClientError> {
     let client = PluginClient::new();
     client.initialize(PluginInfo::default())?;
 
-    Ok(())
+    loop {}
 }
