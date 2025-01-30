@@ -1,6 +1,6 @@
 use clap::Parser;
 use fluent_templates::static_loader;
-use tuistudio::app::{run_app, PublicAppError};
+use tuistudio::{run_app, PublicAppError};
 use utils::term::init_term;
 
 static_loader! {

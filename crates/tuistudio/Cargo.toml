@@ -22,4 +22,4 @@ chrono.workspace = true
 
 
 [lib]
-path = "src/editor.rs"
+path = "src/app.rs"

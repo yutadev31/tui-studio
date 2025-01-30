@@ -4,11 +4,11 @@ use thiserror::Error;
 use unicode_width::UnicodeWidthChar;
 use utils::{mode::EditorMode, term::get_term_size, vec2::Vec2};
 
-use crate::buf::code_buf::EditorCodeBuffer;
+use super::code_buf::EditorCodeBuffer;
 
 #[derive(Debug, Error)]
 pub(crate) enum EditorCursorError {
-    #[error("")]
+    #[error("{0}")]
     IOError(#[from] io::Error),
 }
 

@@ -1,3 +1,6 @@
+pub mod api;
+pub mod editor;
+
 use std::{
     io,
     sync::{Arc, Mutex},
@@ -9,6 +12,7 @@ use chrono::{DateTime, Duration, Utc};
 use command::component::CommandComponent;
 use command::CommandManager;
 use crossterm::event::{self, Event as CrosstermEvent, MouseEventKind};
+use editor::{Editor, EditorError};
 use key_binding::{Key, KeyConfig};
 use thiserror::Error;
 use utils::{
@@ -19,8 +23,6 @@ use utils::{
 };
 
 use key_binding::component::KeybindingComponent;
-
-use crate::{Editor, EditorError};
 
 #[derive(Debug, Error)]
 pub(crate) enum AppError {

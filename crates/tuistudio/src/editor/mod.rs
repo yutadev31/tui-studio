@@ -1,5 +1,3 @@
-pub mod api;
-pub mod app;
 pub(crate) mod buf;
 use std::io::{self, stdout};
 
@@ -55,7 +53,7 @@ pub struct Editor {
 }
 
 impl Editor {
-    fn new(path: Option<String>, rect: Rect) -> Result<Self, EditorError> {
+    pub(crate) fn new(path: Option<String>, rect: Rect) -> Result<Self, EditorError> {
         Ok(Self {
             rect,
             buffer_manager: EditorBufferManager::new(path)?,
@@ -78,7 +76,7 @@ impl Editor {
         self.mode.clone()
     }
 
-    fn set_normal_mode(&mut self) -> Result<(), EditorError> {
+    pub(crate) fn set_normal_mode(&mut self) -> Result<(), EditorError> {
         let current = self.buffer_manager.get_current();
         if let Some(current) = current {
             let Ok(mut current) = current.lock() else {
@@ -98,7 +96,7 @@ impl Editor {
         }
     }
 
-    fn set_visual_mode(&mut self) -> Result<(), EditorError> {
+    pub(crate) fn set_visual_mode(&mut self) -> Result<(), EditorError> {
         let current = self.buffer_manager.get_current();
         if let Some(current) = current {
             let Ok(current) = current.lock() else {
@@ -113,7 +111,7 @@ impl Editor {
         }
     }
 
-    fn set_insert_mode(&mut self, append: bool) -> Result<(), EditorError> {
+    pub(crate) fn set_insert_mode(&mut self, append: bool) -> Result<(), EditorError> {
         let current = self.buffer_manager.get_current();
         if let Some(current) = current {
             let Ok(mut current) = current.lock() else {
@@ -134,7 +132,7 @@ impl Editor {
         }
     }
 
-    fn set_command_mode(&mut self) {
+    pub(crate) fn set_command_mode(&mut self) {
         self.mode = EditorMode::Command;
         self.command_input_buf = String::new();
     }

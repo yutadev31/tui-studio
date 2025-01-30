@@ -5,7 +5,7 @@ use std::{
 
 use thiserror::Error;
 
-use crate::{buf::buf::EditorBuffer, EditorBufferError};
+use super::buf::{EditorBuffer, EditorBufferError};
 
 #[derive(Debug, Error)]
 pub(crate) enum EditorBufferManagerError {
