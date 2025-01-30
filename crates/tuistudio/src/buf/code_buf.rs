@@ -9,13 +9,13 @@ use super::cursor::{EditorCursor, EditorCursorError};
 #[derive(Debug, Error)]
 pub(crate) enum EditorCodeBufferError {
     #[error("{0}")]
-    ClipboardError(#[source] arboard::Error),
+    ClipboardError(#[from] arboard::Error),
 
     #[error("")]
     NoSelection,
 
     #[error("{0}")]
-    EditorCursorError(#[source] EditorCursorError),
+    EditorCursorError(#[from] EditorCursorError),
 }
 
 #[derive(Clone)]
@@ -76,9 +76,7 @@ impl EditorCodeBuffer {
         y: usize,
         clipboard: &mut Clipboard,
     ) -> Result<(), EditorCodeBufferError> {
-        clipboard
-            .set_text(self.lines[y].to_string())
-            .map_err(|err| EditorCodeBufferError::ClipboardError(err))?;
+        clipboard.set_text(self.lines[y].to_string())?;
         self.lines.remove(y);
         Ok(())
     }
@@ -104,9 +102,7 @@ impl EditorCodeBuffer {
             let (p0, p1) = line.split_at(min.x);
             let (text, p1) = p1.split_at(max.x - min.x);
             self.lines[min.y] = CodeString::from(p0.to_string() + p1);
-            clipboard
-                .set_text(text)
-                .map_err(|err| EditorCodeBufferError::ClipboardError(err))?;
+            clipboard.set_text(text)?;
         } else {
             let line = self.lines[min.y].clone();
             let (p1, top_line) = line.split_at(min.x);
@@ -131,9 +127,7 @@ impl EditorCodeBuffer {
             text.push_str(bottom_line);
             text.push('\n');
 
-            clipboard
-                .set_text(text)
-                .map_err(|err| EditorCodeBufferError::ClipboardError(err))?;
+            clipboard.set_text(text)?;
         }
 
         Ok(())
@@ -159,9 +153,7 @@ impl EditorCodeBuffer {
             let line = self.lines[min.y].clone();
             let (_, p1) = line.split_at(min.x);
             let (text, _) = p1.split_at(max.x - min.x);
-            clipboard
-                .set_text(text)
-                .map_err(|err| EditorCodeBufferError::ClipboardError(err))?;
+            clipboard.set_text(text)?;
         } else {
             let line = self.lines[min.y].clone();
             let (_, top_line) = line.split_at(min.x);
@@ -182,9 +174,7 @@ impl EditorCodeBuffer {
             text.push_str(bottom_line);
             text.push('\n');
 
-            clipboard
-                .set_text(text)
-                .map_err(|err| EditorCodeBufferError::ClipboardError(err))?;
+            clipboard.set_text(text)?;
         }
         Ok(())
     }
@@ -194,9 +184,7 @@ impl EditorCodeBuffer {
         y: usize,
         clipboard: &mut Clipboard,
     ) -> Result<(), EditorCodeBufferError> {
-        clipboard
-            .set_text(self.lines[y].to_string())
-            .map_err(|err| EditorCodeBufferError::ClipboardError(err))?;
+        clipboard.set_text(self.lines[y].to_string())?;
         Ok(())
     }
 
@@ -206,10 +194,7 @@ impl EditorCodeBuffer {
         y: usize,
         clipboard: &mut Clipboard,
     ) -> Result<usize, EditorCodeBufferError> {
-        let text = clipboard
-            .get_text()
-            .map_err(|err| EditorCodeBufferError::ClipboardError(err))?;
-
+        let text = clipboard.get_text()?;
         self.append_str(x, y, text.as_str());
         Ok(text.chars().count())
     }
@@ -227,18 +212,14 @@ impl EditorCodeBuffer {
             }
 
             let line_length = self.get_line_length(cursor_pos.y - 1);
-            cursor
-                .move_by(0, -1, &self, mode)
-                .map_err(|err| EditorCodeBufferError::EditorCursorError(err))?;
+            cursor.move_by(0, -1, &self, mode)?;
 
             // line_length - 1 するのが本来は良いが usize が 0 以下になるのを防ぐため、- 1 はしない
             cursor.move_x_to(line_length, &self, mode);
             self.join_lines(cursor_pos.y - 1);
         } else {
             let remove_x = cursor_pos.x - 1;
-            cursor
-                .move_by(-1, 0, &self, mode)
-                .map_err(|err| EditorCodeBufferError::EditorCursorError(err))?;
+            cursor.move_by(-1, 0, &self, mode)?;
 
             self.lines[cursor_pos.y].remove(remove_x);
         }

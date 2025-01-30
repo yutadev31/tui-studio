@@ -18,6 +18,7 @@ use crossterm::{
 use key_binding::{component::KeybindingComponent, Key, KeyConfig, KeyConfigType};
 use lang_support::highlight::HighlightToken;
 use thiserror::Error;
+use tokio::io;
 use utils::{
     component::Component, event::Event, mode::EditorMode, rect::Rect, string::CodeString,
     term::get_term_size, vec2::Vec2,
@@ -35,17 +36,17 @@ pub(crate) enum EditorError {
     #[error("Failed to render the drawing")]
     RenderError,
 
-    #[error("")]
-    IOError,
+    #[error("{0}")]
+    IOError(#[from] io::Error),
 
     #[error("{0}")]
-    EditorBufferError(#[source] EditorBufferError),
+    EditorBufferError(#[from] EditorBufferError),
 
     #[error("{0}")]
-    EditorBufferManagerError(#[source] EditorBufferManagerError),
+    EditorBufferManagerError(#[from] EditorBufferManagerError),
 
     #[error("{0}")]
-    ClipboardError(#[source] arboard::Error),
+    ClipboardError(#[from] arboard::Error),
 }
 
 pub struct Editor {
@@ -61,10 +62,9 @@ impl Editor {
     fn new(path: Option<String>, rect: Rect) -> Result<Self, EditorError> {
         Ok(Self {
             rect,
-            buffer_manager: EditorBufferManager::new(path)
-                .map_err(|err| EditorError::EditorBufferManagerError(err))?,
+            buffer_manager: EditorBufferManager::new(path)?,
             mode: EditorMode::Normal,
-            clipboard: Clipboard::new().map_err(|err| EditorError::ClipboardError(err))?,
+            clipboard: Clipboard::new()?,
             highlight_tokens: vec![],
             command_input_buf: String::new(),
         })
@@ -91,9 +91,7 @@ impl Editor {
 
             if let EditorMode::Insert { append } = self.mode {
                 if append {
-                    current
-                        .cursor_move_by(-1, 0, &self.mode)
-                        .map_err(|err| EditorError::EditorBufferError(err))?;
+                    current.cursor_move_by(-1, 0, &self.mode)?;
                 }
             }
 
@@ -130,9 +128,7 @@ impl Editor {
             self.mode = EditorMode::Insert { append };
 
             if append {
-                current
-                    .cursor_move_by(1, 0, &self.mode)
-                    .map_err(|err| EditorError::EditorBufferError(err))?;
+                current.cursor_move_by(1, 0, &self.mode)?;
             }
 
             current.cursor_sync(&self.mode);
@@ -231,15 +227,13 @@ impl Editor {
                     Print(select_text),
                     ResetColor,
                     Print(back_text)
-                )
-                .map_err(|_| EditorError::RenderError)?;
+                )?;
             } else {
                 execute!(
                     stdout(),
                     MoveTo(self.rect.x + offset_x, self.rect.y + index as u16),
                     Print(line)
-                )
-                .map_err(|_| EditorError::RenderError)?;
+                )?;
             }
         } else {
             if self.highlight_tokens.len() == 0 {
@@ -315,25 +309,13 @@ impl Editor {
     }
 
     fn draw_cursor(&self, x: u16, y: u16) -> Result<(), EditorError> {
-        execute!(stdout(), MoveTo(x, y)).map_err(|_| EditorError::RenderError)?;
+        execute!(stdout(), MoveTo(x, y))?;
 
         match self.mode {
-            EditorMode::Normal => {
-                execute!(stdout(), SetCursorStyle::SteadyBlock)
-                    .map_err(|_| EditorError::RenderError)?;
-            }
-            EditorMode::Visual { start: _ } => {
-                execute!(stdout(), SetCursorStyle::SteadyBlock)
-                    .map_err(|_| EditorError::RenderError)?;
-            }
-            EditorMode::Insert { append: _ } => {
-                execute!(stdout(), SetCursorStyle::SteadyBar)
-                    .map_err(|_| EditorError::RenderError)?;
-            }
-            EditorMode::Command => {
-                execute!(stdout(), SetCursorStyle::SteadyBar)
-                    .map_err(|_| EditorError::RenderError)?;
-            }
+            EditorMode::Normal => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
+            EditorMode::Visual { start: _ } => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
+            EditorMode::Insert { append: _ } => execute!(stdout(), SetCursorStyle::SteadyBar)?,
+            EditorMode::Command => execute!(stdout(), SetCursorStyle::SteadyBar)?,
         }
 
         Ok(())
@@ -343,7 +325,7 @@ impl Editor {
 impl Component<EditorError> for Editor {
     fn on_event(&mut self, evt: Event) -> Result<Vec<Event>, EditorError> {
         let mut events = vec![];
-        let (term_w, term_h) = get_term_size().map_err(|_| EditorError::IOError)?;
+        let (term_w, term_h) = get_term_size()?;
 
         self.rect.w = term_w;
         self.rect.h = term_h;
@@ -385,9 +367,7 @@ impl Component<EditorError> for Editor {
                     return Err(EditorError::LockError);
                 };
 
-                current
-                    .on_event(evt, &self.mode, &mut self.clipboard)
-                    .map_err(|err| EditorError::EditorBufferError(err))?
+                current.on_event(evt, &self.mode, &mut self.clipboard)?
             } else {
                 None
             }
@@ -456,11 +436,9 @@ impl DrawableComponent<EditorError> for Editor {
                         stdout(),
                         MoveTo(0, index as u16),
                         Print(" ".repeat(self.rect.w as usize))
-                    )
-                    .map_err(|_| EditorError::RenderError)?;
+                    )?;
                 } else {
-                    execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))
-                        .map_err(|_| EditorError::RenderError)?;
+                    execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))?;
                 }
             }
 
@@ -469,8 +447,7 @@ impl DrawableComponent<EditorError> for Editor {
                 self.draw_cursor(
                     cursor_x as u16 + offset_x as u16 + self.rect.x,
                     cursor_y as u16 - scroll_y as u16 + self.rect.y,
-                )
-                .map_err(|_| EditorError::RenderError)?;
+                )?;
             }
         }
 

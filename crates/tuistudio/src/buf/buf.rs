@@ -45,10 +45,10 @@ pub(crate) enum EditorBufferError {
     FileNotOpen,
 
     #[error("{0}")]
-    EditorCursorError(#[source] EditorCursorError),
+    EditorCursorError(#[from] EditorCursorError),
 
     #[error("{0}")]
-    EditorCodeBufferError(#[source] EditorCodeBufferError),
+    EditorCodeBufferError(#[from] EditorCodeBufferError),
 }
 
 pub(crate) struct EditorBuffer {
@@ -131,9 +131,7 @@ impl EditorBuffer {
         y: isize,
         mode: &EditorMode,
     ) -> Result<(), EditorBufferError> {
-        self.cursor
-            .move_by(x, y, &self.code, mode)
-            .map_err(|err| EditorBufferError::EditorCursorError(err))
+        Ok(self.cursor.move_by(x, y, &self.code, mode)?)
     }
 
     pub fn cursor_sync(&mut self, mode: &EditorMode) {
@@ -164,53 +162,27 @@ impl EditorBuffer {
 
         match evt.clone() {
             Event::Command(cmd) => match cmd.as_str() {
-                "editor.cursor.left" => self
-                    .cursor
-                    .move_by(-1, 0, &self.code, mode)
-                    .map_err(|err| EditorBufferError::EditorCursorError(err))?,
-                "editor.cursor.down" => self
-                    .cursor
-                    .move_by(0, 1, &self.code, mode)
-                    .map_err(|err| EditorBufferError::EditorCursorError(err))?,
-                "editor.cursor.up" => self
-                    .cursor
-                    .move_by(0, -1, &self.code, mode)
-                    .map_err(|err| EditorBufferError::EditorCursorError(err))?,
-                "editor.cursor.right" => self
-                    .cursor
-                    .move_by(1, 0, &self.code, mode)
-                    .map_err(|err| EditorBufferError::EditorCursorError(err))?,
+                "editor.cursor.left" => self.cursor.move_by(-1, 0, &self.code, mode)?,
+                "editor.cursor.down" => self.cursor.move_by(0, 1, &self.code, mode)?,
+                "editor.cursor.up" => self.cursor.move_by(0, -1, &self.code, mode)?,
+                "editor.cursor.right" => self.cursor.move_by(1, 0, &self.code, mode)?,
                 "editor.cursor.line_start" => self.cursor.move_x_to(0, &self.code, mode),
                 "editor.cursor.line_end" => {
                     self.cursor
                         .move_x_to(self.code.get_line_length(cursor_y), &self.code, mode);
                 }
-                "editor.cursor.top" => self
-                    .cursor
-                    .move_y_to(0, &self.code)
-                    .map_err(|err| EditorBufferError::EditorCursorError(err))?,
+                "editor.cursor.top" => self.cursor.move_y_to(0, &self.code)?,
                 "editor.cursor.end" => self
                     .cursor
-                    .move_y_to(self.code.get_line_count() - 1, &self.code)
-                    .map_err(|err| EditorBufferError::EditorCursorError(err))?,
+                    .move_y_to(self.code.get_line_count() - 1, &self.code)?,
                 "editor.cursor.next_word" => self.cursor.move_to_next_word(&self.code),
                 "editor.cursor.back_word" => self.cursor.move_to_back_word(&self.code),
-                "editor.edit.line_delete" => self
-                    .code
-                    .delete_line(cursor_y, clipboard)
-                    .map_err(|err| EditorBufferError::EditorCodeBufferError(err))?,
-                "editor.edit.line_yank" => self
-                    .code
-                    .yank_line(cursor_y, clipboard)
-                    .map_err(|err| EditorBufferError::EditorCodeBufferError(err))?,
+                "editor.edit.line_delete" => self.code.delete_line(cursor_y, clipboard)?,
+                "editor.edit.line_yank" => self.code.yank_line(cursor_y, clipboard)?,
                 "editor.edit.paste" => {
-                    let text_len = self
-                        .code
-                        .paste(cursor_x, cursor_y, clipboard)
-                        .map_err(|err| EditorBufferError::EditorCodeBufferError(err))?;
+                    let text_len = self.code.paste(cursor_x, cursor_y, clipboard)?;
                     self.cursor
-                        .move_by(text_len as isize, 0, &self.code, mode)
-                        .map_err(|err| EditorBufferError::EditorCursorError(err))?;
+                        .move_by(text_len as isize, 0, &self.code, mode)?;
                 }
                 "editor.save" => self.save()?,
                 _ => {}
@@ -222,9 +194,7 @@ impl EditorBuffer {
             EditorMode::Normal => match evt {
                 Event::Click(x, y) => {
                     let scroll_y = self.cursor.get_scroll_position().y;
-                    self.cursor
-                        .move_y_to(y + scroll_y, &self.code)
-                        .map_err(|err| EditorBufferError::EditorCursorError(err))?;
+                    self.cursor.move_y_to(y + scroll_y, &self.code)?;
                     self.cursor.move_x_to(x, &self.code, mode);
                 }
                 _ => {}
@@ -234,28 +204,19 @@ impl EditorBuffer {
                     if let CrosstermEvent::Key(evt) = evt {
                         match evt.code {
                             KeyCode::Delete => self.code.delete(&mut self.cursor, mode),
-                            KeyCode::Backspace => self
-                                .code
-                                .backspace(&mut self.cursor, mode)
-                                .map_err(|err| EditorBufferError::EditorCodeBufferError(err))?,
+                            KeyCode::Backspace => self.code.backspace(&mut self.cursor, mode)?,
                             KeyCode::Tab => {
                                 self.code.append(cursor_x, cursor_y, '\t');
-                                self.cursor
-                                    .move_by(1, 0, &self.code, mode)
-                                    .map_err(|err| EditorBufferError::EditorCursorError(err))?;
+                                self.cursor.move_by(1, 0, &self.code, mode)?;
                             }
                             KeyCode::Enter => {
                                 self.code.append(cursor_x, cursor_y, '\n');
-                                self.cursor
-                                    .move_by(0, 1, &self.code, mode)
-                                    .map_err(|err| EditorBufferError::EditorCursorError(err))?;
+                                self.cursor.move_by(0, 1, &self.code, mode)?;
                                 self.cursor.move_x_to(0, &self.code, mode);
                             }
                             KeyCode::Char(c) => {
                                 self.code.append(cursor_x, cursor_y, c);
-                                self.cursor
-                                    .move_by(1, 0, &self.code, mode)
-                                    .map_err(|err| EditorBufferError::EditorCursorError(err))?;
+                                self.cursor.move_by(1, 0, &self.code, mode)?;
                             }
                             _ => {}
                         }
@@ -267,18 +228,14 @@ impl EditorBuffer {
                 Event::Command(cmd) => match cmd.as_str() {
                     "editor.edit.delete" => {
                         self.code
-                            .delete_selection(&mut self.cursor, mode, clipboard)
-                            .map_err(|err| EditorBufferError::EditorCodeBufferError(err))?;
-                        self.cursor
-                            .move_y_to(start.y, &self.code)
-                            .map_err(|err| EditorBufferError::EditorCursorError(err))?;
+                            .delete_selection(&mut self.cursor, mode, clipboard)?;
+                        self.cursor.move_y_to(start.y, &self.code)?;
                         self.cursor.move_x_to(start.x, &self.code, mode);
                         return Ok(Some(EditorMode::Normal));
                     }
                     "editor.edit.yank" => {
                         self.code
-                            .yank_selection(&mut self.cursor, mode, clipboard)
-                            .map_err(|err| EditorBufferError::EditorCodeBufferError(err))?;
+                            .yank_selection(&mut self.cursor, mode, clipboard)?;
                         return Ok(Some(EditorMode::Normal));
                     }
                     _ => {}

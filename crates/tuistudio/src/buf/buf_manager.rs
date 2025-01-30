@@ -10,7 +10,7 @@ use crate::{buf::buf::EditorBuffer, EditorBufferError};
 #[derive(Debug, Error)]
 pub(crate) enum EditorBufferManagerError {
     #[error("{0}")]
-    EditorBufferError(#[source] EditorBufferError),
+    EditorBufferError(#[from] EditorBufferError),
 }
 
 pub struct EditorBufferManager {
@@ -26,10 +26,9 @@ impl EditorBufferManager {
                 current_index: Some(0),
             },
             Some(path) => Self {
-                buffers: vec![Arc::new(Mutex::new(
-                    EditorBuffer::open(PathBuf::from(path))
-                        .map_err(|err| EditorBufferManagerError::EditorBufferError(err))?,
-                ))],
+                buffers: vec![Arc::new(Mutex::new(EditorBuffer::open(PathBuf::from(
+                    path,
+                ))?))],
                 current_index: Some(0),
             },
         })
@@ -42,9 +41,7 @@ impl EditorBufferManager {
                 .push(Arc::new(Mutex::new(EditorBuffer::default()))),
             Some(path) => self
                 .buffers
-                .push(Arc::new(Mutex::new(EditorBuffer::open(path).map_err(
-                    |err| EditorBufferManagerError::EditorBufferError(err),
-                )?))),
+                .push(Arc::new(Mutex::new(EditorBuffer::open(path)?))),
         }
         Ok(())
     }

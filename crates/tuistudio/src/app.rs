@@ -25,10 +25,10 @@ use crate::{Editor, EditorError};
 #[derive(Debug, Error)]
 pub(crate) enum AppError {
     #[error("{0}")]
-    EditorError(#[source] EditorError),
+    EditorError(#[from] EditorError),
 
     #[error("{0}")]
-    IOError(#[source] io::Error),
+    IOError(#[from] io::Error),
 }
 
 pub(crate) struct App {
@@ -43,11 +43,10 @@ pub(crate) struct App {
 
 impl App {
     pub fn new(path: Option<String>) -> Result<Self, AppError> {
-        let (term_w, term_h) = get_term_size().map_err(|err| AppError::IOError(err))?;
+        let (term_w, term_h) = get_term_size()?;
 
         Ok(Self {
-            editor: Editor::new(path, Rect::new(0, 0, term_w, term_h))
-                .map_err(|err| AppError::EditorError(err))?,
+            editor: Editor::new(path, Rect::new(0, 0, term_w, term_h))?,
             key_config: KeyConfig::default(),
             cmd_mgr: CommandManager::default(),
             key_buf: Vec::new(),
@@ -116,11 +115,7 @@ impl Component<AppError> for App {
             _ => {}
         }
 
-        for event in self
-            .editor
-            .on_event(evt)
-            .map_err(|err| AppError::EditorError(err))?
-        {
+        for event in self.editor.on_event(evt)? {
             self.on_event(event)?;
         }
 
@@ -130,9 +125,7 @@ impl Component<AppError> for App {
 
 impl DrawableComponent<AppError> for App {
     fn draw(&self) -> Result<(), AppError> {
-        self.editor
-            .draw()
-            .map_err(|err| AppError::EditorError(err))?;
+        self.editor.draw()?;
         Ok(())
     }
 }

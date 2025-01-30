@@ -9,7 +9,7 @@ use crate::buf::code_buf::EditorCodeBuffer;
 #[derive(Debug, Error)]
 pub(crate) enum EditorCursorError {
     #[error("")]
-    IOError(#[source] io::Error),
+    IOError(#[from] io::Error),
 }
 
 #[derive(Clone)]
@@ -84,7 +84,7 @@ impl EditorCursor {
         y: usize,
         code: &EditorCodeBuffer,
     ) -> Result<(), EditorCursorError> {
-        let (_, term_h) = get_term_size().map_err(|err| EditorCursorError::IOError(err))?;
+        let (_, term_h) = get_term_size()?;
 
         self.position.y = self.clamp_y(y, code);
 
@@ -104,7 +104,7 @@ impl EditorCursor {
         code: &EditorCodeBuffer,
         mode: &EditorMode,
     ) -> Result<(), EditorCursorError> {
-        let (_, term_h) = get_term_size().map_err(|err| EditorCursorError::IOError(err))?;
+        let (_, term_h) = get_term_size()?;
         let term_h = term_h - 1;
 
         if x > 0 {
