@@ -1,7 +1,6 @@
 use clap::Parser;
 use fluent_templates::static_loader;
-use tuistudio::{run_app, PublicAppError};
-use utils::term::init_term;
+use tuistudio::{run_app, utils::term::init_term, PublicAppError};
 
 static_loader! {
     pub static LOCALES = {

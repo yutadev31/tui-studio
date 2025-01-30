@@ -1,5 +1,3 @@
-pub mod component;
-
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]

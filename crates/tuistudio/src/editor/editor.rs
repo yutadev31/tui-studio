@@ -1,24 +1,27 @@
 use std::io::{self, stdout};
 
 use arboard::Clipboard;
-use command::component::CommandComponent;
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
     event::{Event as CrosstermEvent, KeyCode},
     execute,
     style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
 };
-use key_binding::{component::KeybindingComponent, Key, KeyConfig, KeyConfigType};
-use lang_support::highlight::HighlightToken;
 use thiserror::Error;
-use utils::{
-    component::{Component, DrawableComponent},
-    event::Event,
-    mode::EditorMode,
-    rect::Rect,
-    string::CodeString,
-    term::{get_term_size, safe_exit},
-    vec2::Vec2,
+
+use crate::{
+    lang_support::highlight::HighlightToken,
+    utils::{
+        command::CommandManager,
+        component::{CommandComponent, Component, DrawableComponent, KeybindingComponent},
+        event::Event,
+        key_binding::{Key, KeyConfig, KeyConfigType},
+        mode::EditorMode,
+        rect::Rect,
+        string::CodeString,
+        term::{get_term_size, safe_exit},
+        vec2::Vec2,
+    },
 };
 
 use super::buf::{
@@ -566,7 +569,7 @@ impl KeybindingComponent<EditorError> for Editor {
 }
 
 impl CommandComponent<EditorError> for Editor {
-    fn register_commands(&self, cmd_manager: &mut command::CommandManager) {
+    fn register_commands(&self, cmd_manager: &mut CommandManager) {
         cmd_manager.register("q", vec!["editor.quit"]);
         cmd_manager.register("w", vec!["editor.save"]);
         cmd_manager.register("x", vec!["editor.save", "editor.quit"]);

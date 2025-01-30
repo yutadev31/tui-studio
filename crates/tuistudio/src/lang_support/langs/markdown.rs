@@ -1,11 +1,12 @@
-use lang_support::{
-    highlight::{regex_tokenize, HighlightToken},
-    LanguageSupport,
-};
-
-use utils::{
-    color::{Color, ToColor},
-    file_type::MARKDOWN,
+use crate::{
+    lang_support::{
+        highlight::{regex_tokenize, HighlightToken},
+        LanguageSupport,
+    },
+    utils::{
+        color::{Color, ToColor},
+        file_type::MARKDOWN,
+    },
 };
 
 const SYNTAX: [(&str, TokenKind); 7] = [

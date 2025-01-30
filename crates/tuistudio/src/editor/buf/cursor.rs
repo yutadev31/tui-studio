@@ -2,7 +2,8 @@ use std::io;
 
 use thiserror::Error;
 use unicode_width::UnicodeWidthChar;
-use utils::{mode::EditorMode, term::get_term_size, vec2::Vec2};
+
+use crate::utils::{mode::EditorMode, term::get_term_size, vec2::Vec2};
 
 use super::code_buf::EditorCodeBuffer;
 

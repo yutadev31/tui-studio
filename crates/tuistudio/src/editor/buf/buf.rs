@@ -6,17 +6,23 @@ use std::{
 
 use arboard::Clipboard;
 use crossterm::event::{Event as CrosstermEvent, KeyCode};
-use lang_support::{highlight::HighlightToken, LanguageSupport};
-use langs::{
-    commit_message::CommitMessageLanguageSupport, css::CSSLanguageSupport,
-    html::HTMLLanguageSupport, markdown::MarkdownLanguageSupport,
-};
 use thiserror::Error;
-use utils::{
-    event::Event,
-    file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
-    mode::EditorMode,
-    vec2::Vec2,
+
+use crate::{
+    lang_support::{
+        highlight::HighlightToken,
+        langs::{
+            commit_message::CommitMessageLanguageSupport, css::CSSLanguageSupport,
+            html::HTMLLanguageSupport, markdown::MarkdownLanguageSupport,
+        },
+        LanguageSupport,
+    },
+    utils::{
+        event::Event,
+        file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
+        mode::EditorMode,
+        vec2::Vec2,
+    },
 };
 
 use super::{

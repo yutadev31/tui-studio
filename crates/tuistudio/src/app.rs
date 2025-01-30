@@ -1,5 +1,7 @@
 pub mod api;
 pub mod editor;
+pub mod lang_support;
+pub mod utils;
 
 use std::{
     io,
@@ -9,20 +11,17 @@ use std::{
 };
 
 use chrono::{DateTime, Duration, Utc};
-use command::component::CommandComponent;
-use command::CommandManager;
 use crossterm::event::{self, Event as CrosstermEvent, MouseEventKind};
 use editor::{Editor, EditorError};
-use key_binding::{Key, KeyConfig};
 use thiserror::Error;
 use utils::{
-    component::{Component, DrawableComponent},
+    command::CommandManager,
+    component::{CommandComponent, Component, DrawableComponent, KeybindingComponent},
     event::Event,
+    key_binding::{Key, KeyConfig},
     rect::Rect,
     term::get_term_size,
 };
-
-use key_binding::component::KeybindingComponent;
 
 #[derive(Debug, Error)]
 pub(crate) enum AppError {

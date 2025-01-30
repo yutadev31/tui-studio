@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::vec2::Vec2;
+use super::vec2::Vec2;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum EditorMode {

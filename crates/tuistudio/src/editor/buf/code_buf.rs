@@ -2,7 +2,8 @@ use std::fmt::{self, Display, Formatter};
 
 use arboard::Clipboard;
 use thiserror::Error;
-use utils::{mode::EditorMode, string::CodeString, vec2::Vec2};
+
+use crate::utils::{mode::EditorMode, string::CodeString, vec2::Vec2};
 
 use super::cursor::{EditorCursor, EditorCursorError};
 

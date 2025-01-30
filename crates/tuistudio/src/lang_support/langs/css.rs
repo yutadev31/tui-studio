@@ -1,11 +1,12 @@
-use lang_support::{
-    highlight::{regex_tokenize, HighlightToken},
-    LanguageSupport,
-};
-
-use utils::{
-    color::{Color, ToColor},
-    file_type::CSS,
+use crate::{
+    lang_support::{
+        highlight::{regex_tokenize, HighlightToken},
+        LanguageSupport,
+    },
+    utils::{
+        color::{Color, ToColor},
+        file_type::CSS,
+    },
 };
 
 const SYNTAX: [(&str, TokenKind); 6] = [

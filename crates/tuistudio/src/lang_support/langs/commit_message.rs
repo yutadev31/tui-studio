@@ -1,10 +1,12 @@
-use lang_support::{
-    highlight::{regex_tokenize, HighlightToken},
-    LanguageSupport,
-};
-use utils::{
-    color::{Color, ToColor},
-    file_type::COMMIT_MESSAGE,
+use crate::{
+    lang_support::{
+        highlight::{regex_tokenize, HighlightToken},
+        LanguageSupport,
+    },
+    utils::{
+        color::{Color, ToColor},
+        file_type::COMMIT_MESSAGE,
+    },
 };
 
 const SYNTAX: [(&str, TokenKind); 4] = [

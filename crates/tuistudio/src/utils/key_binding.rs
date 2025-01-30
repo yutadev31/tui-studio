@@ -1,9 +1,8 @@
-pub mod component;
-
 use std::{collections::HashMap, hash::Hash};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use utils::mode::EditorMode;
+
+use super::mode::EditorMode;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub enum Key {

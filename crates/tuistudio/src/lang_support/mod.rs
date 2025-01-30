@@ -4,6 +4,8 @@ pub mod lint;
 pub mod lsp;
 pub mod snippets;
 
+pub mod langs;
+
 use std::any::Any;
 
 use complete::CompletionItem;

@@ -1,12 +1,5 @@
 [workspace]
-members = [
-  "crates/tuistudio",
-  "crates/key_binding",
-  "crates/lang_support",
-  "crates/utils",
-  "crates/langs",
-  "crates/command",
-]
+members = ["crates/tuistudio"]
 resolver = "2"
 
 [workspace.package]
