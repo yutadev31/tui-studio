@@ -3,6 +3,7 @@ use std::{
     io::{self, BufRead, BufReader, BufWriter, Write},
     path::PathBuf,
     process::{Child, ChildStdin, Command, Stdio},
+    sync::{Arc, Mutex},
     thread,
 };
 
@@ -20,6 +21,9 @@ pub enum PluginManagerError {
     #[error("Failed to get stdin")]
     GetStdinFailed,
 
+    #[error("Failed to read directory")]
+    ReadDirFailed(#[source] io::Error),
+
     #[error("{0}")]
     IOError(#[from] io::Error),
 }
@@ -32,9 +36,9 @@ pub struct PluginManager {
 
 impl PluginManager {
     pub fn load_file(&mut self, path: PathBuf) -> Result<(), PluginManagerError> {
-        debug!("{} plugin is starting to load.", path.to_str().unwrap());
+        debug!("{} plugin is starting to load.", path.display());
 
-        let mut plugin = Command::new(path)
+        let mut plugin = Command::new(&path)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()
@@ -45,15 +49,20 @@ impl PluginManager {
             .take()
             .ok_or(PluginManagerError::GetStdoutFailed)?;
 
-        let _handle = thread::spawn(move || {
+        thread::spawn(move || {
             let mut reader = BufReader::new(stdout);
             loop {
                 let mut buf = String::new();
-                if let Err(_) = reader.read_line(&mut buf) {
-                    continue;
+                match reader.read_line(&mut buf) {
+                    Ok(0) => break, // EOF reached
+                    Ok(_) => {
+                        debug!("{}", buf);
+                    }
+                    Err(e) => {
+                        error!("Error reading plugin stdout: {}", e);
+                        break;
+                    }
                 }
-
-                debug!("{}", buf);
             }
         });
 
@@ -63,26 +72,25 @@ impl PluginManager {
             .ok_or(PluginManagerError::GetStdinFailed)?;
 
         self.stdin.push(Some(BufWriter::new(stdin)));
-
         self.plugins.push(plugin);
 
         debug!("plugin is loaded.");
-
         Ok(())
     }
 
     pub fn load_dir(&mut self, path: PathBuf) -> Result<(), PluginManagerError> {
-        for entry in read_dir(path)? {
-            let entry = match entry {
-                Ok(entry) => entry,
-                Err(err) => {
-                    error!("{}", err);
-                    continue;
+        read_dir(&path)
+            .map_err(|err| PluginManagerError::ReadDirFailed(err))?
+            .filter_map(Result::ok)
+            .for_each(|entry| {
+                if let Err(e) = self.load_file(entry.path()) {
+                    error!(
+                        "Failed to load plugin from {}: {:?}",
+                        entry.path().display(),
+                        e
+                    );
                 }
-            };
-
-            self.load_file(entry.path())?;
-        }
+            });
 
         Ok(())
     }
