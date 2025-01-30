@@ -78,7 +78,7 @@ impl Editor {
         &mut self.buffer_manager
     }
 
-    pub fn get_mode(&self) -> EditorMode {
+    pub(crate) fn get_mode(&self) -> EditorMode {
         self.mode.clone()
     }
 
@@ -560,7 +560,7 @@ impl Editor {
         );
     }
 
-    pub fn register_commands(&self, cmd_manager: &mut CommandManager) {
+    pub(crate) fn register_commands(&self, cmd_manager: &mut CommandManager) {
         cmd_manager.register("q", vec!["editor.quit"]);
         cmd_manager.register("w", vec!["editor.save"]);
         cmd_manager.register("x", vec!["editor.save", "editor.quit"]);

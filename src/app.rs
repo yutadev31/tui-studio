@@ -67,7 +67,6 @@ impl App {
         self.editor.register_commands(&mut self.cmd_mgr);
 
         let home_dir = dirs::home_dir().unwrap();
-
         self.plugin_manager
             .load_dir(home_dir.join(".tui-studio/plugins"))?;
 
