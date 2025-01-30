@@ -1,0 +1,13 @@
+[package]
+name = "html"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+tui-studio.workspace = true
+
+[lib]
+path = "src/plugin.rs"
+crate-type = ["cdylib"]

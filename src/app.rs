@@ -1,9 +1,12 @@
 pub mod api;
 pub mod editor;
 pub mod lang_support;
+pub mod plugin;
 pub mod utils;
 
 use std::{
+    env::current_exe,
+    fs::write,
     io,
     sync::{Arc, Mutex},
     thread,
@@ -13,6 +16,7 @@ use std::{
 use chrono::{DateTime, Duration, Utc};
 use crossterm::event::{self, Event as CrosstermEvent, MouseEventKind};
 use editor::{Editor, EditorError};
+use plugin::manager::PluginManager;
 use thiserror::Error;
 use utils::{
     command::CommandManager,
@@ -37,6 +41,7 @@ pub(crate) struct App {
 
     key_config: KeyConfig,
     cmd_mgr: CommandManager,
+    plugin_manager: PluginManager,
 
     first_key_time: Option<DateTime<Utc>>,
     key_buf: Vec<Key>,
@@ -50,6 +55,7 @@ impl App {
             editor: Editor::new(path, Rect::new(0, 0, term_w, term_h))?,
             key_config: KeyConfig::default(),
             cmd_mgr: CommandManager::default(),
+            plugin_manager: PluginManager::new(),
             key_buf: Vec::new(),
             first_key_time: None,
         })
@@ -59,6 +65,30 @@ impl App {
         // Editor
         self.editor.register_keybindings(&mut self.key_config);
         self.editor.register_commands(&mut self.cmd_mgr);
+
+        let home_dir = dirs::home_dir().unwrap();
+
+        self.plugin_manager
+            .load(home_dir.join(".tui-studio/plugins"))
+            .unwrap();
+
+        #[cfg(debug_assertions)]
+        {
+            let exe_path = current_exe().unwrap();
+            self.plugin_manager
+                .load(exe_path.parent().unwrap().to_path_buf())
+                .unwrap();
+        }
+
+        let plugins = self.plugin_manager.get_plugins();
+
+        let mut txt = String::new();
+        for plugin in plugins {
+            txt.push_str(plugin.get_name());
+            txt.push('\n');
+        }
+
+        write("./a.log", txt).unwrap();
     }
 }
 
