@@ -33,9 +33,6 @@ pub(crate) enum EditorError {
     #[error("Cannot perform the operation because the buffer is not open")]
     BufferNotOpen,
 
-    #[error("Failed to render the drawing")]
-    RenderError,
-
     #[error("{0}")]
     IOError(#[from] io::Error),
 
