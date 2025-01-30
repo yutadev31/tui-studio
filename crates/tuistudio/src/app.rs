@@ -1,10 +1,16 @@
-use anyhow::Result;
+use std::{
+    io,
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration as StdDuration,
+};
+
 use chrono::{DateTime, Duration, Utc};
 use command::component::CommandComponent;
 use command::CommandManager;
-use crossterm::event::{Event as CrosstermEvent, MouseEventKind};
-use editor::Editor;
+use crossterm::event::{self, Event as CrosstermEvent, MouseEventKind};
 use key_binding::{Key, KeyConfig};
+use thiserror::Error;
 use utils::{
     component::{Component, DrawableComponent},
     event::Event,
@@ -14,7 +20,18 @@ use utils::{
 
 use key_binding::component::KeybindingComponent;
 
-pub struct App {
+use crate::{Editor, EditorError};
+
+#[derive(Debug, Error)]
+pub(crate) enum AppError {
+    #[error("{0}")]
+    EditorError(#[source] EditorError),
+
+    #[error("{0}")]
+    IOError(#[source] io::Error),
+}
+
+pub(crate) struct App {
     editor: Editor,
 
     key_config: KeyConfig,
@@ -25,11 +42,12 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(path: Option<String>) -> Result<Self> {
-        let (term_w, term_h) = get_term_size()?;
+    pub fn new(path: Option<String>) -> Result<Self, AppError> {
+        let (term_w, term_h) = get_term_size().map_err(|err| AppError::IOError(err))?;
 
         Ok(Self {
-            editor: Editor::new(path, Rect::new(0, 0, term_w, term_h))?,
+            editor: Editor::new(path, Rect::new(0, 0, term_w, term_h))
+                .map_err(|err| AppError::EditorError(err))?,
             key_config: KeyConfig::default(),
             cmd_mgr: CommandManager::default(),
             key_buf: Vec::new(),
@@ -44,8 +62,8 @@ impl App {
     }
 }
 
-impl Component for App {
-    fn on_event(&mut self, evt: Event) -> Result<Vec<Event>> {
+impl Component<AppError> for App {
+    fn on_event(&mut self, evt: Event) -> Result<Vec<Event>, AppError> {
         match evt.clone() {
             Event::RunCommand(cmd) => {
                 let commands = self.cmd_mgr.clone();
@@ -98,7 +116,11 @@ impl Component for App {
             _ => {}
         }
 
-        for event in self.editor.on_event(evt)? {
+        for event in self
+            .editor
+            .on_event(evt)
+            .map_err(|err| AppError::EditorError(err))?
+        {
             self.on_event(event)?;
         }
 
@@ -106,9 +128,48 @@ impl Component for App {
     }
 }
 
-impl DrawableComponent for App {
-    fn draw(&self) -> Result<()> {
-        self.editor.draw()?;
+impl DrawableComponent<AppError> for App {
+    fn draw(&self) -> Result<(), AppError> {
+        self.editor
+            .draw()
+            .map_err(|err| AppError::EditorError(err))?;
         Ok(())
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum PublicAppError {
+    #[error("")]
+    Error,
+}
+
+pub fn run_app(path: Option<String>) -> Result<(), PublicAppError> {
+    let app = Arc::new(Mutex::new(
+        App::new(path).map_err(|_| PublicAppError::Error)?,
+    ));
+    app.lock().map_err(|_| PublicAppError::Error)?.init();
+
+    let app_clone = Arc::clone(&app);
+    thread::spawn(move || loop {
+        {
+            let app = app_clone.lock().unwrap();
+            app.draw().unwrap();
+        }
+        thread::sleep(StdDuration::from_millis(32));
+    });
+
+    {
+        let mut app = app.lock().unwrap();
+        app.on_event(Event::Resize)
+            .map_err(|_| PublicAppError::Error)?;
+    }
+
+    loop {
+        let event = Event::CrosstermEvent(event::read().map_err(|_| PublicAppError::Error)?);
+        {
+            let mut app = app.lock().unwrap();
+            app.on_event(event).map_err(|_| PublicAppError::Error)?;
+            app.draw().map_err(|_| PublicAppError::Error)?;
+        }
     }
 }

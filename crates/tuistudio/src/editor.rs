@@ -1,9 +1,13 @@
+pub mod api;
+pub mod app;
 pub(crate) mod buf;
 use std::io::stdout;
 
-use anyhow::{anyhow, Result};
 use arboard::Clipboard;
-use buf::{buf::EditorBuffer, buf_manager::EditorBufferManager};
+use buf::{
+    buf::EditorBufferError,
+    buf_manager::{EditorBufferManager, EditorBufferManagerError},
+};
 use command::component::CommandComponent;
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
@@ -13,11 +17,36 @@ use crossterm::{
 };
 use key_binding::{component::KeybindingComponent, Key, KeyConfig, KeyConfigType};
 use lang_support::highlight::HighlightToken;
+use thiserror::Error;
 use utils::{
     component::Component, event::Event, mode::EditorMode, rect::Rect, string::CodeString,
-    term::get_term_size,
+    term::get_term_size, vec2::Vec2,
 };
 use utils::{component::DrawableComponent, term::safe_exit};
+
+#[derive(Debug, Error)]
+pub(crate) enum EditorError {
+    #[error("Failed to acquire editor lock")]
+    LockError,
+
+    #[error("Cannot perform the operation because the buffer is not open")]
+    BufferNotOpen,
+
+    #[error("Failed to render the drawing")]
+    RenderError,
+
+    #[error("")]
+    IOError,
+
+    #[error("{0}")]
+    EditorBufferError(#[source] EditorBufferError),
+
+    #[error("{0}")]
+    EditorBufferManagerError(#[source] EditorBufferManagerError),
+
+    #[error("{0}")]
+    ClipboardError(#[source] arboard::Error),
+}
 
 pub struct Editor {
     rect: Rect,
@@ -29,78 +58,102 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new(path: Option<String>, rect: Rect) -> Result<Self> {
+    fn new(path: Option<String>, rect: Rect) -> Result<Self, EditorError> {
         Ok(Self {
             rect,
-            buffer_manager: EditorBufferManager::new(path)?,
+            buffer_manager: EditorBufferManager::new(path)
+                .map_err(|err| EditorError::EditorBufferManagerError(err))?,
             mode: EditorMode::Normal,
-            clipboard: Clipboard::new()?,
+            clipboard: Clipboard::new().map_err(|err| EditorError::ClipboardError(err))?,
             highlight_tokens: vec![],
             command_input_buf: String::new(),
         })
+    }
+
+    pub(crate) fn get_buffer_manager(&self) -> &EditorBufferManager {
+        &self.buffer_manager
+    }
+
+    pub(crate) fn get_buffer_manager_mut(&mut self) -> &mut EditorBufferManager {
+        &mut self.buffer_manager
     }
 
     pub fn get_mode(&self) -> EditorMode {
         self.mode.clone()
     }
 
-    fn set_normal_mode(&mut self) -> Result<()> {
-        let current = self.buffer_manager.get_current_mut();
+    fn set_normal_mode(&mut self) -> Result<(), EditorError> {
+        let current = self.buffer_manager.get_current();
         if let Some(current) = current {
+            let Ok(mut current) = current.lock() else {
+                return Err(EditorError::LockError);
+            };
+
             if let EditorMode::Insert { append } = self.mode {
                 if append {
-                    current.cursor_move_by(-1, 0, &self.mode)?;
+                    current
+                        .cursor_move_by(-1, 0, &self.mode)
+                        .map_err(|err| EditorError::EditorBufferError(err))?;
                 }
             }
 
             self.mode = EditorMode::Normal;
             Ok(())
         } else {
-            Err(anyhow!("No buffer is open."))
+            Err(EditorError::BufferNotOpen)
         }
     }
 
-    fn set_visual_mode(&mut self) -> Result<()> {
-        let current = self.buffer_manager.get_current_mut();
+    fn set_visual_mode(&mut self) -> Result<(), EditorError> {
+        let current = self.buffer_manager.get_current();
         if let Some(current) = current {
+            let Ok(current) = current.lock() else {
+                return Err(EditorError::LockError);
+            };
+
             let start = current.get_cursor_position(&self.mode);
             self.mode = EditorMode::Visual { start };
             Ok(())
         } else {
-            Err(anyhow!("No buffer is open."))
+            Err(EditorError::BufferNotOpen)
         }
     }
 
-    fn set_insert_mode(&mut self, append: bool) -> Result<()> {
-        let current = self.buffer_manager.get_current_mut();
+    fn set_insert_mode(&mut self, append: bool) -> Result<(), EditorError> {
+        let current = self.buffer_manager.get_current();
         if let Some(current) = current {
+            let Ok(mut current) = current.lock() else {
+                return Err(EditorError::LockError);
+            };
+
             current.cursor_sync(&self.mode);
             self.mode = EditorMode::Insert { append };
+
             if append {
-                current.cursor_move_by(1, 0, &self.mode)?;
+                current
+                    .cursor_move_by(1, 0, &self.mode)
+                    .map_err(|err| EditorError::EditorBufferError(err))?;
             }
+
             current.cursor_sync(&self.mode);
             Ok(())
         } else {
-            Err(anyhow!("No buffer is open."))
+            Err(EditorError::BufferNotOpen)
         }
     }
 
-    fn set_command_mode(&mut self) -> Result<()> {
+    fn set_command_mode(&mut self) {
         self.mode = EditorMode::Command;
         self.command_input_buf = String::new();
-        Ok(())
     }
 
     fn draw_number(
         &self,
         draw_data: &mut Vec<String>,
-        current: &EditorBuffer,
+        scroll_y: usize,
         lines: Vec<CodeString>,
         offset_x: usize,
     ) {
-        let scroll_y = current.get_scroll_position().y;
-
         (0..lines.len())
             .skip(scroll_y)
             .take(self.rect.h.into())
@@ -114,15 +167,14 @@ impl Editor {
     fn draw_code_line(
         &self,
         draw_data: &mut Vec<String>,
-        current: &EditorBuffer,
         offset_x: u16,
         scroll_y: usize,
+        cursor_pos: Vec2,
         y: usize,
         index: usize,
         line: String,
-    ) -> Result<()> {
+    ) -> Result<(), EditorError> {
         if let EditorMode::Visual { start: start_pos } = self.mode {
-            let cursor_pos = current.get_draw_cursor_position(&self.mode);
             let (cursor_x, cursor_y) = cursor_pos.into();
             let (start_x, start_y) = start_pos.into();
 
@@ -170,7 +222,7 @@ impl Editor {
                     &line[start..]
                 };
 
-                let y: u16 = index.try_into()?;
+                let y = index as u16;
                 execute!(
                     stdout(),
                     MoveTo(self.rect.x + offset_x, self.rect.y + y),
@@ -179,13 +231,15 @@ impl Editor {
                     Print(select_text),
                     ResetColor,
                     Print(back_text)
-                )?;
+                )
+                .map_err(|_| EditorError::RenderError)?;
             } else {
                 execute!(
                     stdout(),
                     MoveTo(self.rect.x + offset_x, self.rect.y + index as u16),
                     Print(line)
-                )?;
+                )
+                .map_err(|_| EditorError::RenderError)?;
             }
         } else {
             if self.highlight_tokens.len() == 0 {
@@ -226,12 +280,11 @@ impl Editor {
     fn draw_code(
         &self,
         draw_data: &mut Vec<String>,
-        current: &EditorBuffer,
+        scroll_y: usize,
+        cursor_pos: Vec2,
         lines: Vec<CodeString>,
         offset_x: u16,
-    ) -> Result<()> {
-        let scroll_y = current.get_scroll_position().y;
-
+    ) -> Result<(), EditorError> {
         for (index, line) in lines
             .iter()
             .skip(scroll_y)
@@ -240,9 +293,9 @@ impl Editor {
         {
             self.draw_code_line(
                 draw_data,
-                current,
                 offset_x,
                 scroll_y,
+                cursor_pos,
                 index + scroll_y,
                 index,
                 line.to_string(),
@@ -261,21 +314,25 @@ impl Editor {
         draw_data[y].push_str(" ".repeat(self.rect.w as usize - len).as_str());
     }
 
-    fn draw_cursor(&self, x: u16, y: u16) -> Result<()> {
-        execute!(stdout(), MoveTo(x, y))?;
+    fn draw_cursor(&self, x: u16, y: u16) -> Result<(), EditorError> {
+        execute!(stdout(), MoveTo(x, y)).map_err(|_| EditorError::RenderError)?;
 
         match self.mode {
             EditorMode::Normal => {
-                execute!(stdout(), SetCursorStyle::SteadyBlock)?;
+                execute!(stdout(), SetCursorStyle::SteadyBlock)
+                    .map_err(|_| EditorError::RenderError)?;
             }
             EditorMode::Visual { start: _ } => {
-                execute!(stdout(), SetCursorStyle::SteadyBlock)?;
+                execute!(stdout(), SetCursorStyle::SteadyBlock)
+                    .map_err(|_| EditorError::RenderError)?;
             }
             EditorMode::Insert { append: _ } => {
-                execute!(stdout(), SetCursorStyle::SteadyBar)?;
+                execute!(stdout(), SetCursorStyle::SteadyBar)
+                    .map_err(|_| EditorError::RenderError)?;
             }
             EditorMode::Command => {
-                execute!(stdout(), SetCursorStyle::SteadyBar)?;
+                execute!(stdout(), SetCursorStyle::SteadyBar)
+                    .map_err(|_| EditorError::RenderError)?;
             }
         }
 
@@ -283,10 +340,10 @@ impl Editor {
     }
 }
 
-impl Component for Editor {
-    fn on_event(&mut self, evt: Event) -> Result<Vec<Event>> {
+impl Component<EditorError> for Editor {
+    fn on_event(&mut self, evt: Event) -> Result<Vec<Event>, EditorError> {
         let mut events = vec![];
-        let (term_w, term_h) = get_term_size()?;
+        let (term_w, term_h) = get_term_size().map_err(|_| EditorError::IOError)?;
 
         self.rect.w = term_w;
         self.rect.h = term_h;
@@ -295,7 +352,7 @@ impl Component for Editor {
             Event::Command(cmd) => match cmd.as_str() {
                 "editor.quit" => safe_exit(),
                 "editor.mode.normal" => self.set_normal_mode()?,
-                "editor.mode.command" => self.set_command_mode()?,
+                "editor.mode.command" => self.set_command_mode(),
                 "editor.mode.insert" => self.set_insert_mode(false)?,
                 "editor.mode.append" => self.set_insert_mode(true)?,
                 "editor.mode.visual" => self.set_visual_mode()?,
@@ -322,18 +379,34 @@ impl Component for Editor {
             _ => {}
         }
 
-        if let Some(current) = self.buffer_manager.get_current_mut() {
-            if let Some(mode) = current.on_event(evt, &self.mode, &mut self.clipboard)? {
-                match mode {
-                    EditorMode::Command => self.set_command_mode()?,
-                    EditorMode::Normal => self.set_normal_mode()?,
-                    EditorMode::Visual { start } => self.mode = EditorMode::Visual { start },
-                    EditorMode::Insert { append } => self.set_insert_mode(append)?,
-                }
+        let mode = {
+            if let Some(current) = self.buffer_manager.get_current() {
+                let Ok(mut current) = current.lock() else {
+                    return Err(EditorError::LockError);
+                };
+
+                current
+                    .on_event(evt, &self.mode, &mut self.clipboard)
+                    .map_err(|err| EditorError::EditorBufferError(err))?
+            } else {
+                None
+            }
+        };
+
+        if let Some(mode) = mode {
+            match mode {
+                EditorMode::Command => self.set_command_mode(),
+                EditorMode::Normal => self.set_normal_mode()?,
+                EditorMode::Visual { start } => self.mode = EditorMode::Visual { start },
+                EditorMode::Insert { append } => self.set_insert_mode(append)?,
             }
         }
 
-        if let Some(current) = self.buffer_manager.get_current_mut() {
+        if let Some(current) = self.buffer_manager.get_current() {
+            let Ok(current) = current.lock() else {
+                return Err(EditorError::LockError);
+            };
+
             if let Some(tokens) = current.highlight() {
                 self.highlight_tokens = tokens;
             }
@@ -343,15 +416,20 @@ impl Component for Editor {
     }
 }
 
-impl DrawableComponent for Editor {
-    fn draw(&self) -> Result<()> {
+impl DrawableComponent<EditorError> for Editor {
+    fn draw(&self) -> Result<(), EditorError> {
         let mut draw_data: Vec<String> = Vec::new();
         for _ in 0..self.rect.h {
             draw_data.push(String::new());
         }
 
         if let Some(current) = self.buffer_manager.get_current() {
+            let Ok(current) = current.lock() else {
+                return Err(EditorError::LockError);
+            };
+
             let lines = current.get_code_buf().get_lines();
+            let cursor_pos = current.get_cursor_position(&self.mode);
             let (cursor_x, cursor_y) = current.get_draw_cursor_position(&self.mode).into();
 
             let num_len = (lines.len() - 1).to_string().len();
@@ -359,8 +437,14 @@ impl DrawableComponent for Editor {
 
             let scroll_y = current.get_scroll_position().y;
 
-            self.draw_number(&mut draw_data, current, lines.clone(), offset_x as usize);
-            self.draw_code(&mut draw_data, current, lines.clone(), offset_x)?;
+            self.draw_number(&mut draw_data, scroll_y, lines.clone(), offset_x as usize);
+            self.draw_code(
+                &mut draw_data,
+                scroll_y,
+                cursor_pos,
+                lines.clone(),
+                offset_x,
+            )?;
 
             if let EditorMode::Command = self.mode {
                 self.draw_command_box(&mut draw_data);
@@ -372,9 +456,11 @@ impl DrawableComponent for Editor {
                         stdout(),
                         MoveTo(0, index as u16),
                         Print(" ".repeat(self.rect.w as usize))
-                    )?;
+                    )
+                    .map_err(|_| EditorError::RenderError)?;
                 } else {
-                    execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))?;
+                    execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))
+                        .map_err(|_| EditorError::RenderError)?;
                 }
             }
 
@@ -383,7 +469,8 @@ impl DrawableComponent for Editor {
                 self.draw_cursor(
                     cursor_x as u16 + offset_x as u16 + self.rect.x,
                     cursor_y as u16 - scroll_y as u16 + self.rect.y,
-                )?;
+                )
+                .map_err(|_| EditorError::RenderError)?;
             }
         }
 
@@ -391,7 +478,7 @@ impl DrawableComponent for Editor {
     }
 }
 
-impl KeybindingComponent for Editor {
+impl KeybindingComponent<EditorError> for Editor {
     fn register_keybindings(&self, key_config: &mut KeyConfig) {
         // Mode
         key_config.register(
@@ -503,7 +590,7 @@ impl KeybindingComponent for Editor {
     }
 }
 
-impl CommandComponent for Editor {
+impl CommandComponent<EditorError> for Editor {
     fn register_commands(&self, cmd_manager: &mut command::CommandManager) {
         cmd_manager.register("q", vec!["editor.quit"]);
         cmd_manager.register("w", vec!["editor.save"]);

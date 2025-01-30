@@ -1,10 +1,22 @@
 use std::fmt::{self, Display, Formatter};
 
-use anyhow::{anyhow, Result};
 use arboard::Clipboard;
+use thiserror::Error;
 use utils::{mode::EditorMode, string::CodeString, vec2::Vec2};
 
-use super::cursor::EditorCursor;
+use super::cursor::{EditorCursor, EditorCursorError};
+
+#[derive(Debug, Error)]
+pub(crate) enum EditorCodeBufferError {
+    #[error("{0}")]
+    ClipboardError(#[source] arboard::Error),
+
+    #[error("")]
+    NoSelection,
+
+    #[error("{0}")]
+    EditorCursorError(#[source] EditorCursorError),
+}
 
 #[derive(Clone)]
 pub struct EditorCodeBuffer {
@@ -59,8 +71,14 @@ impl EditorCodeBuffer {
         }
     }
 
-    pub fn delete_line(&mut self, y: usize, clipboard: &mut Clipboard) -> Result<()> {
-        clipboard.set_text(self.lines[y].to_string())?;
+    pub fn delete_line(
+        &mut self,
+        y: usize,
+        clipboard: &mut Clipboard,
+    ) -> Result<(), EditorCodeBufferError> {
+        clipboard
+            .set_text(self.lines[y].to_string())
+            .map_err(|err| EditorCodeBufferError::ClipboardError(err))?;
         self.lines.remove(y);
         Ok(())
     }
@@ -70,12 +88,12 @@ impl EditorCodeBuffer {
         cursor: &mut EditorCursor,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
-    ) -> Result<()> {
+    ) -> Result<(), EditorCodeBufferError> {
         let start = cursor.get(self, mode);
         let end = if let EditorMode::Visual { start } = mode.clone() {
             start
         } else {
-            return Err(anyhow!("No selection to delete."));
+            return Err(EditorCodeBufferError::NoSelection);
         };
 
         let min = start.min(end);
@@ -86,7 +104,9 @@ impl EditorCodeBuffer {
             let (p0, p1) = line.split_at(min.x);
             let (text, p1) = p1.split_at(max.x - min.x);
             self.lines[min.y] = CodeString::from(p0.to_string() + p1);
-            clipboard.set_text(text)?;
+            clipboard
+                .set_text(text)
+                .map_err(|err| EditorCodeBufferError::ClipboardError(err))?;
         } else {
             let line = self.lines[min.y].clone();
             let (p1, top_line) = line.split_at(min.x);
@@ -111,7 +131,9 @@ impl EditorCodeBuffer {
             text.push_str(bottom_line);
             text.push('\n');
 
-            clipboard.set_text(text)?;
+            clipboard
+                .set_text(text)
+                .map_err(|err| EditorCodeBufferError::ClipboardError(err))?;
         }
 
         Ok(())
@@ -122,12 +144,12 @@ impl EditorCodeBuffer {
         cursor: &mut EditorCursor,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
-    ) -> Result<()> {
+    ) -> Result<(), EditorCodeBufferError> {
         let start = cursor.get(self, mode);
         let end = if let EditorMode::Visual { start } = mode.clone() {
             start
         } else {
-            return Err(anyhow!("No selection to delete."));
+            return Err(EditorCodeBufferError::NoSelection);
         };
 
         let min = start.min(end);
@@ -137,7 +159,9 @@ impl EditorCodeBuffer {
             let line = self.lines[min.y].clone();
             let (_, p1) = line.split_at(min.x);
             let (text, _) = p1.split_at(max.x - min.x);
-            clipboard.set_text(text)?;
+            clipboard
+                .set_text(text)
+                .map_err(|err| EditorCodeBufferError::ClipboardError(err))?;
         } else {
             let line = self.lines[min.y].clone();
             let (_, top_line) = line.split_at(min.x);
@@ -158,23 +182,43 @@ impl EditorCodeBuffer {
             text.push_str(bottom_line);
             text.push('\n');
 
-            clipboard.set_text(text)?;
+            clipboard
+                .set_text(text)
+                .map_err(|err| EditorCodeBufferError::ClipboardError(err))?;
         }
         Ok(())
     }
 
-    pub fn yank_line(&self, y: usize, clipboard: &mut Clipboard) -> Result<()> {
-        clipboard.set_text(self.lines[y].to_string())?;
+    pub fn yank_line(
+        &self,
+        y: usize,
+        clipboard: &mut Clipboard,
+    ) -> Result<(), EditorCodeBufferError> {
+        clipboard
+            .set_text(self.lines[y].to_string())
+            .map_err(|err| EditorCodeBufferError::ClipboardError(err))?;
         Ok(())
     }
 
-    pub fn paste(&mut self, x: usize, y: usize, clipboard: &mut Clipboard) -> Result<usize> {
-        let text = clipboard.get_text()?;
+    pub fn paste(
+        &mut self,
+        x: usize,
+        y: usize,
+        clipboard: &mut Clipboard,
+    ) -> Result<usize, EditorCodeBufferError> {
+        let text = clipboard
+            .get_text()
+            .map_err(|err| EditorCodeBufferError::ClipboardError(err))?;
+
         self.append_str(x, y, text.as_str());
         Ok(text.chars().count())
     }
 
-    pub fn backspace(&mut self, cursor: &mut EditorCursor, mode: &EditorMode) -> Result<()> {
+    pub fn backspace(
+        &mut self,
+        cursor: &mut EditorCursor,
+        mode: &EditorMode,
+    ) -> Result<(), EditorCodeBufferError> {
         let cursor_pos = cursor.get(&self, mode);
 
         if cursor_pos.x == 0 {
@@ -183,14 +227,18 @@ impl EditorCodeBuffer {
             }
 
             let line_length = self.get_line_length(cursor_pos.y - 1);
-            cursor.move_by(0, -1, &self, mode)?;
+            cursor
+                .move_by(0, -1, &self, mode)
+                .map_err(|err| EditorCodeBufferError::EditorCursorError(err))?;
 
             // line_length - 1 するのが本来は良いが usize が 0 以下になるのを防ぐため、- 1 はしない
             cursor.move_x_to(line_length, &self, mode);
             self.join_lines(cursor_pos.y - 1);
         } else {
             let remove_x = cursor_pos.x - 1;
-            cursor.move_by(-1, 0, &self, mode)?;
+            cursor
+                .move_by(-1, 0, &self, mode)
+                .map_err(|err| EditorCodeBufferError::EditorCursorError(err))?;
 
             self.lines[cursor_pos.y].remove(remove_x);
         }

@@ -1,2 +1,2 @@
 #!/bin/sh
-cargo install --path .
+cargo install --path ./crates/tuistudio

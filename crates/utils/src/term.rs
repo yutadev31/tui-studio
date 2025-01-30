@@ -1,6 +1,8 @@
-use std::{io::stdout, process::exit};
+use std::{
+    io::{self, stdout},
+    process::exit,
+};
 
-use anyhow::Result;
 use crossterm::{
     cursor::SetCursorStyle,
     event::{DisableMouseCapture, EnableMouseCapture},
@@ -10,13 +12,13 @@ use crossterm::{
     },
 };
 
-pub fn init_term() -> Result<()> {
+pub fn init_term() -> io::Result<()> {
     enable_raw_mode()?;
     execute!(stdout(), EnterAlternateScreen, EnableMouseCapture)?;
     Ok(())
 }
 
-pub fn clean_term() -> Result<()> {
+pub fn clean_term() -> io::Result<()> {
     disable_raw_mode()?;
     execute!(
         stdout(),
@@ -27,8 +29,8 @@ pub fn clean_term() -> Result<()> {
     Ok(())
 }
 
-pub fn get_term_size() -> Result<(u16, u16)> {
-    Ok(size()?)
+pub fn get_term_size() -> io::Result<(u16, u16)> {
+    size()
 }
 
 pub fn safe_exit() {

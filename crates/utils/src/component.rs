@@ -1,11 +1,9 @@
-use anyhow::Result;
-
 use crate::event::Event;
 
-pub trait Component: Send {
-    fn on_event(&mut self, evt: Event) -> Result<Vec<Event>>;
+pub trait Component<E>: Send {
+    fn on_event(&mut self, evt: Event) -> Result<Vec<Event>, E>;
 }
 
-pub trait DrawableComponent: Component {
-    fn draw(&self) -> Result<()>;
+pub trait DrawableComponent<E>: Component<E> {
+    fn draw(&self) -> Result<(), E>;
 }

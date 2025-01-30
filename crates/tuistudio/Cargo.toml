@@ -1,12 +1,11 @@
 [package]
-name = "editor"
+name = "tuistudio"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
 authors.workspace = true
 
 [dependencies]
-anyhow.workspace = true
 crossterm.workspace = true
 utils.path = "../utils"
 key_binding.path = "../key_binding"
@@ -16,6 +15,12 @@ arboard.workspace = true
 lang_support.path = "../lang_support"
 langs.path = "../langs"
 tokio.workspace = true
+thiserror.workspace = true
+fluent.workspace = true
+fluent-templates.workspace = true
+clap.workspace = true
+chrono.workspace = true
+
 
 [lib]
 path = "src/editor.rs"

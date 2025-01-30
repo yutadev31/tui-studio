@@ -1,8 +1,16 @@
-use anyhow::Result;
+use std::io;
+
+use thiserror::Error;
 use unicode_width::UnicodeWidthChar;
 use utils::{mode::EditorMode, term::get_term_size, vec2::Vec2};
 
 use crate::buf::code_buf::EditorCodeBuffer;
+
+#[derive(Debug, Error)]
+pub(crate) enum EditorCursorError {
+    #[error("")]
+    IOError(#[source] io::Error),
+}
 
 #[derive(Clone)]
 pub struct EditorCursor {
@@ -71,8 +79,12 @@ impl EditorCursor {
         self.position.x = self.clamp_x(x, code, mode);
     }
 
-    pub fn move_y_to(&mut self, y: usize, code: &EditorCodeBuffer) -> Result<()> {
-        let (_, term_h) = get_term_size()?;
+    pub fn move_y_to(
+        &mut self,
+        y: usize,
+        code: &EditorCodeBuffer,
+    ) -> Result<(), EditorCursorError> {
+        let (_, term_h) = get_term_size().map_err(|err| EditorCursorError::IOError(err))?;
 
         self.position.y = self.clamp_y(y, code);
 
@@ -91,8 +103,8 @@ impl EditorCursor {
         y: isize,
         code: &EditorCodeBuffer,
         mode: &EditorMode,
-    ) -> Result<()> {
-        let (_, term_h) = get_term_size()?;
+    ) -> Result<(), EditorCursorError> {
+        let (_, term_h) = get_term_size().map_err(|err| EditorCursorError::IOError(err))?;
         let term_h = term_h - 1;
 
         if x > 0 {

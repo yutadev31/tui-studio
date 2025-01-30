@@ -2,6 +2,6 @@ use utils::component::Component;
 
 use crate::KeyConfig;
 
-pub trait KeybindingComponent: Component {
+pub trait KeybindingComponent<E>: Component<E> {
     fn register_keybindings(&self, key_config: &mut KeyConfig);
 }
