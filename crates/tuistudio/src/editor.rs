@@ -1,7 +1,7 @@
 pub mod api;
 pub mod app;
 pub(crate) mod buf;
-use std::io::stdout;
+use std::io::{self, stdout};
 
 use arboard::Clipboard;
 use buf::{
@@ -18,7 +18,6 @@ use crossterm::{
 use key_binding::{component::KeybindingComponent, Key, KeyConfig, KeyConfigType};
 use lang_support::highlight::HighlightToken;
 use thiserror::Error;
-use tokio::io;
 use utils::{
     component::Component, event::Event, mode::EditorMode, rect::Rect, string::CodeString,
     term::get_term_size, vec2::Vec2,

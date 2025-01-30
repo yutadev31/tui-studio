@@ -14,7 +14,6 @@ unicode-width.workspace = true
 arboard.workspace = true
 lang_support.path = "../lang_support"
 langs.path = "../langs"
-tokio.workspace = true
 thiserror.workspace = true
 fluent.workspace = true
 fluent-templates.workspace = true
