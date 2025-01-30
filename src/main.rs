@@ -1,10 +1,10 @@
 use clap::Parser;
 use fluent_templates::static_loader;
-use tuistudio::{run_app, utils::term::init_term, PublicAppError};
+use tui_studio::{run_app, utils::term::init_term, PublicAppError};
 
 static_loader! {
     pub static LOCALES = {
-        locales: "../../locales",
+        locales: "./locales",
         fallback_language: "en-US",
     };
 }

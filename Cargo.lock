@@ -1096,7 +1096,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tuistudio"
+name = "tui-studio"
 version = "0.1.0"
 dependencies = [
  "arboard",
