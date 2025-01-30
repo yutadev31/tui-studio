@@ -1,12 +1,11 @@
 pub mod api;
-pub mod editor;
-pub mod lang_support;
-pub mod plugin;
+pub(crate) mod editor;
+pub(crate) mod lang_support;
+pub(crate) mod plugin;
 pub mod utils;
 
 use std::{
     env::current_exe,
-    fs::write,
     io,
     sync::{Arc, Mutex},
     thread,
@@ -16,7 +15,7 @@ use std::{
 use chrono::{DateTime, Duration, Utc};
 use crossterm::event::{self, Event as CrosstermEvent, MouseEventKind};
 use editor::{Editor, EditorError};
-use plugin::manager::PluginManager;
+use plugin::{PluginManager, PluginManagerError};
 use thiserror::Error;
 use utils::{
     command::CommandManager,
@@ -31,6 +30,9 @@ use utils::{
 pub(crate) enum AppError {
     #[error("{0}")]
     EditorError(#[from] EditorError),
+
+    #[error("{0}")]
+    PluginManagerError(#[from] PluginManagerError),
 
     #[error("{0}")]
     IOError(#[from] io::Error),
@@ -55,13 +57,13 @@ impl App {
             editor: Editor::new(path, Rect::new(0, 0, term_w, term_h))?,
             key_config: KeyConfig::default(),
             cmd_mgr: CommandManager::default(),
-            plugin_manager: PluginManager::new(),
             key_buf: Vec::new(),
+            plugin_manager: PluginManager::default(),
             first_key_time: None,
         })
     }
 
-    pub fn init(&mut self) {
+    pub fn init(&mut self) -> Result<(), AppError> {
         // Editor
         self.editor.register_keybindings(&mut self.key_config);
         self.editor.register_commands(&mut self.cmd_mgr);
@@ -69,26 +71,9 @@ impl App {
         let home_dir = dirs::home_dir().unwrap();
 
         self.plugin_manager
-            .load(home_dir.join(".tui-studio/plugins"))
-            .unwrap();
+            .load_dir(home_dir.join(".tui-studio/plugins"))?;
 
-        #[cfg(debug_assertions)]
-        {
-            let exe_path = current_exe().unwrap();
-            self.plugin_manager
-                .load(exe_path.parent().unwrap().to_path_buf())
-                .unwrap();
-        }
-
-        let plugins = self.plugin_manager.get_plugins();
-
-        let mut txt = String::new();
-        for plugin in plugins {
-            txt.push_str(plugin.get_name());
-            txt.push('\n');
-        }
-
-        write("./a.log", txt).unwrap();
+        Ok(())
     }
 }
 
@@ -171,7 +156,11 @@ pub fn run_app(path: Option<String>) -> Result<(), PublicAppError> {
     let app = Arc::new(Mutex::new(
         App::new(path).map_err(|_| PublicAppError::Error)?,
     ));
-    app.lock().map_err(|_| PublicAppError::Error)?.init();
+
+    app.lock()
+        .map_err(|_| PublicAppError::Error)?
+        .init()
+        .map_err(|_| PublicAppError::Error)?;
 
     let app_clone = Arc::clone(&app);
     thread::spawn(move || loop {

@@ -21,7 +21,6 @@ serde_json = "1.0.138"
 regex = "1.11.1"
 thiserror = "2.0.11"
 tui-studio.path = "."
-libloading = "0.8.6"
 dirs = "6.0.0"
 
 [package]
@@ -41,8 +40,9 @@ fluent-templates.workspace = true
 clap.workspace = true
 chrono.workspace = true
 regex.workspace = true
-libloading.workspace = true
 dirs.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 
 [lib]
 path = "src/app.rs"

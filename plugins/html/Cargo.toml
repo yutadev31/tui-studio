@@ -7,7 +7,5 @@ authors.workspace = true
 
 [dependencies]
 tui-studio.workspace = true
-
-[lib]
-path = "src/plugin.rs"
-crate-type = ["cdylib"]
+serde.workspace = true
+serde_json.workspace = true

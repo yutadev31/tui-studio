@@ -1,7 +1,14 @@
 mod buf;
+mod client;
 mod error;
+mod info;
+mod net;
 
-pub use buf::EditorBufferApi;
+pub use buf::*;
+pub use client::*;
+pub use info::*;
+pub use net::request::*;
+
 use error::EditorApiError;
 
 use std::{
