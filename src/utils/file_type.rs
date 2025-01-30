@@ -152,7 +152,7 @@ impl FileType {
                 "cbl" => return Self::new(COBOL),
                 "cob" => return Self::new(COBOL),
                 "toml" => return Self::new(TOML),
-                "r" => return Self::new(R),
+                "R" => return Self::new(R),
                 _ => {}
             }
         }
