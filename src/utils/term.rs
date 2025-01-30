@@ -12,9 +12,12 @@ use crossterm::{
     },
 };
 
+use super::log::init_logger;
+
 pub fn init_term() -> io::Result<()> {
     enable_raw_mode()?;
     execute!(stdout(), EnterAlternateScreen, EnableMouseCapture)?;
+    init_logger().unwrap();
     Ok(())
 }
 

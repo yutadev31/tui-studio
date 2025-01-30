@@ -22,6 +22,8 @@ regex = "1.11.1"
 thiserror = "2.0.11"
 tui-studio.path = "."
 dirs = "6.0.0"
+log = "0.4.25"
+fern = "0.7.1"
 
 [package]
 name = "tui-studio"
@@ -43,6 +45,8 @@ regex.workspace = true
 dirs.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+log.workspace = true
+fern.workspace = true
 
 [lib]
 path = "src/app.rs"

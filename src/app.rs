@@ -13,6 +13,7 @@ use std::{
 
 use chrono::{DateTime, Duration, Utc};
 use crossterm::event::{self, Event as CrosstermEvent, MouseEventKind};
+use dirs::executable_dir;
 use editor::{Editor, EditorError};
 use plugin::{PluginManager, PluginManagerError};
 use thiserror::Error;
@@ -69,6 +70,12 @@ impl App {
         let home_dir = dirs::home_dir().unwrap();
         self.plugin_manager
             .load_dir(home_dir.join(".tui-studio/plugins"))?;
+
+        #[cfg(debug_assertions)]
+        {
+            self.plugin_manager
+                .load_dir(home_dir.join(".tui-studio/debug/plugins"))?;
+        }
 
         Ok(())
     }
@@ -141,19 +148,17 @@ impl App {
 
 #[derive(Debug, Error)]
 pub enum PublicAppError {
-    #[error("")]
-    Error,
+    #[error("{0}")]
+    AppError(#[from] AppError),
+
+    #[error("{0}")]
+    IOError(#[from] io::Error),
 }
 
 pub fn run_app(path: Option<String>) -> Result<(), PublicAppError> {
-    let app = Arc::new(Mutex::new(
-        App::new(path).map_err(|_| PublicAppError::Error)?,
-    ));
+    let app = Arc::new(Mutex::new(App::new(path)?));
 
-    app.lock()
-        .map_err(|_| PublicAppError::Error)?
-        .init()
-        .map_err(|_| PublicAppError::Error)?;
+    app.lock().unwrap().init()?;
 
     let app_clone = Arc::clone(&app);
     thread::spawn(move || loop {
@@ -166,16 +171,15 @@ pub fn run_app(path: Option<String>) -> Result<(), PublicAppError> {
 
     {
         let mut app = app.lock().unwrap();
-        app.on_event(Event::Resize)
-            .map_err(|_| PublicAppError::Error)?;
+        app.on_event(Event::Resize)?;
     }
 
     loop {
-        let event = Event::CrosstermEvent(event::read().map_err(|_| PublicAppError::Error)?);
+        let event = Event::CrosstermEvent(event::read()?);
         {
             let mut app = app.lock().unwrap();
-            app.on_event(event).map_err(|_| PublicAppError::Error)?;
-            app.draw().map_err(|_| PublicAppError::Error)?;
+            app.on_event(event)?;
+            app.draw()?;
         }
     }
 }
