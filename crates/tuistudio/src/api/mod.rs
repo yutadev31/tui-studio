@@ -83,6 +83,17 @@ impl EditorApi {
         Ok(())
     }
 
+    pub fn close(&mut self, index: usize) -> Result<(), EditorApiError> {
+        let Ok(mut editor) = self.editor.lock() else {
+            return Err(EditorApiError::LockError);
+        };
+
+        let buf_manager = editor.get_buffer_manager_mut();
+
+        buf_manager.close(index);
+        Ok(())
+    }
+
     pub fn close_current(&mut self) -> Result<(), EditorApiError> {
         let Ok(mut editor) = self.editor.lock() else {
             return Err(EditorApiError::LockError);

@@ -8,6 +8,9 @@ pub enum EditorApiError {
     #[error("Failed to open buffer")]
     OpenBufferFailed,
 
+    #[error("Failed to save buffer")]
+    SaveBufferFailed,
+
     #[error("Failed to set editor mode")]
     SetEditorModeFailed,
 }
