@@ -96,7 +96,7 @@ impl PluginManager {
     }
 
     pub fn write(&mut self, index: usize, buf: &str) -> Result<(), PluginManagerError> {
-        if let Some(stdin) = &mut self.stdin.get_mut(index).and_then(Option::as_mut) {
+        if let Some(stdin) = self.stdin.get_mut(index).and_then(Option::as_mut) {
             stdin.write(buf.as_bytes())?;
             stdin.flush()?;
             Ok(())
