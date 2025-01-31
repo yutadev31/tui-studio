@@ -1,0 +1,2 @@
+#!/bin/sh
+find . -name "*.rs" -print0 | xargs -0 grep -hv '^\s*$' | grep -v '^\s*//' | wc -l
