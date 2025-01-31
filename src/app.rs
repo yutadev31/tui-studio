@@ -9,22 +9,18 @@ use std::{
 };
 
 // use crate::plugin::{PluginManager, PluginManagerError};
+use crate::utils::{
+    command::CommandManager,
+    event::Event,
+    key_binding::{Key, KeyConfig},
+    rect::Rect,
+    term::get_term_size,
+};
 use crate::{
     action::AppAction,
     editor::{Editor, EditorError},
-    plugin::PluginManagerError,
     utils::vec2::Vec2,
     // window::manager::WindowManager,
-};
-use crate::{
-    plugin::PluginManager,
-    utils::{
-        command::CommandManager,
-        event::Event,
-        key_binding::{Key, KeyConfig},
-        rect::Rect,
-        term::get_term_size,
-    },
 };
 use chrono::{DateTime, Duration, Utc};
 use crossterm::event::{self, Event as CrosstermEvent, MouseEventKind};
@@ -34,9 +30,6 @@ use thiserror::Error;
 pub enum AppError {
     #[error("{0}")]
     EditorError(#[from] EditorError),
-
-    #[error("{0}")]
-    PluginManagerError(#[from] PluginManagerError),
 
     #[error("{0}")]
     IOError(#[from] io::Error),
@@ -50,7 +43,6 @@ pub struct App {
     // window_manager: WindowManager,
     key_config: KeyConfig,
     cmd_mgr: CommandManager,
-    plugin_manager: Option<PluginManager>,
     first_key_time: Option<DateTime<Utc>>,
     key_buf: Vec<Key>,
 }
@@ -64,7 +56,6 @@ impl App {
             // window_manager: WindowManager::default(),
             key_config: KeyConfig::default(),
             cmd_mgr: CommandManager::default(),
-            plugin_manager: Some(PluginManager::default()),
             key_buf: Vec::new(),
             first_key_time: None,
         })
@@ -74,16 +65,6 @@ impl App {
         // Editor
         self.editor.register_keybindings(&mut self.key_config);
         self.editor.register_commands(&mut self.cmd_mgr);
-
-        let Some(plugin_manager) = &mut self.plugin_manager else {
-            return Err(AppError::GetPluginManagerFailed)?;
-        };
-
-        let home_dir = dirs::home_dir().unwrap();
-        #[cfg(not(debug_assertions))]
-        plugin_manager.load_dir(home_dir.join(".tui-studio/plugins"))?;
-        #[cfg(debug_assertions)]
-        plugin_manager.load_dir(home_dir.join(".tui-studio/debug/plugins"))?;
 
         Ok(())
     }
@@ -146,7 +127,6 @@ impl App {
     pub(crate) fn on_event(&mut self, evt: Event) -> Result<bool, AppError> {
         match evt {
             Event::Quit => {
-                self.plugin_manager = None;
                 return Ok(true);
             }
             Event::Command(cmd) => {

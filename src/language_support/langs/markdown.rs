@@ -1,5 +1,5 @@
 use crate::{
-    lang_support::{
+    language_support::{
         highlight::{regex_tokenize, HighlightToken},
         LanguageSupport,
     },

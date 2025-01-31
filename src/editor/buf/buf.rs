@@ -9,7 +9,21 @@ use thiserror::Error;
 
 use crate::{
     editor::action::EditorBufferAction,
-    utils::{event::Event, key_binding::Key, mode::EditorMode, vec2::Vec2},
+    language_support::{
+        highlight::HighlightToken,
+        langs::{
+            commit_message::CommitMessageLanguageSupport, css::CSSLanguageSupport,
+            html::HTMLLanguageSupport, markdown::MarkdownLanguageSupport,
+        },
+        LanguageSupport,
+    },
+    utils::{
+        event::Event,
+        file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
+        key_binding::Key,
+        mode::EditorMode,
+        vec2::Vec2,
+    },
 };
 
 use super::{
@@ -50,17 +64,18 @@ pub(crate) struct EditorBuffer {
     code: EditorCodeBuffer,
     cursor: EditorCursor,
     scroll: EditorScroll,
+    language_support: Option<Box<dyn LanguageSupport>>,
     file: Option<File>,
 }
 
 impl EditorBuffer {
     pub fn open(path: PathBuf) -> Result<Self, EditorBufferError> {
-        // let file_name = path
-        //     .file_name()
-        //     .ok_or_else(|| EditorBufferError::FileNameRetrievalFailed)?
-        //     .to_str()
-        //     .ok_or_else(|| EditorBufferError::FileNameRetrievalFailed)?
-        //     .to_string();
+        let file_name = path
+            .file_name()
+            .ok_or_else(|| EditorBufferError::FileNameRetrievalFailed)?
+            .to_str()
+            .ok_or_else(|| EditorBufferError::FileNameRetrievalFailed)?
+            .to_string();
 
         let mut file = OpenOptions::new()
             .read(true)
@@ -73,19 +88,20 @@ impl EditorBuffer {
         file.read_to_string(&mut buf)
             .map_err(|err| EditorBufferError::FileReadFailed(err))?;
 
-        // let file_type = FileType::file_name_to_type(file_name);
+        let file_type = FileType::file_name_to_type(file_name);
 
-        // let lang_support: Option<Box<dyn LanguageSupport>> = match file_type.get().as_str() {
-        //     HTML => Some(Box::new(HTMLLanguageSupport::new())),
-        //     CSS => Some(Box::new(CSSLanguageSupport::new())),
-        //     MARKDOWN => Some(Box::new(MarkdownLanguageSupport::new())),
-        //     COMMIT_MESSAGE => Some(Box::new(CommitMessageLanguageSupport::new())),
-        //     _ => None,
-        // };
+        let language_support: Option<Box<dyn LanguageSupport>> = match file_type.get().as_str() {
+            HTML => Some(Box::new(HTMLLanguageSupport::new())),
+            CSS => Some(Box::new(CSSLanguageSupport::new())),
+            MARKDOWN => Some(Box::new(MarkdownLanguageSupport::new())),
+            COMMIT_MESSAGE => Some(Box::new(CommitMessageLanguageSupport::new())),
+            _ => None,
+        };
 
         Ok(Self {
             code: EditorCodeBuffer::from(buf),
             file: Some(file),
+            language_support,
             ..Default::default()
         })
     }
@@ -117,6 +133,14 @@ impl EditorBuffer {
 
     pub fn get_draw_cursor_position(&self, mode: &EditorMode) -> Vec2 {
         self.cursor.get_draw_position(&self.code, mode)
+    }
+
+    pub fn highlight(&self) -> Option<Vec<HighlightToken>> {
+        if let Some(language_support) = &self.language_support {
+            language_support.highlight(self.code.to_string().as_str())
+        } else {
+            None
+        }
     }
 
     pub fn cursor_move_by(

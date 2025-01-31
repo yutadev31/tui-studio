@@ -4,12 +4,13 @@ use arboard::Clipboard;
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
     execute,
-    style::{Print, ResetColor},
+    style::{Print, ResetColor, SetForegroundColor},
 };
 use thiserror::Error;
 
 use crate::{
     action::AppAction,
+    language_support::{highlight::HighlightToken, LanguageSupport},
     utils::{
         command::CommandManager,
         event::Event,
@@ -56,7 +57,7 @@ pub struct Editor {
     buffer_manager: EditorBufferManager,
     mode: EditorMode,
     clipboard: Clipboard,
-    // highlight_tokens: Vec<HighlightToken>,
+    highlight_tokens: Vec<HighlightToken>,
     command_input_buf: String,
 }
 
@@ -67,7 +68,7 @@ impl Editor {
             buffer_manager: EditorBufferManager::new(path)?,
             mode: EditorMode::Normal,
             clipboard: Clipboard::new()?,
-            // highlight_tokens: vec![],
+            highlight_tokens: vec![],
             command_input_buf: String::new(),
         })
     }
@@ -186,101 +187,101 @@ impl Editor {
         line: String,
     ) -> Result<(), EditorError> {
         if let EditorMode::Visual { start: start_pos } = self.mode {
-            let (cursor_x, cursor_y) = cursor_pos.into();
-            let (start_x, start_y) = start_pos.into();
+            // let (cursor_x, cursor_y) = cursor_pos.into();
+            // let (start_x, start_y) = start_pos.into();
 
-            let (min_y, max_y) = (start_y.min(cursor_y), start_y.max(cursor_y));
-            if min_y <= y && max_y >= y {
-                let start = if start_y == y {
-                    if start_pos < cursor_pos || line.len() == 0 {
-                        start_x
-                    } else {
-                        start_x + 1
-                    }
-                } else if start_y < y {
-                    0
-                } else {
-                    line.len()
-                };
+            // let (min_y, max_y) = (start_y.min(cursor_y), start_y.max(cursor_y));
+            // if min_y <= y && max_y >= y {
+            //     let start = if start_y == y {
+            //         if start_pos < cursor_pos || line.len() == 0 {
+            //             start_x
+            //         } else {
+            //             start_x + 1
+            //         }
+            //     } else if start_y < y {
+            //         0
+            //     } else {
+            //         line.len()
+            //     };
 
-                let end = if cursor_y == y {
-                    if start_pos < cursor_pos || line.len() == 0 {
-                        cursor_x
-                    } else {
-                        cursor_x + 1
-                    }
-                } else if cursor_y < y {
-                    0
-                } else {
-                    line.len()
-                };
+            //     let end = if cursor_y == y {
+            //         if start_pos < cursor_pos || line.len() == 0 {
+            //             cursor_x
+            //         } else {
+            //             cursor_x + 1
+            //         }
+            //     } else if cursor_y < y {
+            //         0
+            //     } else {
+            //         line.len()
+            //     };
 
-                let front_text = if start <= end {
-                    &line[..start]
-                } else {
-                    &line[..end]
-                };
+            //     let front_text = if start <= end {
+            //         &line[..start]
+            //     } else {
+            //         &line[..end]
+            //     };
 
-                let select_text = if start <= end {
-                    &line[start..end]
-                } else {
-                    &line[end..start]
-                };
+            //     let select_text = if start <= end {
+            //         &line[start..end]
+            //     } else {
+            //         &line[end..start]
+            //     };
 
-                let back_text = if start <= end {
-                    &line[end..]
-                } else {
-                    &line[start..]
-                };
+            //     let back_text = if start <= end {
+            //         &line[end..]
+            //     } else {
+            //         &line[start..]
+            //     };
 
-                //     let y = index as u16;
-                //     execute!(
-                //         stdout(),
-                //         MoveTo(self.rect.pos.x + offset_x, self.rect.pos.y + y),
-                //         Print(front_text),
-                //         SetBackgroundColor(Color::White),
-                //         Print(select_text),
-                //         ResetColor,
-                //         Print(back_text)
-                //     )?;
-                // } else {
-                //     execute!(
-                //         stdout(),
-                //         MoveTo(self.rect.pos.x + offset_x, self.rect.pos.y + index as u16),
-                //         Print(line)
-                //     )?;
-            }
-        } else {
-            // if self.highlight_tokens.len() == 0 {
-            draw_data[self.rect.pos.y as usize + index].push_str(line.as_str());
+            //     let y = index as u16;
+            //     execute!(
+            //         stdout(),
+            //         MoveTo(self.rect.pos.x + offset_x, self.rect.pos.y + y),
+            //         Print(front_text),
+            //         SetBackgroundColor(Color::White),
+            //         Print(select_text),
+            //         ResetColor,
+            //         Print(back_text)
+            //     )?;
             // } else {
-            //     let draw_y = self.rect.y as usize + index;
-
-            //     let mut mut_line = line.clone();
-
-            //     for highlight_token in self.highlight_tokens.iter().skip(scroll_y).rev() {
-            //         if highlight_token.end.y == y {
-            //             mut_line
-            //                 .insert_str(highlight_token.end.x, format!("{}", ResetColor).as_str());
-            //         }
-
-            //         if highlight_token.start.y == y {
-            //             mut_line.insert_str(
-            //                 highlight_token.start.x,
-            //                 format!(
-            //                     "{}",
-            //                     SetForegroundColor(highlight_token.clone().color.into()),
-            //                 )
-            //                 .as_str(),
-            //             );
-            //         }
-            //     }
-
-            //     draw_data[draw_y].push_str(mut_line.as_str());
+            //     execute!(
+            //         stdout(),
+            //         MoveTo(self.rect.pos.x + offset_x, self.rect.pos.y + index as u16),
+            //         Print(line)
+            //     )?;
             // }
+        } else {
+            if self.highlight_tokens.len() == 0 {
+                draw_data[self.rect.pos.y as usize + index].push_str(line.as_str());
+            } else {
+                let draw_y = self.rect.pos.y as usize + index;
 
-            // let n = self.rect.w as usize - (offset_x as usize + line.len());
-            // draw_data[self.rect.y as usize + index].push_str(" ".repeat(n).as_str());
+                let mut mut_line = line.clone();
+
+                for highlight_token in self.highlight_tokens.iter().skip(scroll_y).rev() {
+                    if highlight_token.end.y == y {
+                        mut_line
+                            .insert_str(highlight_token.end.x, format!("{}", ResetColor).as_str());
+                    }
+
+                    if highlight_token.start.y == y {
+                        mut_line.insert_str(
+                            highlight_token.start.x,
+                            format!(
+                                "{}",
+                                SetForegroundColor(highlight_token.clone().color.into()),
+                            )
+                            .as_str(),
+                        );
+                    }
+                }
+
+                draw_data[draw_y].push_str(mut_line.as_str());
+            }
+
+            let n = self.rect.size.x as usize - (offset_x as usize + line.len());
+            draw_data[self.rect.pos.y as usize + index].push_str(" ".repeat(n).as_str());
         }
 
         Ok(())
@@ -389,9 +390,15 @@ impl Editor {
             current.on_event(evt, &self.mode, window_size)?;
         }
 
-        // if let Some(tokens) = current.highlight() {
-        //     self.highlight_tokens = tokens;
-        // }
+        if let Some(current) = self.buffer_manager.get_current() {
+            let Ok(mut current) = current.lock() else {
+                return Err(EditorError::LockError);
+            };
+
+            if let Some(tokens) = current.highlight() {
+                self.highlight_tokens = tokens;
+            }
+        }
 
         Ok(events)
     }

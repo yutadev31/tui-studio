@@ -1,5 +1,5 @@
-use tui_studio::{
-    api::language_support::{
+use crate::{
+    language_support::{
         highlight::{regex_tokenize, HighlightToken},
         LanguageSupport,
     },
@@ -40,8 +40,13 @@ impl ToColor for TokenKind {
     }
 }
 
-#[derive(Default)]
 pub struct HTMLLanguageSupport {}
+
+impl HTMLLanguageSupport {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
 
 impl LanguageSupport for HTMLLanguageSupport {
     fn file_type(&self) -> &'static str {

@@ -1,5 +1,5 @@
 [workspace]
-members = ["plugins/html"]
+members = []
 resolver = "2"
 
 [workspace.package]
