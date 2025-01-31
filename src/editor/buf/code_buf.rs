@@ -4,8 +4,8 @@ use arboard::Clipboard;
 use thiserror::Error;
 
 use crate::{
-    editor::action::EditorEditAction,
-    utils::{mode::EditorMode, string::CodeString, vec2::Vec2},
+    editor::{action::EditorEditAction, mode::EditorMode},
+    utils::{string::CodeString, vec2::UVec2},
 };
 
 use super::{
@@ -104,7 +104,7 @@ impl EditorCodeBuffer {
         };
 
         let min = start.min(end);
-        let max = start.max(end) + Vec2::new(1, 0);
+        let max = start.max(end) + UVec2::new(1, 0);
 
         if min.y == max.y {
             let line = self.lines[min.y].clone();
@@ -156,7 +156,7 @@ impl EditorCodeBuffer {
         };
 
         let min = start.min(end);
-        let max = start.max(end) + Vec2::new(1, 0);
+        let max = start.max(end) + UVec2::new(1, 0);
 
         if min.y == max.y {
             let line = self.lines[min.y].clone();
@@ -204,7 +204,7 @@ impl EditorCodeBuffer {
         cursor: &mut EditorCursor,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
-        window_size: Vec2,
+        window_size: UVec2,
     ) -> Result<(), EditorCodeBufferError> {
         let (x, y) = cursor.get(self, mode).into();
         let text = clipboard.get_text()?;
@@ -217,7 +217,7 @@ impl EditorCodeBuffer {
         &mut self,
         cursor: &mut EditorCursor,
         mode: &EditorMode,
-        window_size: Vec2,
+        window_size: UVec2,
         scroll: &mut EditorScroll,
     ) -> Result<(), EditorCodeBufferError> {
         let cursor_pos = cursor.get(&self, mode);
@@ -257,7 +257,7 @@ impl EditorCodeBuffer {
         cursor: &mut EditorCursor,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
-        window_size: Vec2,
+        window_size: UVec2,
     ) -> Result<(), EditorCodeBufferError> {
         match action {
             EditorEditAction::DeleteLine => self.delete_line(cursor, mode, clipboard)?,

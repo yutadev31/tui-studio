@@ -4,8 +4,8 @@ use thiserror::Error;
 use unicode_width::UnicodeWidthChar;
 
 use crate::{
-    editor::action::EditorCursorAction,
-    utils::{mode::EditorMode, vec2::Vec2},
+    editor::{action::EditorCursorAction, mode::EditorMode},
+    utils::vec2::{IVec2, UVec2},
 };
 
 use super::{code_buf::EditorCodeBuffer, scroll::EditorScroll};
@@ -18,19 +18,19 @@ pub(crate) enum EditorCursorError {
 
 #[derive(Clone, Default)]
 pub struct EditorCursor {
-    position: Vec2,
+    position: UVec2,
 }
 
 impl EditorCursor {
-    pub fn get(&self, code: &EditorCodeBuffer, mode: &EditorMode) -> Vec2 {
-        Vec2::new(self.clamp_x(self.position.x, code, mode), self.position.y)
+    pub fn get(&self, code: &EditorCodeBuffer, mode: &EditorMode) -> UVec2 {
+        UVec2::new(self.clamp_x(self.position.x, code, mode), self.position.y)
     }
 
-    pub fn get_draw_position(&self, code: &EditorCodeBuffer, mode: &EditorMode) -> Vec2 {
+    pub fn get_draw_position(&self, code: &EditorCodeBuffer, mode: &EditorMode) -> UVec2 {
         let line = code.get_line(self.position.y);
         let x = self.clamp_x(self.position.x, code, mode);
 
-        Vec2::new(
+        UVec2::new(
             line.to_string()
                 .chars()
                 .take(x)
@@ -82,9 +82,9 @@ impl EditorCursor {
         self.position.y = self.clamp_y(y, code);
     }
 
-    pub fn move_to(&mut self, x: usize, y: usize, code: &EditorCodeBuffer, mode: &EditorMode) {
-        self.move_to_y(y, code);
-        self.move_to_x(x, code, mode);
+    pub fn move_to(&mut self, target: UVec2, code: &EditorCodeBuffer, mode: &EditorMode) {
+        self.move_to_y(target.y, code);
+        self.move_to_x(target.x, code, mode);
     }
 
     pub fn move_by_x(
@@ -92,7 +92,7 @@ impl EditorCursor {
         x: isize,
         code: &EditorCodeBuffer,
         mode: &EditorMode,
-        window_size: Vec2,
+        window_size: UVec2,
     ) {
         if x > 0 {
             self.sync(code, mode);
@@ -111,7 +111,7 @@ impl EditorCursor {
         &mut self,
         y: isize,
         code: &EditorCodeBuffer,
-        window_size: Vec2,
+        window_size: UVec2,
         scroll: &mut EditorScroll,
     ) {
         let scroll_y = scroll.get().y;
@@ -137,15 +137,14 @@ impl EditorCursor {
 
     pub fn move_by(
         &mut self,
-        x: isize,
-        y: isize,
+        offset: IVec2,
         code: &EditorCodeBuffer,
         mode: &EditorMode,
-        window_size: Vec2,
+        window_size: UVec2,
         scroll: &mut EditorScroll,
     ) {
-        self.move_by_x(x, code, mode, window_size);
-        self.move_by_y(y, code, window_size, scroll);
+        self.move_by_x(offset.x, code, mode, window_size);
+        self.move_by_y(offset.y, code, window_size, scroll);
     }
 
     pub fn move_to_back_word(&mut self, code: &EditorCodeBuffer) {
@@ -207,9 +206,13 @@ impl EditorCursor {
         self.position.x = self.clamp_x(self.position.x, code, mode);
     }
 
+    pub fn sync_y(&mut self, code: &EditorCodeBuffer) {
+        self.position.y = self.clamp_y(self.position.y, code);
+    }
+
     pub fn sync(&mut self, code: &EditorCodeBuffer, mode: &EditorMode) {
         self.sync_x(code, mode);
-        self.position.y = self.clamp_y(self.position.y, code);
+        self.sync_y(code);
     }
 
     pub fn on_action(
@@ -217,7 +220,7 @@ impl EditorCursor {
         action: EditorCursorAction,
         code: &EditorCodeBuffer,
         mode: &EditorMode,
-        window_size: Vec2,
+        window_size: UVec2,
         scroll: &mut EditorScroll,
     ) -> Result<(), EditorCursorError> {
         match action {

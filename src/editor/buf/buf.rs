@@ -8,7 +8,7 @@ use arboard::Clipboard;
 use thiserror::Error;
 
 use crate::{
-    editor::action::EditorBufferAction,
+    editor::{action::EditorBufferAction, mode::EditorMode},
     language_support::{
         highlight::HighlightToken,
         langs::{
@@ -21,8 +21,7 @@ use crate::{
         event::Event,
         file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
         key_binding::Key,
-        mode::EditorMode,
-        vec2::Vec2,
+        vec2::{IVec2, UVec2},
     },
 };
 
@@ -106,11 +105,6 @@ impl EditorBuffer {
         })
     }
 
-    // pub fn set_path(&mut self, path: PathBuf) -> Result<()> {
-    //     self.file = Some(File::open(path)?);
-    //     Ok(())
-    // }
-
     pub fn save(&mut self) -> Result<(), EditorBufferError> {
         if let Some(file) = &mut self.file {
             file.seek(SeekFrom::Start(0))
@@ -123,15 +117,15 @@ impl EditorBuffer {
         }
     }
 
-    pub fn get_cursor_position(&self, mode: &EditorMode) -> Vec2 {
+    pub fn get_cursor_position(&self, mode: &EditorMode) -> UVec2 {
         self.cursor.get(&self.code, mode)
     }
 
-    pub fn get_scroll_position(&self) -> Vec2 {
+    pub fn get_scroll_position(&self) -> UVec2 {
         self.scroll.get()
     }
 
-    pub fn get_draw_cursor_position(&self, mode: &EditorMode) -> Vec2 {
+    pub fn get_draw_cursor_position(&self, mode: &EditorMode) -> UVec2 {
         self.cursor.get_draw_position(&self.code, mode)
     }
 
@@ -145,14 +139,13 @@ impl EditorBuffer {
 
     pub fn cursor_move_by(
         &mut self,
-        x: isize,
-        y: isize,
-        window_size: Vec2,
+        offset: IVec2,
+        window_size: UVec2,
         mode: &EditorMode,
     ) -> Result<(), EditorBufferError> {
         Ok(self
             .cursor
-            .move_by(x, y, &self.code, mode, window_size, &mut self.scroll))
+            .move_by(offset, &self.code, mode, window_size, &mut self.scroll))
     }
 
     pub fn cursor_sync(&mut self, mode: &EditorMode) {
@@ -168,7 +161,7 @@ impl EditorBuffer {
         action: EditorBufferAction,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
-        window_size: Vec2,
+        window_size: UVec2,
     ) -> Result<(), EditorBufferError> {
         match action {
             EditorBufferAction::Save => self.save()?,
@@ -189,7 +182,7 @@ impl EditorBuffer {
         &mut self,
         evt: Event,
         mode: &EditorMode,
-        window_size: Vec2,
+        window_size: UVec2,
     ) -> Result<Option<EditorMode>, EditorBufferError> {
         let cursor_pos = self.cursor.get(&self.code, mode);
         let cursor_x = cursor_pos.x;
@@ -197,11 +190,21 @@ impl EditorBuffer {
 
         match mode {
             EditorMode::Normal => match evt {
-                Event::Click(x, y) => {
+                Event::Click(pos) => {
+                    let num_len = (self.code.get_line_count() - 1).to_string().len();
+                    let offset_x = num_len + 1;
                     let scroll_y = self.scroll.get().y;
-                    self.cursor.move_to_y(y + scroll_y, &self.code);
+
+                    let x = if let Some(x) = pos.x.checked_sub(offset_x) {
+                        x
+                    } else {
+                        0
+                    };
+
+                    self.cursor.move_to_y(pos.y + scroll_y, &self.code);
                     self.cursor.move_to_x(x, &self.code, mode);
                 }
+                Event::Scroll(scroll) => self.scroll.scroll_by(scroll, &self.code),
                 _ => {}
             },
             EditorMode::Insert { append: _ } => match evt {
@@ -215,19 +218,17 @@ impl EditorBuffer {
                     )?,
                     Key::Char('\t') => {
                         self.code.append(cursor_x, cursor_y, '\t');
-                        self.cursor
-                            .move_by(1, 0, &self.code, mode, window_size, &mut self.scroll);
+                        self.cursor.move_by_x(1, &self.code, mode, window_size);
                     }
                     Key::Char('\n') => {
                         self.code.append(cursor_x, cursor_y, '\n');
                         self.cursor
-                            .move_by(0, 1, &self.code, mode, window_size, &mut self.scroll);
+                            .move_by_y(1, &self.code, window_size, &mut self.scroll);
                         self.cursor.move_to_x(0, &self.code, mode);
                     }
                     Key::Char(c) => {
                         self.code.append(cursor_x, cursor_y, c);
-                        self.cursor
-                            .move_by(1, 0, &self.code, mode, window_size, &mut self.scroll);
+                        self.cursor.move_by_x(1, &self.code, mode, window_size);
                     }
                     _ => {}
                 },

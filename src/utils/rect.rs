@@ -1,19 +1,19 @@
-use super::vec2::Vec2;
+use super::vec2::UVec2;
 
 #[derive(Default, Clone)]
 pub struct Rect {
-    pub pos: Vec2,
-    pub size: Vec2,
+    pub pos: UVec2,
+    pub size: UVec2,
 }
 
 impl Rect {
-    pub fn new(pos: Vec2, size: Vec2) -> Self {
+    pub fn new(pos: UVec2, size: UVec2) -> Self {
         Self { pos, size }
     }
 }
 
-impl Into<(Vec2, Vec2)> for Rect {
-    fn into(self) -> (Vec2, Vec2) {
+impl Into<(UVec2, UVec2)> for Rect {
+    fn into(self) -> (UVec2, UVec2) {
         (self.pos, self.size)
     }
 }

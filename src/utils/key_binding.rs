@@ -2,9 +2,7 @@ use std::{collections::HashMap, hash::Hash};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::action::AppAction;
-
-use super::mode::EditorMode;
+use crate::{action::AppAction, editor::mode::EditorMode};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub enum Key {

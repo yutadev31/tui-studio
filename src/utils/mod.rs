@@ -4,7 +4,6 @@ pub mod event;
 pub mod file_type;
 pub mod key_binding;
 pub mod log;
-pub mod mode;
 pub mod rect;
 pub mod string;
 pub mod term;

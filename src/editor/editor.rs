@@ -2,7 +2,7 @@ use std::io::{self, stdout};
 
 use arboard::Clipboard;
 use crossterm::{
-    cursor::{MoveTo, SetCursorStyle},
+    cursor::{Hide, MoveTo, SetCursorStyle, Show},
     execute,
     style::Print,
     terminal::{Clear, ClearType},
@@ -16,10 +16,9 @@ use crate::{
         command::CommandManager,
         event::Event,
         key_binding::{Key, KeyConfig, KeyConfigType},
-        mode::EditorMode,
         rect::Rect,
         term::get_term_size,
-        vec2::Vec2,
+        vec2::{IVec2, UVec2},
     },
 };
 
@@ -29,6 +28,7 @@ use super::{
         manager::{EditorBufferManager, EditorBufferManagerError},
         EditorBufferError,
     },
+    mode::EditorMode,
     renderer::{EditorRenderer, EditorRendererError},
 };
 
@@ -108,7 +108,7 @@ impl Editor {
             if let EditorMode::Insert { append } = self.mode {
                 if append {
                     let (_, window_size) = self.rect.clone().into();
-                    current.cursor_move_by(-1, 0, window_size, &self.mode)?;
+                    current.cursor_move_by(IVec2::left(), window_size, &self.mode)?;
                 }
             }
 
@@ -146,7 +146,7 @@ impl Editor {
 
             if append {
                 let (_, window_size) = self.rect.clone().into();
-                current.cursor_move_by(1, 0, window_size, &self.mode)?;
+                current.cursor_move_by(IVec2::right(), window_size, &self.mode)?;
             }
 
             current.cursor_sync(&self.mode);
@@ -246,15 +246,22 @@ impl Editor {
             )?;
         }
 
-        execute!(stdout(), MoveTo(cursor_pos.x as u16, cursor_pos.y as u16))?;
+        if let Some(cursor_pos) = cursor_pos {
+            execute!(
+                stdout(),
+                Show,
+                MoveTo(cursor_pos.x as u16, cursor_pos.y as u16)
+            )?;
 
-        match self.mode {
-            EditorMode::Normal => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
-            EditorMode::Visual { start: _ } => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
-            EditorMode::Insert { append: _ } => execute!(stdout(), SetCursorStyle::SteadyBar)?,
-            EditorMode::Command => execute!(stdout(), SetCursorStyle::SteadyBar)?,
+            match self.mode {
+                EditorMode::Normal => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
+                EditorMode::Visual { start: _ } => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
+                EditorMode::Insert { append: _ } => execute!(stdout(), SetCursorStyle::SteadyBar)?,
+                EditorMode::Command => execute!(stdout(), SetCursorStyle::SteadyBar)?,
+            }
+        } else {
+            execute!(stdout(), Hide)?;
         }
-
         Ok(())
     }
 
@@ -289,7 +296,7 @@ impl Editor {
             KeyConfigType::Normal,
             vec![Key::Char('v')],
             AppAction::EditorAction(EditorAction::SetMode(EditorMode::Visual {
-                start: Vec2::default(),
+                start: UVec2::default(),
             })),
         );
 

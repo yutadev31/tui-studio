@@ -4,7 +4,7 @@ use std::{
 };
 
 use crossterm::{
-    cursor::SetCursorStyle,
+    cursor::{SetCursorStyle, Show},
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{
@@ -13,7 +13,7 @@ use crossterm::{
     },
 };
 
-use super::{log::init_logger, vec2::Vec2};
+use super::{log::init_logger, vec2::UVec2};
 
 pub fn init_term() -> io::Result<()> {
     enable_raw_mode()?;
@@ -26,6 +26,7 @@ pub fn clean_term() -> io::Result<()> {
     execute!(
         stdout(),
         Clear(ClearType::All),
+        Show,
         LeaveAlternateScreen,
         DisableMouseCapture,
         SetCursorStyle::DefaultUserShape
@@ -34,9 +35,9 @@ pub fn clean_term() -> io::Result<()> {
     Ok(())
 }
 
-pub fn get_term_size() -> io::Result<Vec2> {
+pub fn get_term_size() -> io::Result<UVec2> {
     let (w, h) = size()?;
-    Ok(Vec2::new(w as usize, h as usize))
+    Ok(UVec2::new(w as usize, h as usize))
 }
 
 pub fn safe_exit() {

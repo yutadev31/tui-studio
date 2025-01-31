@@ -8,19 +8,18 @@ use std::{
     time::Duration as StdDuration,
 };
 
-// use crate::plugin::{PluginManager, PluginManagerError};
 use crate::utils::{
     command::CommandManager,
     event::Event,
     key_binding::{Key, KeyConfig},
     rect::Rect,
     term::get_term_size,
+    vec2::IVec2,
 };
 use crate::{
     action::AppAction,
     editor::{Editor, EditorError},
-    utils::vec2::Vec2,
-    // window::manager::WindowManager,
+    utils::vec2::UVec2,
 };
 use chrono::{DateTime, Duration, Utc};
 use crossterm::event::{self, Event as CrosstermEvent, MouseEventKind};
@@ -40,7 +39,6 @@ pub enum AppError {
 
 pub struct App {
     editor: Editor,
-    // window_manager: WindowManager,
     key_config: KeyConfig,
     cmd_mgr: CommandManager,
     first_key_time: Option<DateTime<Utc>>,
@@ -52,8 +50,7 @@ impl App {
         let term_size = get_term_size()?;
 
         Ok(Self {
-            editor: Editor::new(path, Rect::new(Vec2::default(), term_size))?,
-            // window_manager: WindowManager::default(),
+            editor: Editor::new(path, Rect::new(UVec2::default(), term_size))?,
             key_config: KeyConfig::default(),
             cmd_mgr: CommandManager::default(),
             key_buf: Vec::new(),
@@ -102,9 +99,16 @@ impl App {
                 return Ok(Some(Event::Input(Key::from(evt))));
             }
             CrosstermEvent::Mouse(evt) => match evt.kind {
+                MouseEventKind::ScrollUp => return Ok(Some(Event::Scroll(IVec2::up()))),
+                MouseEventKind::ScrollDown => return Ok(Some(Event::Scroll(IVec2::down()))),
+                MouseEventKind::ScrollLeft => return Ok(Some(Event::Scroll(IVec2::left()))),
+                MouseEventKind::ScrollRight => return Ok(Some(Event::Scroll(IVec2::right()))),
                 MouseEventKind::Down(btn) => {
                     if btn == crossterm::event::MouseButton::Left {
-                        return Ok(Some(Event::Click(evt.column.into(), evt.row.into())));
+                        return Ok(Some(Event::Click(UVec2::new(
+                            evt.column as usize,
+                            evt.row as usize,
+                        ))));
                     }
                 }
                 _ => {}
@@ -198,7 +202,10 @@ impl App {
                                     }
                                 }
                             };
-                            app.draw()?;
+
+                            if let Err(err) = app.draw() {
+                                log::error!("{}", err);
+                            }
                         }
                     }
                 }
