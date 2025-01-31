@@ -4,20 +4,20 @@ use arboard::Clipboard;
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
     execute,
-    style::{Print, ResetColor, SetForegroundColor},
+    style::Print,
+    terminal::{Clear, ClearType},
 };
 use thiserror::Error;
 
 use crate::{
     action::AppAction,
-    language_support::{highlight::HighlightToken, LanguageSupport},
+    language_support::highlight::HighlightToken,
     utils::{
         command::CommandManager,
         event::Event,
         key_binding::{Key, KeyConfig, KeyConfigType},
         mode::EditorMode,
         rect::Rect,
-        string::CodeString,
         term::get_term_size,
         vec2::Vec2,
     },
@@ -29,6 +29,7 @@ use super::{
         manager::{EditorBufferManager, EditorBufferManagerError},
         EditorBufferError,
     },
+    renderer::{EditorRenderer, EditorRendererError},
 };
 
 #[derive(Debug, Error)]
@@ -49,6 +50,9 @@ pub(crate) enum EditorError {
     EditorBufferManagerError(#[from] EditorBufferManagerError),
 
     #[error("{0}")]
+    EditorRendererError(#[from] EditorRendererError),
+
+    #[error("{0}")]
     ClipboardError(#[from] arboard::Error),
 }
 
@@ -59,6 +63,7 @@ pub struct Editor {
     clipboard: Clipboard,
     highlight_tokens: Vec<HighlightToken>,
     command_input_buf: String,
+    renderer: EditorRenderer,
 }
 
 impl Editor {
@@ -70,15 +75,12 @@ impl Editor {
             clipboard: Clipboard::new()?,
             highlight_tokens: vec![],
             command_input_buf: String::new(),
+            renderer: EditorRenderer::default(),
         })
     }
 
     pub(crate) fn get_buffer_manager(&self) -> &EditorBufferManager {
         &self.buffer_manager
-    }
-
-    pub(crate) fn get_buffer_manager_mut(&mut self) -> &mut EditorBufferManager {
-        &mut self.buffer_manager
     }
 
     pub(crate) fn get_mode(&self) -> EditorMode {
@@ -159,184 +161,6 @@ impl Editor {
         self.command_input_buf = String::new();
     }
 
-    fn draw_number(
-        &self,
-        draw_data: &mut Vec<String>,
-        scroll_y: usize,
-        lines: Vec<CodeString>,
-        offset_x: usize,
-    ) {
-        (0..lines.len())
-            .skip(scroll_y)
-            .take(self.rect.size.y.into())
-            .enumerate()
-            .for_each(|(draw_y, y)| {
-                draw_data[self.rect.pos.y as usize + draw_y]
-                    .push_str(format!("{}{:<offset_x$}", ResetColor, y + 1).as_str());
-            });
-    }
-
-    fn draw_code_line(
-        &self,
-        draw_data: &mut Vec<String>,
-        offset_x: u16,
-        scroll_y: usize,
-        cursor_pos: Vec2,
-        y: usize,
-        index: usize,
-        line: String,
-    ) -> Result<(), EditorError> {
-        if let EditorMode::Visual { start: start_pos } = self.mode {
-            // let (cursor_x, cursor_y) = cursor_pos.into();
-            // let (start_x, start_y) = start_pos.into();
-
-            // let (min_y, max_y) = (start_y.min(cursor_y), start_y.max(cursor_y));
-            // if min_y <= y && max_y >= y {
-            //     let start = if start_y == y {
-            //         if start_pos < cursor_pos || line.len() == 0 {
-            //             start_x
-            //         } else {
-            //             start_x + 1
-            //         }
-            //     } else if start_y < y {
-            //         0
-            //     } else {
-            //         line.len()
-            //     };
-
-            //     let end = if cursor_y == y {
-            //         if start_pos < cursor_pos || line.len() == 0 {
-            //             cursor_x
-            //         } else {
-            //             cursor_x + 1
-            //         }
-            //     } else if cursor_y < y {
-            //         0
-            //     } else {
-            //         line.len()
-            //     };
-
-            //     let front_text = if start <= end {
-            //         &line[..start]
-            //     } else {
-            //         &line[..end]
-            //     };
-
-            //     let select_text = if start <= end {
-            //         &line[start..end]
-            //     } else {
-            //         &line[end..start]
-            //     };
-
-            //     let back_text = if start <= end {
-            //         &line[end..]
-            //     } else {
-            //         &line[start..]
-            //     };
-
-            //     let y = index as u16;
-            //     execute!(
-            //         stdout(),
-            //         MoveTo(self.rect.pos.x + offset_x, self.rect.pos.y + y),
-            //         Print(front_text),
-            //         SetBackgroundColor(Color::White),
-            //         Print(select_text),
-            //         ResetColor,
-            //         Print(back_text)
-            //     )?;
-            // } else {
-            //     execute!(
-            //         stdout(),
-            //         MoveTo(self.rect.pos.x + offset_x, self.rect.pos.y + index as u16),
-            //         Print(line)
-            //     )?;
-            // }
-        } else {
-            if self.highlight_tokens.len() == 0 {
-                draw_data[self.rect.pos.y as usize + index].push_str(line.as_str());
-            } else {
-                let draw_y = self.rect.pos.y as usize + index;
-
-                let mut mut_line = line.clone();
-
-                for highlight_token in self.highlight_tokens.iter().skip(scroll_y).rev() {
-                    if highlight_token.end.y == y {
-                        mut_line
-                            .insert_str(highlight_token.end.x, format!("{}", ResetColor).as_str());
-                    }
-
-                    if highlight_token.start.y == y {
-                        mut_line.insert_str(
-                            highlight_token.start.x,
-                            format!(
-                                "{}",
-                                SetForegroundColor(highlight_token.clone().color.into()),
-                            )
-                            .as_str(),
-                        );
-                    }
-                }
-
-                draw_data[draw_y].push_str(mut_line.as_str());
-            }
-
-            let n = self.rect.size.x as usize - (offset_x as usize + line.len());
-            draw_data[self.rect.pos.y as usize + index].push_str(" ".repeat(n).as_str());
-        }
-
-        Ok(())
-    }
-
-    fn draw_code(
-        &self,
-        draw_data: &mut Vec<String>,
-        scroll_y: usize,
-        cursor_pos: Vec2,
-        lines: Vec<CodeString>,
-        offset_x: u16,
-    ) -> Result<(), EditorError> {
-        for (index, line) in lines
-            .iter()
-            .skip(scroll_y)
-            .take(self.rect.size.y.into())
-            .enumerate()
-        {
-            self.draw_code_line(
-                draw_data,
-                offset_x,
-                scroll_y,
-                cursor_pos,
-                index + scroll_y,
-                index,
-                line.to_string(),
-            )?;
-        }
-
-        Ok(())
-    }
-
-    fn draw_command_box(&self, draw_data: &mut Vec<String>) {
-        let y = draw_data.len() - 1;
-        draw_data[y] = ":".to_string();
-        draw_data[y].push_str(self.command_input_buf.as_str());
-
-        let len = draw_data[y].len();
-        draw_data[y].push_str(" ".repeat(self.rect.size.x as usize - len).as_str());
-    }
-
-    fn draw_cursor(&self, x: u16, y: u16) -> Result<(), EditorError> {
-        execute!(stdout(), MoveTo(x, y))?;
-
-        match self.mode {
-            EditorMode::Normal => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
-            EditorMode::Visual { start: _ } => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
-            EditorMode::Insert { append: _ } => execute!(stdout(), SetCursorStyle::SteadyBar)?,
-            EditorMode::Command => execute!(stdout(), SetCursorStyle::SteadyBar)?,
-        }
-
-        Ok(())
-    }
-
     pub(crate) fn on_action(&mut self, action: EditorAction) -> Result<(), EditorError> {
         match action {
             EditorAction::SetMode(mode) => self.set_mode(mode)?,
@@ -391,7 +215,7 @@ impl Editor {
         }
 
         if let Some(current) = self.buffer_manager.get_current() {
-            let Ok(mut current) = current.lock() else {
+            let Ok(current) = current.lock() else {
                 return Err(EditorError::LockError);
             };
 
@@ -404,61 +228,31 @@ impl Editor {
     }
 
     pub(crate) fn draw(&self) -> Result<(), EditorError> {
-        let mut draw_data: Vec<String> = Vec::new();
-        for _ in 0..self.rect.size.y {
-            draw_data.push(String::new());
+        let mut screen = vec![String::new(); self.rect.size.y].into_boxed_slice();
+        let cursor_pos = self.renderer.render(
+            &mut screen,
+            self.rect.size,
+            self,
+            &self.highlight_tokens,
+            &self.command_input_buf,
+        )?;
+
+        for (y, line) in screen.iter().enumerate() {
+            execute!(
+                stdout(),
+                MoveTo(self.rect.pos.x as u16, (self.rect.pos.y + y) as u16),
+                Clear(ClearType::CurrentLine),
+                Print(line)
+            )?;
         }
 
-        if let Some(current) = self.buffer_manager.get_current() {
-            let Ok(current) = current.lock() else {
-                return Err(EditorError::LockError);
-            };
+        execute!(stdout(), MoveTo(cursor_pos.x as u16, cursor_pos.y as u16))?;
 
-            let lines = current.get_code_buf().get_lines();
-            let cursor_pos = current.get_cursor_position(&self.mode);
-            let (cursor_x, cursor_y) = current.get_draw_cursor_position(&self.mode).into();
-
-            let num_len = (lines.len() - 1).to_string().len();
-            let offset_x = num_len + 1;
-
-            let scroll_y = current.get_scroll_position().y;
-
-            self.draw_number(&mut draw_data, scroll_y, lines.clone(), offset_x as usize);
-            self.draw_code(
-                &mut draw_data,
-                scroll_y,
-                cursor_pos,
-                lines.clone(),
-                offset_x as u16,
-            )?;
-
-            if let EditorMode::Command = self.mode {
-                self.draw_command_box(&mut draw_data);
-            }
-
-            for (index, draw_data) in draw_data.iter().enumerate() {
-                let len = draw_data.len();
-                if len == self.rect.size.x as usize {
-                    execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))?;
-                } else if len < self.rect.size.x as usize {
-                    let draw_data = format!(
-                        "{}{}",
-                        draw_data,
-                        " ".repeat(self.rect.size.x as usize - len)
-                    );
-                    execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))?;
-                } else {
-                    execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))?;
-                }
-            }
-
-            if let EditorMode::Command = self.mode {
-            } else {
-                self.draw_cursor(
-                    (cursor_x + offset_x + self.rect.pos.x) as u16,
-                    (cursor_y - scroll_y + self.rect.pos.y) as u16,
-                )?;
-            }
+        match self.mode {
+            EditorMode::Normal => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
+            EditorMode::Visual { start: _ } => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
+            EditorMode::Insert { append: _ } => execute!(stdout(), SetCursorStyle::SteadyBar)?,
+            EditorMode::Command => execute!(stdout(), SetCursorStyle::SteadyBar)?,
         }
 
         Ok(())

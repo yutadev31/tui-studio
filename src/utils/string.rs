@@ -26,14 +26,30 @@ impl CodeString {
         self.value.insert(index, ch);
     }
 
+    pub fn insert_str(&mut self, index: usize, string: String) {
+        let index = self.byte_index_to_char_index(index);
+        self.value.insert_str(index, string.as_str());
+    }
+
     pub fn split_at(&self, index: usize) -> (&str, &str) {
         let index = self.byte_index_to_char_index(index);
         self.value.split_at(index)
     }
 
+    pub fn get_range(&self, start: usize, end: usize) -> CodeString {
+        let start = self.byte_index_to_char_index(start);
+        let end = self.byte_index_to_char_index(end);
+        let result = &self.value[start..end];
+        Self::from(result)
+    }
+
     pub fn remove(&mut self, index: usize) -> char {
         let index = self.byte_index_to_char_index(index);
         self.value.remove(index)
+    }
+
+    pub fn len(&self) -> usize {
+        self.value.chars().count()
     }
 }
 

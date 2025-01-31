@@ -1,0 +1,284 @@
+use std::ops::Add;
+
+use crossterm::style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor};
+use thiserror::Error;
+
+use crate::{
+    language_support::highlight::HighlightToken,
+    utils::{mode::EditorMode, string::CodeString, vec2::Vec2},
+};
+
+use super::Editor;
+
+#[derive(Debug, Error)]
+pub enum EditorRendererError {
+    #[error("Failed to acquire editor lock")]
+    LockError,
+}
+
+#[derive(Default)]
+pub struct EditorRenderer {}
+
+impl EditorRenderer {
+    fn render_numbers(
+        &self,
+        screen: &mut Box<[String]>,
+        window_size: Vec2,
+        lines: &Vec<CodeString>,
+        scroll_y: usize,
+        offset_x: usize,
+    ) {
+        (0..lines.len())
+            .skip(scroll_y)
+            .take(window_size.y.into())
+            .enumerate()
+            .for_each(|(draw_y, y)| {
+                screen[draw_y].push_str(format!("{}{:<offset_x$}", ResetColor, y + 1).as_str());
+            });
+    }
+
+    fn render_code_string(
+        &self,
+        screen: &mut Box<[String]>,
+        x: usize,
+        y: usize,
+        is_slect: bool,
+        scroll_y: usize,
+        tokens: &Vec<HighlightToken>,
+        code: &CodeString,
+    ) {
+        let mut code = code.clone();
+
+        for highlight_token in tokens.iter().skip(scroll_y).rev() {
+            if highlight_token.end.y == y {
+                if let Some(x) = highlight_token.end.x.checked_sub(x) {
+                    code.insert_str(x, format!("{}", ResetColor));
+                }
+            }
+
+            if highlight_token.start.y == y {
+                if let Some(x) = highlight_token.start.x.checked_sub(x) {
+                    code.insert_str(
+                        x,
+                        format!(
+                            "{}",
+                            SetForegroundColor(highlight_token.clone().color.into()),
+                        ),
+                    );
+                }
+            }
+        }
+
+        if is_slect {
+            code.insert_str(0, format!("{}", SetBackgroundColor(Color::White)));
+        } else {
+            code.insert_str(0, format!("{}", SetBackgroundColor(Color::Reset)));
+        }
+
+        log::debug!("{}", code.to_string());
+        screen[y].push_str(code.to_string().as_str());
+    }
+
+    fn render_code_visual_mode(
+        &self,
+        screen: &mut Box<[String]>,
+        y: usize,
+        line: &CodeString,
+        cursor_pos: Vec2,
+        start_pos: Vec2,
+        scroll_y: usize,
+        tokens: &Vec<HighlightToken>,
+    ) {
+        let (cursor_x, cursor_y) = cursor_pos.into();
+        let (start_x, start_y) = start_pos.into();
+
+        let (min_y, max_y) = (start_y.min(cursor_y), start_y.max(cursor_y));
+        if min_y <= y && max_y >= y {
+            let start = if start_y == y {
+                if start_pos < cursor_pos || line.len() == 0 {
+                    start_x
+                } else {
+                    start_x + 1
+                }
+            } else if start_y < y {
+                0
+            } else {
+                line.len()
+            };
+
+            let end = if cursor_y == y {
+                if start_pos < cursor_pos || line.len() == 0 {
+                    cursor_x
+                } else {
+                    cursor_x + 1
+                }
+            } else if cursor_y < y {
+                0
+            } else {
+                line.len()
+            };
+
+            let (front_index, front_text) = if start <= end {
+                (0, line.get_range(0, start))
+            } else {
+                (0, line.get_range(0, end))
+            };
+
+            let (select_index, select_text) = if start <= end {
+                (start, line.get_range(start, end))
+            } else {
+                (end, line.get_range(end, start))
+            };
+
+            let (back_index, back_text) = if start <= end {
+                (end, line.get_range(end, line.len()))
+            } else {
+                (start, line.get_range(start, line.len()))
+            };
+
+            self.render_code_string(screen, front_index, y, false, scroll_y, tokens, &front_text);
+            self.render_code_string(
+                screen,
+                select_index,
+                y,
+                true,
+                scroll_y,
+                tokens,
+                &select_text,
+            );
+            self.render_code_string(screen, back_index, y, false, scroll_y, tokens, &back_text);
+        } else {
+            self.render_code_string(screen, 0, y, false, scroll_y, tokens, line);
+        }
+    }
+
+    fn render_code_line(
+        &self,
+        screen: &mut Box<[String]>,
+        window_size: Vec2,
+        mode: &EditorMode,
+        offset_x: usize,
+        scroll_y: usize,
+        cursor_pos: Vec2,
+        y: usize,
+        index: usize,
+        line: &CodeString,
+        tokens: &Vec<HighlightToken>,
+    ) -> Result<(), EditorRendererError> {
+        if let EditorMode::Visual { start } = mode.clone() {
+            self.render_code_visual_mode(screen, y, line, cursor_pos, start, scroll_y, tokens);
+        } else {
+            self.render_code_string(screen, 0, y, false, scroll_y, tokens, &line);
+        }
+
+        let n = window_size.x as usize - (offset_x as usize + line.len());
+        screen[index].push_str(" ".repeat(n).as_str());
+
+        Ok(())
+    }
+
+    fn render_code(
+        &self,
+        screen: &mut Box<[String]>,
+        window_size: Vec2,
+        mode: &EditorMode,
+        scroll_y: usize,
+        cursor_pos: Vec2,
+        lines: &Vec<CodeString>,
+        offset_x: usize,
+        tokens: &Vec<HighlightToken>,
+    ) -> Result<(), EditorRendererError> {
+        for (index, line) in lines
+            .iter()
+            .skip(scroll_y)
+            .take(window_size.y.into())
+            .enumerate()
+        {
+            self.render_code_line(
+                screen,
+                window_size,
+                mode,
+                offset_x,
+                scroll_y,
+                cursor_pos,
+                index + scroll_y,
+                index,
+                line,
+                tokens,
+            )?;
+        }
+
+        Ok(())
+    }
+
+    fn render_command_box(
+        &self,
+        screen: &mut Box<[String]>,
+        window_size: Vec2,
+        draw_cursor_pos: &mut Vec2,
+        command_input_buf: &String,
+    ) {
+        let y = window_size.y - 1;
+        screen[y] = ":".to_string();
+        screen[y].push_str(command_input_buf.as_str());
+        let len = screen[y].len();
+        screen[y].push_str(" ".repeat(window_size.x - len).as_str());
+
+        draw_cursor_pos.x = len;
+        draw_cursor_pos.y = y;
+    }
+
+    pub fn render(
+        &self,
+        screen: &mut Box<[String]>,
+        window_size: Vec2,
+        editor: &Editor,
+        tokens: &Vec<HighlightToken>,
+        command_input_buf: &String,
+    ) -> Result<Vec2, EditorRendererError> {
+        if let Some(current) = editor.get_buffer_manager().get_current() {
+            let Ok(current) = current.lock() else {
+                return Err(EditorRendererError::LockError);
+            };
+
+            let mode = editor.get_mode();
+
+            let lines = current.get_code_buf().get_lines();
+
+            let num_len = (lines.len() - 1).to_string().len();
+            let offset_x = num_len + 1;
+
+            let cursor_pos = current.get_cursor_position(&mode);
+            let mut draw_cursor_pos = &mut current
+                .get_draw_cursor_position(&mode)
+                .add(Vec2::new(offset_x, 0));
+
+            let scroll_y = current.get_scroll_position().y;
+
+            self.render_numbers(screen, window_size, &lines, scroll_y, offset_x);
+            self.render_code(
+                screen,
+                window_size,
+                &mode,
+                scroll_y,
+                cursor_pos,
+                &lines,
+                offset_x,
+                tokens,
+            )?;
+
+            if let EditorMode::Command = mode {
+                self.render_command_box(
+                    screen,
+                    window_size,
+                    &mut draw_cursor_pos,
+                    command_input_buf,
+                );
+            }
+
+            Ok(*draw_cursor_pos)
+        } else {
+            Ok(Vec2::default())
+        }
+    }
+}

@@ -13,6 +13,3 @@ copy: build
 
 run: copy
 	cargo run --package tui-studio
-
-install:
-	cargo install --path .
