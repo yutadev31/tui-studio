@@ -1,3 +1,4 @@
-pub mod render;
-pub mod window;
-pub mod window_manager;
+pub mod manager;
+mod window;
+
+pub use window::*;

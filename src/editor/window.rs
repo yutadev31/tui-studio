@@ -1,4 +1,4 @@
-// use crate::{utils::vec2::Vec2, window::window::Window};
+// use crate::{utils::vec2::Vec2, window::Window};
 
 // pub struct EditorWindow {}
 

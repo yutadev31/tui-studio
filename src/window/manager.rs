@@ -10,6 +10,7 @@ pub enum WindowManagerError {
     GetActiveFailed,
 }
 
+#[derive(Def)]
 pub struct WindowManager {
     windows: Vec<BoxWindow>,
     active: usize,

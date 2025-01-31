@@ -13,6 +13,7 @@ use crate::{
     action::AppAction,
     editor::{Editor, EditorError},
     plugin::PluginManagerError,
+    // window::manager::WindowManager,
 };
 use crate::{
     plugin::PluginManager,
@@ -45,7 +46,7 @@ pub enum AppError {
 
 pub struct App {
     editor: Editor,
-
+    // window_manager: WindowManager,
     key_config: KeyConfig,
     cmd_mgr: CommandManager,
     plugin_manager: Option<PluginManager>,
@@ -59,6 +60,7 @@ impl App {
 
         Ok(Self {
             editor: Editor::new(path, Rect::new(0, 0, term_w, term_h))?,
+            // window_manager: WindowManager::default(),
             key_config: KeyConfig::default(),
             cmd_mgr: CommandManager::default(),
             plugin_manager: Some(PluginManager::default()),

@@ -16,4 +16,3 @@ run: copy
 
 install:
 	cargo install --path .
-
