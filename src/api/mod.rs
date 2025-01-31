@@ -17,7 +17,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{utils::mode::EditorMode, Editor};
+use crate::{editor::Editor, utils::mode::EditorMode};
 
 pub struct EditorApi {
     editor: Arc<Mutex<Editor>>,

@@ -1,8 +1,3 @@
-pub mod api;
-pub(crate) mod editor;
-pub(crate) mod plugin;
-pub mod utils;
-
 use std::{
     io,
     sync::{Arc, Mutex},
@@ -10,18 +5,18 @@ use std::{
     time::Duration as StdDuration,
 };
 
-use chrono::{DateTime, Duration, Utc};
-use crossterm::event::{self, Event as CrosstermEvent, MouseEventKind};
-use editor::{Editor, EditorError};
-use plugin::{PluginManager, PluginManagerError};
-use thiserror::Error;
-use utils::{
+use crate::editor::{Editor, EditorError};
+use crate::plugin::{PluginManager, PluginManagerError};
+use crate::utils::{
     command::CommandManager,
     event::Event,
     key_binding::{Key, KeyConfig},
     rect::Rect,
     term::get_term_size,
 };
+use chrono::{DateTime, Duration, Utc};
+use crossterm::event::{self, Event as CrosstermEvent, MouseEventKind};
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum AppError {

@@ -47,6 +47,3 @@ serde.workspace = true
 serde_json.workspace = true
 log.workspace = true
 fern.workspace = true
-
-[lib]
-path = "src/app.rs"
