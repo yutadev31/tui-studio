@@ -2,7 +2,7 @@ use std::io::stdin;
 
 use thiserror::Error;
 
-use crate::api::Request;
+use crate::api::Message;
 
 use super::{language_support::LanguageSupport, PluginInfo};
 
@@ -14,27 +14,21 @@ pub enum PluginClientError {
 
 #[derive(Default)]
 pub struct PluginClient {
-    lang_supports: Vec<Box<dyn LanguageSupport>>,
+    lang_support: Option<Box<dyn LanguageSupport>>,
 }
 
 impl PluginClient {
     pub fn new() -> Self {
-        Self {
-            lang_supports: Vec::new(),
-        }
+        Self { lang_support: None }
     }
 
     pub fn initialize(&self, info: PluginInfo) -> Result<(), PluginClientError> {
-        let request = serde_json::to_string(&Request {
-            command: "initialize".to_string(),
-            content: info,
-        })?;
-
+        let request = serde_json::to_string(&Message::Initialize(info))?;
         println!("{}", request);
         Ok(())
     }
 
-    fn on_event(&self, _buf: String) {}
+    fn on_event(&self, buf: String) {}
 
     pub fn run(&self) -> Result<(), PluginClientError> {
         let stdin = stdin();
@@ -50,11 +44,14 @@ impl PluginClient {
         }
     }
 
-    pub fn register_language_support(
+    pub fn set_language_support(
         &mut self,
         lang_support: Box<dyn LanguageSupport>,
     ) -> Result<(), PluginClientError> {
-        self.lang_supports.push(lang_support);
+        let request =
+            serde_json::to_string(&Message::SetLanguageSupport(lang_support.file_type()))?;
+        println!("{}", request);
+        self.lang_support = Some(lang_support);
         Ok(())
     }
 }

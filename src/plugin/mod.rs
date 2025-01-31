@@ -56,8 +56,8 @@ impl PluginManager {
                     Ok(_) => {
                         debug!("{}", buf);
                     }
-                    Err(e) => {
-                        error!("Error reading plugin stdout: {}", e);
+                    Err(err) => {
+                        error!("Error reading plugin stdout: {}", err);
                         break;
                     }
                 }
@@ -81,11 +81,11 @@ impl PluginManager {
             .map_err(|err| PluginManagerError::ReadDirFailed(err))?
             .filter_map(Result::ok)
             .for_each(|entry| {
-                if let Err(e) = self.load_file(entry.path()) {
+                if let Err(err) = self.load_file(entry.path()) {
                     error!(
                         "Failed to load plugin from {}: {:?}",
                         entry.path().display(),
-                        e
+                        err
                     );
                 }
             });
@@ -102,11 +102,17 @@ impl PluginManager {
             Err(PluginManagerError::GetStdinFailed)
         }
     }
+}
 
-    pub fn kill(&mut self) {
+impl Drop for PluginManager {
+    fn drop(&mut self) {
         for plugin in &mut self.plugins {
             if let Err(e) = plugin.kill() {
                 error!("Failed to kill plugin: {}", e);
+            }
+
+            if let Err(e) = plugin.wait() {
+                error!("Failed to wait for plugin process: {}", e);
             }
         }
     }

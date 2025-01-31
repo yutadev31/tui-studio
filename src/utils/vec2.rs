@@ -1,6 +1,8 @@
 use std::{cmp::Ordering, ops::Add};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default, Deserialize, Serialize)]
 pub struct Vec2 {
     pub x: usize,
     pub y: usize,

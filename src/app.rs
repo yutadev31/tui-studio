@@ -9,16 +9,20 @@ use std::{
 };
 
 // use crate::plugin::{PluginManager, PluginManagerError};
-use crate::utils::{
-    command::CommandManager,
-    event::Event,
-    key_binding::{Key, KeyConfig},
-    rect::Rect,
-    term::get_term_size,
-};
 use crate::{
     action::AppAction,
     editor::{Editor, EditorError},
+    plugin::PluginManagerError,
+};
+use crate::{
+    plugin::PluginManager,
+    utils::{
+        command::CommandManager,
+        event::Event,
+        key_binding::{Key, KeyConfig},
+        rect::Rect,
+        term::get_term_size,
+    },
 };
 use chrono::{DateTime, Duration, Utc};
 use crossterm::event::{self, Event as CrosstermEvent, MouseEventKind};
@@ -29,10 +33,14 @@ pub enum AppError {
     #[error("{0}")]
     EditorError(#[from] EditorError),
 
-    // #[error("{0}")]
-    // PluginManagerError(#[from] PluginManagerError),
+    #[error("{0}")]
+    PluginManagerError(#[from] PluginManagerError),
+
     #[error("{0}")]
     IOError(#[from] io::Error),
+
+    #[error("Failed to get plugin manager")]
+    GetPluginManagerFailed,
 }
 
 pub struct App {
@@ -40,7 +48,7 @@ pub struct App {
 
     key_config: KeyConfig,
     cmd_mgr: CommandManager,
-    // plugin_manager: PluginManager,
+    plugin_manager: Option<PluginManager>,
     first_key_time: Option<DateTime<Utc>>,
     key_buf: Vec<Key>,
 }
@@ -53,7 +61,7 @@ impl App {
             editor: Editor::new(path, Rect::new(0, 0, term_w, term_h))?,
             key_config: KeyConfig::default(),
             cmd_mgr: CommandManager::default(),
-            // plugin_manager: PluginManager::default(),
+            plugin_manager: Some(PluginManager::default()),
             key_buf: Vec::new(),
             first_key_time: None,
         })
@@ -64,15 +72,17 @@ impl App {
         self.editor.register_keybindings(&mut self.key_config);
         self.editor.register_commands(&mut self.cmd_mgr);
 
-        // let home_dir = dirs::home_dir().unwrap();
-        // self.plugin_manager
-        //     .load_dir(home_dir.join(".tui-studio/plugins"))?;
+        let Some(plugin_manager) = &mut self.plugin_manager else {
+            return Err(AppError::GetPluginManagerFailed)?;
+        };
 
-        // #[cfg(debug_assertions)]
-        // {
-        //     self.plugin_manager
-        //         .load_dir(home_dir.join(".tui-studio/debug/plugins"))?;
-        // }
+        let home_dir = dirs::home_dir().unwrap();
+        plugin_manager.load_dir(home_dir.join(".tui-studio/plugins"))?;
+
+        #[cfg(debug_assertions)]
+        {
+            plugin_manager.load_dir(home_dir.join(".tui-studio/debug/plugins"))?;
+        }
 
         Ok(())
     }
@@ -135,6 +145,7 @@ impl App {
     pub(crate) fn on_event(&mut self, evt: Event) -> Result<bool, AppError> {
         match evt {
             Event::Quit => {
+                self.plugin_manager = None;
                 return Ok(true);
             }
             Event::Command(cmd) => {
@@ -184,8 +195,11 @@ impl App {
             let _handle = thread::spawn(move || {
                 while running_clone.load(Ordering::Relaxed) {
                     {
-                        let app = app_clone.lock().unwrap();
-                        app.draw().unwrap();
+                        if let Ok(app) = app_clone.lock() {
+                            if let Err(err) = app.draw() {
+                                log::error!("{}", err);
+                            }
+                        }
                     }
                     thread::sleep(StdDuration::from_millis(16));
                 }
@@ -193,17 +207,18 @@ impl App {
 
             loop {
                 {
-                    let mut app = app.lock().unwrap();
-                    if let Some(event) = app.crossterm_event_to_editor_event(event::read()?)? {
-                        match app.on_event(event) {
-                            Err(err) => log::error!("{}", err),
-                            Ok(is_quit) => {
-                                if is_quit {
-                                    break;
+                    if let Ok(mut app) = app.lock() {
+                        if let Some(event) = app.crossterm_event_to_editor_event(event::read()?)? {
+                            match app.on_event(event) {
+                                Err(err) => log::error!("{}", err),
+                                Ok(is_quit) => {
+                                    if is_quit {
+                                        break;
+                                    }
                                 }
-                            }
-                        };
-                        app.draw()?;
+                            };
+                            app.draw()?;
+                        }
                     }
                 }
             }

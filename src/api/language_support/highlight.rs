@@ -1,11 +1,12 @@
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 
 use crate::utils::{
     color::{Color, ToColor},
     vec2::Vec2,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct HighlightToken {
     pub start: Vec2,
     pub end: Vec2,
@@ -24,7 +25,7 @@ fn index_to_vec2(index: usize, line_widths: &[usize]) -> Vec2 {
             let x = index - cumulative_index;
             return Vec2::new(x, y);
         }
-        cumulative_index += width + 1; // 改行を含めて累積
+        cumulative_index += width + 1;
     }
 
     Vec2::new(0, 0) // この点に到達することはないはず

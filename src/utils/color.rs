@@ -1,6 +1,7 @@
 use crossterm::style::Color as CrosstermColor;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub enum Color {
     Red,
     Orange,

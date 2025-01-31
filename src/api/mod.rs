@@ -8,7 +8,7 @@ mod net;
 pub use buf::*;
 pub use client::*;
 pub use info::*;
-pub use net::request::*;
+pub use net::message::*;
 
 use error::EditorApiError;
 
