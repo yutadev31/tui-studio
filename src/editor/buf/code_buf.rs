@@ -3,7 +3,10 @@ use std::fmt::{self, Display, Formatter};
 use arboard::Clipboard;
 use thiserror::Error;
 
-use crate::utils::{mode::EditorMode, string::CodeString, vec2::Vec2};
+use crate::{
+    editor::action::EditorEditAction,
+    utils::{mode::EditorMode, string::CodeString, vec2::Vec2},
+};
 
 use super::cursor::{EditorCursor, EditorCursorError};
 
@@ -74,9 +77,11 @@ impl EditorCodeBuffer {
 
     pub fn delete_line(
         &mut self,
-        y: usize,
+        cursor: &mut EditorCursor,
+        mode: &EditorMode,
         clipboard: &mut Clipboard,
     ) -> Result<(), EditorCodeBufferError> {
+        let y = cursor.get(self, mode).y;
         clipboard.set_text(self.lines[y].to_string())?;
         self.lines.remove(y);
         Ok(())
@@ -182,22 +187,26 @@ impl EditorCodeBuffer {
 
     pub fn yank_line(
         &self,
-        y: usize,
+        cursor: &mut EditorCursor,
+        mode: &EditorMode,
         clipboard: &mut Clipboard,
     ) -> Result<(), EditorCodeBufferError> {
+        let y = cursor.get(self, mode).y;
         clipboard.set_text(self.lines[y].to_string())?;
         Ok(())
     }
 
     pub fn paste(
         &mut self,
-        x: usize,
-        y: usize,
+        cursor: &mut EditorCursor,
+        mode: &EditorMode,
         clipboard: &mut Clipboard,
-    ) -> Result<usize, EditorCodeBufferError> {
+    ) -> Result<(), EditorCodeBufferError> {
+        let (x, y) = cursor.get(self, mode).into();
         let text = clipboard.get_text()?;
         self.append_str(x, y, text.as_str());
-        Ok(text.chars().count())
+        cursor.move_by_x(text.chars().count() as isize, self, mode);
+        Ok(())
     }
 
     pub fn backspace(
@@ -213,14 +222,14 @@ impl EditorCodeBuffer {
             }
 
             let line_length = self.get_line_length(cursor_pos.y - 1);
-            cursor.move_by(0, -1, &self, mode)?;
+            cursor.move_by_y(-1, &self);
 
             // line_length - 1 するのが本来は良いが usize が 0 以下になるのを防ぐため、- 1 はしない
-            cursor.move_x_to(line_length, &self, mode);
+            cursor.move_to_x(line_length, &self, mode);
             self.join_lines(cursor_pos.y - 1);
         } else {
             let remove_x = cursor_pos.x - 1;
-            cursor.move_by(-1, 0, &self, mode)?;
+            cursor.move_by_x(-1, &self, mode);
 
             self.lines[cursor_pos.y].remove(remove_x);
         }
@@ -234,6 +243,24 @@ impl EditorCodeBuffer {
 
     pub fn get_line_length(&self, y: usize) -> usize {
         self.lines[y].to_string().chars().count()
+    }
+
+    pub(crate) fn on_action(
+        &mut self,
+        action: EditorEditAction,
+        cursor: &mut EditorCursor,
+        mode: &EditorMode,
+        clipboard: &mut Clipboard,
+    ) -> Result<(), EditorCodeBufferError> {
+        match action {
+            EditorEditAction::DeleteLine => self.delete_line(cursor, mode, clipboard)?,
+            EditorEditAction::DeleteSelection => self.delete_selection(cursor, mode, clipboard)?,
+            EditorEditAction::YankLine => self.yank_line(cursor, mode, clipboard)?,
+            EditorEditAction::YankSelection => self.yank_selection(cursor, mode, clipboard)?,
+            EditorEditAction::Paste => self.paste(cursor, mode, clipboard)?,
+        }
+
+        Ok(())
     }
 }
 

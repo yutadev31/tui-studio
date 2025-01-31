@@ -102,10 +102,8 @@ impl PluginManager {
             Err(PluginManagerError::GetStdinFailed)
         }
     }
-}
 
-impl Drop for PluginManager {
-    fn drop(&mut self) {
+    pub fn kill(&mut self) {
         for plugin in &mut self.plugins {
             if let Err(e) = plugin.kill() {
                 error!("Failed to kill plugin: {}", e);

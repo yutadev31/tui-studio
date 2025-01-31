@@ -2,6 +2,8 @@ use std::{collections::HashMap, hash::Hash};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
+use crate::action::AppAction;
+
 use super::mode::EditorMode;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -57,20 +59,24 @@ impl From<KeyEvent> for Key {
 pub type KeySequence = Vec<Key>;
 
 pub struct KeyConfig {
-    bindings: HashMap<(KeyConfigType, KeySequence), String>,
+    bindings: HashMap<(KeyConfigType, KeySequence), AppAction>,
 }
 
 impl KeyConfig {
-    pub fn register(&mut self, config_type: KeyConfigType, sequence: KeySequence, command: &str) {
-        self.bindings
-            .insert((config_type, sequence), command.to_string());
+    pub fn register(
+        &mut self,
+        config_type: KeyConfigType,
+        sequence: KeySequence,
+        action: AppAction,
+    ) {
+        self.bindings.insert((config_type, sequence), action);
     }
 
-    fn get_binding(&self, config_type: KeyConfigType, sequence: KeySequence) -> Option<&String> {
+    fn get_binding(&self, config_type: KeyConfigType, sequence: KeySequence) -> Option<&AppAction> {
         self.bindings.get(&(config_type, sequence))
     }
 
-    pub fn get_command(&self, mode: EditorMode, sequence: KeySequence) -> Option<&String> {
+    pub fn get_action(&self, mode: EditorMode, sequence: KeySequence) -> Option<&AppAction> {
         self.get_binding(KeyConfigType::All, sequence.clone())
             .or(match mode {
                 EditorMode::Normal => self

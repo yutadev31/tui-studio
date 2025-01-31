@@ -5,14 +5,17 @@ use std::{
 };
 
 use arboard::Clipboard;
-use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use thiserror::Error;
 
-use crate::utils::{event::Event, key_binding::Key, mode::EditorMode, vec2::Vec2};
+use crate::{
+    editor::action::EditorBufferAction,
+    utils::{event::Event, key_binding::Key, mode::EditorMode, vec2::Vec2},
+};
 
 use super::{
     code_buf::{EditorCodeBuffer, EditorCodeBufferError},
     cursor::{EditorCursor, EditorCursorError},
+    scroll::EditorScroll,
 };
 
 #[derive(Debug, Error)]
@@ -42,9 +45,11 @@ pub(crate) enum EditorBufferError {
     EditorCodeBufferError(#[from] EditorCodeBufferError),
 }
 
+#[derive(Default)]
 pub(crate) struct EditorBuffer {
     code: EditorCodeBuffer,
     cursor: EditorCursor,
+    scroll: EditorScroll,
     file: Option<File>,
 }
 
@@ -80,8 +85,8 @@ impl EditorBuffer {
 
         Ok(Self {
             code: EditorCodeBuffer::from(buf),
-            cursor: EditorCursor::default(),
             file: Some(file),
+            ..Default::default()
         })
     }
 
@@ -107,7 +112,7 @@ impl EditorBuffer {
     }
 
     pub fn get_scroll_position(&self) -> Vec2 {
-        self.cursor.get_scroll_position()
+        self.scroll.get()
     }
 
     pub fn get_draw_cursor_position(&self, mode: &EditorMode) -> Vec2 {
@@ -120,7 +125,7 @@ impl EditorBuffer {
         y: isize,
         mode: &EditorMode,
     ) -> Result<(), EditorBufferError> {
-        Ok(self.cursor.move_by(x, y, &self.code, mode)?)
+        Ok(self.cursor.move_by(x, y, &self.code, mode))
     }
 
     pub fn cursor_sync(&mut self, mode: &EditorMode) {
@@ -131,60 +136,41 @@ impl EditorBuffer {
         &self.code
     }
 
-    // pub fn highlight(&self) -> Option<Vec<HighlightToken>> {
-    //     let Some(lang_support) = &self.lang_support else {
-    //         return None;
-    //     };
+    pub fn on_action(
+        &mut self,
+        action: EditorBufferAction,
+        mode: &EditorMode,
+        clipboard: &mut Clipboard,
+    ) -> Result<(), EditorBufferError> {
+        match action {
+            EditorBufferAction::Save => self.save()?,
+            EditorBufferAction::Cursor(action) => {
+                self.cursor.on_action(action, &self.code, mode)?
+            }
+            EditorBufferAction::Edit(action) => {
+                self.code
+                    .on_action(action, &mut self.cursor, mode, clipboard)?
+            }
+        };
 
-    //     Some(lang_support.highlight(self.code.to_string().as_str())?)
-    // }
+        Ok(())
+    }
 
     pub fn on_event(
         &mut self,
         evt: Event,
         mode: &EditorMode,
-        clipboard: &mut Clipboard,
     ) -> Result<Option<EditorMode>, EditorBufferError> {
         let cursor_pos = self.cursor.get(&self.code, mode);
         let cursor_x = cursor_pos.x;
         let cursor_y = cursor_pos.y;
 
-        match evt.clone() {
-            Event::Command(cmd) => match cmd.as_str() {
-                "editor.cursor.left" => self.cursor.move_by(-1, 0, &self.code, mode)?,
-                "editor.cursor.down" => self.cursor.move_by(0, 1, &self.code, mode)?,
-                "editor.cursor.up" => self.cursor.move_by(0, -1, &self.code, mode)?,
-                "editor.cursor.right" => self.cursor.move_by(1, 0, &self.code, mode)?,
-                "editor.cursor.line_start" => self.cursor.move_x_to(0, &self.code, mode),
-                "editor.cursor.line_end" => {
-                    self.cursor
-                        .move_x_to(self.code.get_line_length(cursor_y), &self.code, mode);
-                }
-                "editor.cursor.top" => self.cursor.move_y_to(0, &self.code)?,
-                "editor.cursor.end" => self
-                    .cursor
-                    .move_y_to(self.code.get_line_count() - 1, &self.code)?,
-                "editor.cursor.next_word" => self.cursor.move_to_next_word(&self.code),
-                "editor.cursor.back_word" => self.cursor.move_to_back_word(&self.code),
-                "editor.edit.line_delete" => self.code.delete_line(cursor_y, clipboard)?,
-                "editor.edit.line_yank" => self.code.yank_line(cursor_y, clipboard)?,
-                "editor.edit.paste" => {
-                    let text_len = self.code.paste(cursor_x, cursor_y, clipboard)?;
-                    self.cursor
-                        .move_by(text_len as isize, 0, &self.code, mode)?;
-                }
-                "editor.save" => self.save()?,
-                _ => {}
-            },
-            _ => {}
-        }
-
         match mode {
             EditorMode::Normal => match evt {
                 Event::Click(x, y) => {
-                    let scroll_y = self.cursor.get_scroll_position().y;
-                    self.cursor.move_y_to(y + scroll_y, &self.code)?;
-                    self.cursor.move_x_to(x, &self.code, mode);
+                    let scroll_y = self.scroll.get().y;
+                    self.cursor.move_to_y(y + scroll_y, &self.code);
+                    self.cursor.move_to_x(x, &self.code, mode);
                 }
                 _ => {}
             },
@@ -194,34 +180,16 @@ impl EditorBuffer {
                     Key::Backspace => self.code.backspace(&mut self.cursor, mode)?,
                     Key::Char('\t') => {
                         self.code.append(cursor_x, cursor_y, '\t');
-                        self.cursor.move_by(1, 0, &self.code, mode)?;
+                        self.cursor.move_by(1, 0, &self.code, mode);
                     }
                     Key::Char('\n') => {
                         self.code.append(cursor_x, cursor_y, '\n');
-                        self.cursor.move_by(0, 1, &self.code, mode)?;
-                        self.cursor.move_x_to(0, &self.code, mode);
+                        self.cursor.move_by(0, 1, &self.code, mode);
+                        self.cursor.move_to_x(0, &self.code, mode);
                     }
                     Key::Char(c) => {
                         self.code.append(cursor_x, cursor_y, c);
-                        self.cursor.move_by(1, 0, &self.code, mode)?;
-                    }
-                    _ => {}
-                },
-                _ => {}
-            },
-            EditorMode::Visual { start } => match evt {
-                Event::Command(cmd) => match cmd.as_str() {
-                    "editor.edit.delete" => {
-                        self.code
-                            .delete_selection(&mut self.cursor, mode, clipboard)?;
-                        self.cursor.move_y_to(start.y, &self.code)?;
-                        self.cursor.move_x_to(start.x, &self.code, mode);
-                        return Ok(Some(EditorMode::Normal));
-                    }
-                    "editor.edit.yank" => {
-                        self.code
-                            .yank_selection(&mut self.cursor, mode, clipboard)?;
-                        return Ok(Some(EditorMode::Normal));
+                        self.cursor.move_by(1, 0, &self.code, mode);
                     }
                     _ => {}
                 },
@@ -231,16 +199,5 @@ impl EditorBuffer {
         }
 
         Ok(None)
-    }
-}
-
-impl Default for EditorBuffer {
-    fn default() -> Self {
-        Self {
-            code: EditorCodeBuffer::default(),
-            cursor: EditorCursor::default(),
-            // lang_support: None,
-            file: None,
-        }
     }
 }

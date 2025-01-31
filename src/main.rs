@@ -30,6 +30,5 @@ fn main() -> Result<(), PublicAppError> {
     };
 
     safe_exit();
-
     Ok(())
 }

@@ -8,7 +8,8 @@ use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{
-        disable_raw_mode, enable_raw_mode, size, EnterAlternateScreen, LeaveAlternateScreen,
+        disable_raw_mode, enable_raw_mode, size, Clear, ClearType, EnterAlternateScreen,
+        LeaveAlternateScreen,
     },
 };
 
@@ -22,13 +23,14 @@ pub fn init_term() -> io::Result<()> {
 }
 
 pub fn clean_term() -> io::Result<()> {
-    disable_raw_mode()?;
     execute!(
         stdout(),
+        Clear(ClearType::All),
         LeaveAlternateScreen,
         DisableMouseCapture,
         SetCursorStyle::DefaultUserShape
     )?;
+    disable_raw_mode()?;
     Ok(())
 }
 

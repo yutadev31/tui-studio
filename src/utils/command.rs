@@ -1,19 +1,18 @@
 use std::collections::HashMap;
 
+use crate::action::AppAction;
+
 #[derive(Debug, Clone)]
 pub struct CommandManager {
-    commands: HashMap<String, Vec<String>>,
+    commands: HashMap<String, Vec<AppAction>>,
 }
 
 impl CommandManager {
-    pub fn register(&mut self, alias: &str, command: Vec<&str>) {
-        self.commands.insert(
-            alias.to_string(),
-            command.iter().map(|cmd| cmd.to_string()).collect(),
-        );
+    pub fn register(&mut self, alias: &str, actions: Vec<AppAction>) {
+        self.commands.insert(alias.to_string(), actions);
     }
 
-    pub fn get_command(&self, alias: &str) -> Option<&Vec<String>> {
+    pub fn get_command(&self, alias: &str) -> Option<&Vec<AppAction>> {
         self.commands.get(&alias.to_string())
     }
 }

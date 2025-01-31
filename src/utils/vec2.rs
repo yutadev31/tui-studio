@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, ops::Add};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub struct Vec2 {
     pub x: usize,
     pub y: usize,
@@ -9,12 +9,6 @@ pub struct Vec2 {
 impl Vec2 {
     pub fn new(x: usize, y: usize) -> Self {
         Self { x, y }
-    }
-}
-
-impl Default for Vec2 {
-    fn default() -> Self {
-        Self::new(0, 0)
     }
 }
 

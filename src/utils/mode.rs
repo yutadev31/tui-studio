@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use super::vec2::Vec2;
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum EditorMode {
     Normal,
     Visual { start: Vec2 },

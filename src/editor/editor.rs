@@ -6,23 +6,28 @@ use crossterm::{
     execute,
     style::{Color, Print, ResetColor, SetBackgroundColor},
 };
-use log::debug;
 use thiserror::Error;
 
-use crate::utils::{
-    command::CommandManager,
-    event::Event,
-    key_binding::{Key, KeyConfig, KeyConfigType},
-    mode::EditorMode,
-    rect::Rect,
-    string::CodeString,
-    term::get_term_size,
-    vec2::Vec2,
+use crate::{
+    action::AppAction,
+    utils::{
+        command::CommandManager,
+        event::Event,
+        key_binding::{Key, KeyConfig, KeyConfigType},
+        mode::EditorMode,
+        rect::Rect,
+        string::CodeString,
+        term::get_term_size,
+        vec2::Vec2,
+    },
 };
 
-use super::buf::{
-    buf_manager::{EditorBufferManager, EditorBufferManagerError},
-    EditorBufferError,
+use super::{
+    action::{EditorAction, EditorBufferAction, EditorCursorAction, EditorEditAction},
+    buf::{
+        manager::{EditorBufferManager, EditorBufferManagerError},
+        EditorBufferError,
+    },
 };
 
 #[derive(Debug, Error)]
@@ -77,6 +82,17 @@ impl Editor {
 
     pub(crate) fn get_mode(&self) -> EditorMode {
         self.mode.clone()
+    }
+
+    pub(crate) fn set_mode(&mut self, mode: EditorMode) -> Result<(), EditorError> {
+        match mode {
+            EditorMode::Normal => self.set_normal_mode()?,
+            EditorMode::Command => self.set_command_mode(),
+            EditorMode::Insert { append } => self.set_insert_mode(append)?,
+            EditorMode::Visual { .. } => self.set_visual_mode()?,
+        }
+
+        Ok(())
     }
 
     pub(crate) fn set_normal_mode(&mut self) -> Result<(), EditorError> {
@@ -318,24 +334,29 @@ impl Editor {
         Ok(())
     }
 
+    pub(crate) fn on_action(&mut self, action: EditorAction) -> Result<(), EditorError> {
+        match action {
+            EditorAction::SetMode(mode) => self.set_mode(mode)?,
+            EditorAction::Buffer(action) => {
+                if let Some(current) = self.buffer_manager.get_current() {
+                    let Ok(mut current) = current.lock() else {
+                        return Err(EditorError::LockError);
+                    };
+
+                    current.on_action(action, &self.mode, &mut self.clipboard)?;
+                }
+            }
+        };
+
+        Ok(())
+    }
+
     pub(crate) fn on_event(&mut self, evt: Event) -> Result<Vec<Event>, EditorError> {
         let mut events = vec![];
         let (term_w, term_h) = get_term_size()?;
 
         self.rect.w = term_w;
         self.rect.h = term_h;
-
-        if let Event::Command(cmd) = evt.clone() {
-            match cmd.as_str() {
-                "editor.quit" => events.push(Event::Quit),
-                "editor.mode.normal" => self.set_normal_mode()?,
-                "editor.mode.command" => self.set_command_mode(),
-                "editor.mode.insert" => self.set_insert_mode(false)?,
-                "editor.mode.append" => self.set_insert_mode(true)?,
-                "editor.mode.visual" => self.set_visual_mode()?,
-                _ => {}
-            }
-        }
 
         if let EditorMode::Command = self.mode {
             if let Event::Input(key) = evt.clone() {
@@ -348,9 +369,8 @@ impl Editor {
                         }
                     }
                     Key::Char('\n') => {
-                        debug!("test");
                         self.set_normal_mode()?;
-                        events.push(Event::RunCommand(self.command_input_buf.clone()));
+                        events.push(Event::Command(self.command_input_buf.clone()));
                     }
                     Key::Char(c) => self.command_input_buf.push(c),
                     _ => {}
@@ -358,35 +378,16 @@ impl Editor {
             }
         }
 
-        let mode = {
-            if let Some(current) = self.buffer_manager.get_current() {
-                let Ok(mut current) = current.lock() else {
-                    return Err(EditorError::LockError);
-                };
+        if let Some(current) = self.buffer_manager.get_current() {
+            let Ok(mut current) = current.lock() else {
+                return Err(EditorError::LockError);
+            };
 
-                current.on_event(evt, &self.mode, &mut self.clipboard)?
-            } else {
-                None
-            }
-        };
-
-        if let Some(mode) = mode {
-            match mode {
-                EditorMode::Command => self.set_command_mode(),
-                EditorMode::Normal => self.set_normal_mode()?,
-                EditorMode::Visual { start } => self.mode = EditorMode::Visual { start },
-                EditorMode::Insert { append } => self.set_insert_mode(append)?,
-            }
+            current.on_event(evt, &self.mode)?;
         }
-
-        // if let Some(current) = self.buffer_manager.get_current() {
-        // let Ok(current) = current.lock() else {
-        //     return Err(EditorError::LockError);
-        // };
 
         // if let Some(tokens) = current.highlight() {
         //     self.highlight_tokens = tokens;
-        // }
         // }
 
         Ok(events)
@@ -455,115 +456,168 @@ impl Editor {
         key_config.register(
             KeyConfigType::All,
             vec![Key::Ctrl('c')],
-            "editor.mode.normal",
+            EditorAction::SetMode(EditorMode::Normal).to_app(),
         );
-        key_config.register(KeyConfigType::All, vec![Key::Esc], "editor.mode.normal");
+        key_config.register(
+            KeyConfigType::All,
+            vec![Key::Esc],
+            EditorAction::SetMode(EditorMode::Normal).to_app(),
+        );
         key_config.register(
             KeyConfigType::Normal,
             vec![Key::Char(':')],
-            "editor.mode.command",
+            AppAction::EditorAction(EditorAction::SetMode(EditorMode::Command)),
         );
         key_config.register(
             KeyConfigType::Normal,
             vec![Key::Char('i')],
-            "editor.mode.insert",
+            AppAction::EditorAction(EditorAction::SetMode(EditorMode::Insert { append: false })),
         );
         key_config.register(
             KeyConfigType::Normal,
             vec![Key::Char('a')],
-            "editor.mode.append",
+            AppAction::EditorAction(EditorAction::SetMode(EditorMode::Insert { append: true })),
         );
         key_config.register(
             KeyConfigType::Normal,
             vec![Key::Char('v')],
-            "editor.mode.visual",
+            AppAction::EditorAction(EditorAction::SetMode(EditorMode::Visual {
+                start: Vec2::default(),
+            })),
         );
 
         // Cursor Movement
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('h')],
-            "editor.cursor.left",
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
+                EditorCursorAction::Left,
+            ))),
         );
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('j')],
-            "editor.cursor.down",
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
+                EditorCursorAction::Down,
+            ))),
         );
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('k')],
-            "editor.cursor.up",
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
+                EditorCursorAction::Up,
+            ))),
         );
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('l')],
-            "editor.cursor.right",
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
+                EditorCursorAction::Right,
+            ))),
         );
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('0')],
-            "editor.cursor.line_start",
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
+                EditorCursorAction::LineStart,
+            ))),
         );
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('$')],
-            "editor.cursor.line_end",
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
+                EditorCursorAction::LineEnd,
+            ))),
         );
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('g'), Key::Char('g')],
-            "editor.cursor.top",
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
+                EditorCursorAction::Top,
+            ))),
         );
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('G')],
-            "editor.cursor.end",
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
+                EditorCursorAction::Bottom,
+            ))),
         );
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('w')],
-            "editor.cursor.next_word",
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
+                EditorCursorAction::NextWord,
+            ))),
         );
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('b')],
-            "editor.cursor.back_word",
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
+                EditorCursorAction::BackWord,
+            ))),
         );
 
         // Edit
         key_config.register(
             KeyConfigType::Normal,
             vec![Key::Char('d'), Key::Char('d')],
-            "editor.edit.line_delete",
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Edit(
+                EditorEditAction::DeleteLine,
+            ))),
         );
         key_config.register(
             KeyConfigType::Normal,
             vec![Key::Char('y'), Key::Char('y')],
-            "editor.edit.line_yank",
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Edit(
+                EditorEditAction::YankLine,
+            ))),
         );
         key_config.register(
             KeyConfigType::Normal,
             vec![Key::Char('p')],
-            "editor.edit.paste",
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Edit(
+                EditorEditAction::Paste,
+            ))),
         );
 
         key_config.register(
             KeyConfigType::Visual,
             vec![Key::Char('d')],
-            "editor.edit.delete",
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Edit(
+                EditorEditAction::DeleteSelection,
+            ))),
         );
         key_config.register(
             KeyConfigType::Visual,
             vec![Key::Char('y')],
-            "editor.edit.yank",
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Edit(
+                EditorEditAction::YankSelection,
+            ))),
         );
     }
 
     pub(crate) fn register_commands(&self, cmd_manager: &mut CommandManager) {
-        cmd_manager.register("q", vec!["editor.quit"]);
-        cmd_manager.register("w", vec!["editor.save"]);
-        cmd_manager.register("x", vec!["editor.save", "editor.quit"]);
-        cmd_manager.register("wq", vec!["editor.save", "editor.quit"]);
+        cmd_manager.register("q", vec![AppAction::Quit]);
+        cmd_manager.register(
+            "w",
+            vec![AppAction::EditorAction(EditorAction::Buffer(
+                EditorBufferAction::Save,
+            ))],
+        );
+        cmd_manager.register(
+            "x",
+            vec![
+                AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Save)),
+                AppAction::Quit,
+            ],
+        );
+        cmd_manager.register(
+            "wq",
+            vec![
+                AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Save)),
+                AppAction::Quit,
+            ],
+        );
     }
 }
