@@ -4,7 +4,7 @@ use arboard::Clipboard;
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
     execute,
-    style::{Color, Print, ResetColor, SetBackgroundColor},
+    style::{Print, ResetColor},
 };
 use thiserror::Error;
 
@@ -167,10 +167,10 @@ impl Editor {
     ) {
         (0..lines.len())
             .skip(scroll_y)
-            .take(self.rect.h.into())
+            .take(self.rect.size.y.into())
             .enumerate()
             .for_each(|(draw_y, y)| {
-                draw_data[self.rect.y as usize + draw_y]
+                draw_data[self.rect.pos.y as usize + draw_y]
                     .push_str(format!("{}{:<offset_x$}", ResetColor, y + 1).as_str());
             });
     }
@@ -233,26 +233,26 @@ impl Editor {
                     &line[start..]
                 };
 
-                let y = index as u16;
-                execute!(
-                    stdout(),
-                    MoveTo(self.rect.x + offset_x, self.rect.y + y),
-                    Print(front_text),
-                    SetBackgroundColor(Color::White),
-                    Print(select_text),
-                    ResetColor,
-                    Print(back_text)
-                )?;
-            } else {
-                execute!(
-                    stdout(),
-                    MoveTo(self.rect.x + offset_x, self.rect.y + index as u16),
-                    Print(line)
-                )?;
+                //     let y = index as u16;
+                //     execute!(
+                //         stdout(),
+                //         MoveTo(self.rect.pos.x + offset_x, self.rect.pos.y + y),
+                //         Print(front_text),
+                //         SetBackgroundColor(Color::White),
+                //         Print(select_text),
+                //         ResetColor,
+                //         Print(back_text)
+                //     )?;
+                // } else {
+                //     execute!(
+                //         stdout(),
+                //         MoveTo(self.rect.pos.x + offset_x, self.rect.pos.y + index as u16),
+                //         Print(line)
+                //     )?;
             }
         } else {
             // if self.highlight_tokens.len() == 0 {
-            draw_data[self.rect.y as usize + index].push_str(line.as_str());
+            draw_data[self.rect.pos.y as usize + index].push_str(line.as_str());
             // } else {
             //     let draw_y = self.rect.y as usize + index;
 
@@ -297,7 +297,7 @@ impl Editor {
         for (index, line) in lines
             .iter()
             .skip(scroll_y)
-            .take(self.rect.h.into())
+            .take(self.rect.size.y.into())
             .enumerate()
         {
             self.draw_code_line(
@@ -320,7 +320,7 @@ impl Editor {
         draw_data[y].push_str(self.command_input_buf.as_str());
 
         let len = draw_data[y].len();
-        draw_data[y].push_str(" ".repeat(self.rect.w as usize - len).as_str());
+        draw_data[y].push_str(" ".repeat(self.rect.size.x as usize - len).as_str());
     }
 
     fn draw_cursor(&self, x: u16, y: u16) -> Result<(), EditorError> {
@@ -356,10 +356,9 @@ impl Editor {
 
     pub(crate) fn on_event(&mut self, evt: Event) -> Result<Vec<Event>, EditorError> {
         let mut events = vec![];
-        let (term_w, term_h) = get_term_size()?;
+        let term_size = get_term_size()?;
 
-        self.rect.w = term_w;
-        self.rect.h = term_h;
+        self.rect.size = term_size;
 
         if let EditorMode::Command = self.mode {
             if let Event::Input(key) = evt.clone() {
@@ -399,7 +398,7 @@ impl Editor {
 
     pub(crate) fn draw(&self) -> Result<(), EditorError> {
         let mut draw_data: Vec<String> = Vec::new();
-        for _ in 0..self.rect.h {
+        for _ in 0..self.rect.size.y {
             draw_data.push(String::new());
         }
 
@@ -413,7 +412,7 @@ impl Editor {
             let (cursor_x, cursor_y) = current.get_draw_cursor_position(&self.mode).into();
 
             let num_len = (lines.len() - 1).to_string().len();
-            let offset_x = (num_len + 1) as u16;
+            let offset_x = num_len + 1;
 
             let scroll_y = current.get_scroll_position().y;
 
@@ -423,7 +422,7 @@ impl Editor {
                 scroll_y,
                 cursor_pos,
                 lines.clone(),
-                offset_x,
+                offset_x as u16,
             )?;
 
             if let EditorMode::Command = self.mode {
@@ -432,11 +431,14 @@ impl Editor {
 
             for (index, draw_data) in draw_data.iter().enumerate() {
                 let len = draw_data.len();
-                if len == self.rect.w as usize {
+                if len == self.rect.size.x as usize {
                     execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))?;
-                } else if len < self.rect.w as usize {
-                    let draw_data =
-                        format!("{}{}", draw_data, " ".repeat(self.rect.w as usize - len));
+                } else if len < self.rect.size.x as usize {
+                    let draw_data = format!(
+                        "{}{}",
+                        draw_data,
+                        " ".repeat(self.rect.size.x as usize - len)
+                    );
                     execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))?;
                 } else {
                     execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))?;
@@ -446,8 +448,8 @@ impl Editor {
             if let EditorMode::Command = self.mode {
             } else {
                 self.draw_cursor(
-                    cursor_x as u16 + offset_x as u16 + self.rect.x,
-                    cursor_y as u16 - scroll_y as u16 + self.rect.y,
+                    (cursor_x + offset_x + self.rect.pos.x) as u16,
+                    (cursor_y - scroll_y + self.rect.pos.y) as u16,
                 )?;
             }
         }

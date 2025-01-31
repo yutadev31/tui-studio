@@ -13,6 +13,7 @@ use crate::{
     action::AppAction,
     editor::{Editor, EditorError},
     plugin::PluginManagerError,
+    utils::vec2::Vec2,
     // window::manager::WindowManager,
 };
 use crate::{
@@ -56,10 +57,10 @@ pub struct App {
 
 impl App {
     pub(crate) fn new(path: Option<String>) -> Result<Self, AppError> {
-        let (term_w, term_h) = get_term_size()?;
+        let term_size = get_term_size()?;
 
         Ok(Self {
-            editor: Editor::new(path, Rect::new(0, 0, term_w, term_h))?,
+            editor: Editor::new(path, Rect::new(Vec2::default(), term_size))?,
             // window_manager: WindowManager::default(),
             key_config: KeyConfig::default(),
             cmd_mgr: CommandManager::default(),

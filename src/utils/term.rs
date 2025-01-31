@@ -13,7 +13,7 @@ use crossterm::{
     },
 };
 
-use super::log::init_logger;
+use super::{log::init_logger, vec2::Vec2};
 
 pub fn init_term() -> io::Result<()> {
     enable_raw_mode()?;
@@ -34,8 +34,9 @@ pub fn clean_term() -> io::Result<()> {
     Ok(())
 }
 
-pub fn get_term_size() -> io::Result<(u16, u16)> {
-    size()
+pub fn get_term_size() -> io::Result<Vec2> {
+    let (w, h) = size()?;
+    Ok(Vec2::new(w as usize, h as usize))
 }
 
 pub fn safe_exit() {
