@@ -18,7 +18,10 @@ use crate::language_support::{
 };
 
 use crate::{
-    editor::{action::EditorBufferAction, mode::EditorMode},
+    editor::{
+        action::{EditorBufferAction, EditorCursorAction, EditorEditAction, EditorScrollAction},
+        mode::EditorMode,
+    },
     utils::{
         event::Event,
         file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
@@ -30,6 +33,7 @@ use crate::{
 use super::{
     code_buf::{EditorCodeBuffer, EditorCodeBufferError},
     cursor::{EditorCursor, EditorCursorError},
+    history::EditorHistory,
     scroll::EditorScroll,
 };
 
@@ -68,6 +72,7 @@ pub(crate) struct EditorBuffer {
     #[cfg(feature = "language_support")]
     language_support: Option<Box<dyn LanguageSupport>>,
     file: Option<File>,
+    history: EditorHistory,
 }
 
 impl EditorBuffer {
@@ -175,25 +180,23 @@ impl EditorBuffer {
                 self.cursor
                     .on_action(action, &self.code, mode, window_size, &mut self.scroll)?
             }
-            EditorBufferAction::Edit(action) => {
-                self.code
-                    .on_action(action, &mut self.cursor, mode, clipboard, window_size)?
+            EditorBufferAction::Scroll(action) => {
+                self.scroll.on_action(action, &self.code);
             }
+            EditorBufferAction::Edit(action) => self.code.on_action(
+                action,
+                &mut self.cursor,
+                mode,
+                clipboard,
+                window_size,
+                &mut self.scroll,
+            )?,
         };
 
         Ok(())
     }
 
-    pub fn on_event(
-        &mut self,
-        evt: Event,
-        mode: &EditorMode,
-        window_size: UVec2,
-    ) -> Result<Option<EditorMode>, EditorBufferError> {
-        let cursor_pos = self.cursor.get(&self.code, mode);
-        let cursor_x = cursor_pos.x;
-        let cursor_y = cursor_pos.y;
-
+    pub fn on_event(&self, evt: Event, mode: &EditorMode) -> Result<Vec<Event>, EditorBufferError> {
         match mode {
             EditorMode::Normal => match evt {
                 Event::Click(pos) => {
@@ -207,40 +210,25 @@ impl EditorBuffer {
                         0
                     };
 
-                    self.cursor.move_to_y(
-                        pos.y + scroll_y,
-                        &self.code,
-                        &mut self.scroll,
-                        mode,
-                        window_size,
-                    );
-                    self.cursor.move_to_x(x, &self.code, mode);
+                    return Ok(vec![Event::Action(
+                        EditorCursorAction::To(UVec2::new(x, pos.y + scroll_y)).to_app(),
+                    )]);
                 }
-                Event::Scroll(scroll) => self.scroll.scroll_by(scroll, &self.code),
+                Event::Scroll(scroll) => {
+                    return Ok(vec![Event::Action(EditorScrollAction::By(scroll).to_app())]);
+                }
                 _ => {}
             },
             EditorMode::Insert { append: _ } => match evt {
                 Event::Input(key) => match key {
-                    Key::Delete => self.code.delete(&mut self.cursor, mode),
-                    Key::Backspace => self.code.backspace(
-                        &mut self.cursor,
-                        mode,
-                        window_size,
-                        &mut self.scroll,
-                    )?,
-                    Key::Char('\t') => {
-                        self.code.append(cursor_x, cursor_y, '\t');
-                        self.cursor.move_by_x(1, &self.code, mode, window_size);
+                    Key::Delete => {
+                        return Ok(vec![Event::Action(EditorEditAction::Delete.to_app())])
                     }
-                    Key::Char('\n') => {
-                        self.code.append(cursor_x, cursor_y, '\n');
-                        self.cursor
-                            .move_by_y(1, &self.code, mode, window_size, &mut self.scroll);
-                        self.cursor.move_to_x(0, &self.code, mode);
+                    Key::Backspace => {
+                        return Ok(vec![Event::Action(EditorEditAction::Backspace.to_app())])
                     }
                     Key::Char(c) => {
-                        self.code.append(cursor_x, cursor_y, c);
-                        self.cursor.move_by_x(1, &self.code, mode, window_size);
+                        return Ok(vec![Event::Action(EditorEditAction::Append(c).to_app())])
                     }
                     _ => {}
                 },
@@ -249,6 +237,6 @@ impl EditorBuffer {
             _ => {}
         }
 
-        Ok(None)
+        Ok(vec![])
     }
 }

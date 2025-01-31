@@ -1,5 +1,5 @@
 use crate::{
-    editor::mode::EditorMode,
+    editor::{action::EditorScrollAction, mode::EditorMode},
     utils::vec2::{IVec2, UVec2},
 };
 
@@ -23,7 +23,10 @@ impl EditorScroll {
         self.value.y = y;
     }
 
-    pub fn scroll_to(&mut self, scroll: UVec2) {}
+    pub fn scroll_to(&mut self, target: UVec2) {
+        self.scroll_to_x(target.x);
+        self.scroll_to_y(target.y);
+    }
 
     // pub fn scroll_by_x(&mut self, x: isize) {}
     // pub fn scroll_by_y(&mut self, y: isize) {}
@@ -49,6 +52,13 @@ impl EditorScroll {
             self.scroll_to_y(position.y - (window_size.y - 1));
         } else if position.y < self.value.y {
             self.scroll_to_y(position.y);
+        }
+    }
+
+    pub fn on_action(&mut self, action: EditorScrollAction, code: &EditorCodeBuffer) {
+        match action {
+            EditorScrollAction::By(scroll) => self.scroll_by(scroll, code),
+            EditorScrollAction::To(target) => self.scroll_to(target),
         }
     }
 }

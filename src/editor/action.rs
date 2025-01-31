@@ -1,4 +1,8 @@
-use crate::{action::AppAction, editor::mode::EditorMode};
+use crate::{
+    action::AppAction,
+    editor::mode::EditorMode,
+    utils::vec2::{IVec2, UVec2},
+};
 
 #[derive(Debug, Clone, Hash)]
 pub enum EditorCursorAction {
@@ -12,6 +16,7 @@ pub enum EditorCursorAction {
     Bottom,
     BackWord,
     NextWord,
+    To(UVec2),
 }
 
 impl EditorCursorAction {
@@ -21,7 +26,22 @@ impl EditorCursorAction {
 }
 
 #[derive(Debug, Clone, Hash)]
+pub enum EditorScrollAction {
+    By(IVec2),
+    To(UVec2),
+}
+
+impl EditorScrollAction {
+    pub fn to_app(self) -> AppAction {
+        EditorBufferAction::Scroll(self).to_app()
+    }
+}
+
+#[derive(Debug, Clone, Hash)]
 pub enum EditorEditAction {
+    Append(char),
+    Delete,
+    Backspace,
     DeleteLine,
     YankLine,
     DeleteSelection,
@@ -39,6 +59,7 @@ impl EditorEditAction {
 pub enum EditorBufferAction {
     Save,
     Cursor(EditorCursorAction),
+    Scroll(EditorScrollAction),
     Edit(EditorEditAction),
 }
 

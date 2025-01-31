@@ -210,12 +210,14 @@ impl Editor {
         }
 
         if let Some(current) = self.buffer_manager.get_current() {
-            let Ok(mut current) = current.lock() else {
+            let Ok(current) = current.lock() else {
                 return Err(EditorError::LockError);
             };
 
-            let (_, window_size) = self.rect.clone().into();
-            current.on_event(evt, &self.mode, window_size)?;
+            let buf_events = current.on_event(evt, &self.mode)?;
+            for evt in buf_events {
+                events.push(evt);
+            }
         }
 
         #[cfg(feature = "language_support")]

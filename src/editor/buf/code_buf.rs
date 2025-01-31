@@ -258,8 +258,22 @@ impl EditorCodeBuffer {
         mode: &EditorMode,
         clipboard: &mut Clipboard,
         window_size: UVec2,
+        scroll: &mut EditorScroll,
     ) -> Result<(), EditorCodeBufferError> {
         match action {
+            EditorEditAction::Append(c) => {
+                let (cursor_x, cursor_y) = cursor.get(self, mode).into();
+                if c == '\n' {
+                    self.append(cursor_x, cursor_y, '\n');
+                    cursor.move_by_y(1, self, mode, window_size, scroll);
+                    cursor.move_to_x(0, self, mode);
+                } else {
+                    self.append(cursor_x, cursor_y, c);
+                    cursor.move_by_x(1, self, mode, window_size);
+                }
+            }
+            EditorEditAction::Delete => self.delete(cursor, mode),
+            EditorEditAction::Backspace => self.backspace(cursor, mode, window_size, scroll)?,
             EditorEditAction::DeleteLine => self.delete_line(cursor, mode, clipboard)?,
             EditorEditAction::DeleteSelection => self.delete_selection(cursor, mode, clipboard)?,
             EditorEditAction::YankLine => self.yank_line(cursor, mode, clipboard)?,

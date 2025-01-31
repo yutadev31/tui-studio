@@ -248,6 +248,7 @@ impl EditorCursor {
             }
             EditorCursorAction::NextWord => self.move_to_next_word(code),
             EditorCursorAction::BackWord => self.move_to_back_word(code),
+            EditorCursorAction::To(target) => self.move_to(target, code, mode, scroll, window_size),
         };
 
         Ok(())
