@@ -3,24 +3,21 @@ use std::io::{self, stdout};
 use arboard::Clipboard;
 use crossterm::{
     cursor::{MoveTo, SetCursorStyle},
-    event::{Event as CrosstermEvent, KeyCode},
     execute,
-    style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
+    style::{Color, Print, ResetColor, SetBackgroundColor},
 };
+use log::debug;
 use thiserror::Error;
 
-use crate::{
-    lang_support::highlight::HighlightToken,
-    utils::{
-        command::CommandManager,
-        event::Event,
-        key_binding::{Key, KeyConfig, KeyConfigType},
-        mode::EditorMode,
-        rect::Rect,
-        string::CodeString,
-        term::{get_term_size, safe_exit},
-        vec2::Vec2,
-    },
+use crate::utils::{
+    command::CommandManager,
+    event::Event,
+    key_binding::{Key, KeyConfig, KeyConfigType},
+    mode::EditorMode,
+    rect::Rect,
+    string::CodeString,
+    term::get_term_size,
+    vec2::Vec2,
 };
 
 use super::buf::{
@@ -54,7 +51,7 @@ pub struct Editor {
     buffer_manager: EditorBufferManager,
     mode: EditorMode,
     clipboard: Clipboard,
-    highlight_tokens: Vec<HighlightToken>,
+    // highlight_tokens: Vec<HighlightToken>,
     command_input_buf: String,
 }
 
@@ -65,7 +62,7 @@ impl Editor {
             buffer_manager: EditorBufferManager::new(path)?,
             mode: EditorMode::Normal,
             clipboard: Clipboard::new()?,
-            highlight_tokens: vec![],
+            // highlight_tokens: vec![],
             command_input_buf: String::new(),
         })
     }
@@ -236,36 +233,36 @@ impl Editor {
                 )?;
             }
         } else {
-            if self.highlight_tokens.len() == 0 {
-                draw_data[self.rect.y as usize + index].push_str(line.as_str());
-            } else {
-                let draw_y = self.rect.y as usize + index;
+            // if self.highlight_tokens.len() == 0 {
+            draw_data[self.rect.y as usize + index].push_str(line.as_str());
+            // } else {
+            //     let draw_y = self.rect.y as usize + index;
 
-                let mut mut_line = line.clone();
+            //     let mut mut_line = line.clone();
 
-                for highlight_token in self.highlight_tokens.iter().skip(scroll_y).rev() {
-                    if highlight_token.end.y == y {
-                        mut_line
-                            .insert_str(highlight_token.end.x, format!("{}", ResetColor).as_str());
-                    }
+            //     for highlight_token in self.highlight_tokens.iter().skip(scroll_y).rev() {
+            //         if highlight_token.end.y == y {
+            //             mut_line
+            //                 .insert_str(highlight_token.end.x, format!("{}", ResetColor).as_str());
+            //         }
 
-                    if highlight_token.start.y == y {
-                        mut_line.insert_str(
-                            highlight_token.start.x,
-                            format!(
-                                "{}",
-                                SetForegroundColor(highlight_token.clone().color.into()),
-                            )
-                            .as_str(),
-                        );
-                    }
-                }
+            //         if highlight_token.start.y == y {
+            //             mut_line.insert_str(
+            //                 highlight_token.start.x,
+            //                 format!(
+            //                     "{}",
+            //                     SetForegroundColor(highlight_token.clone().color.into()),
+            //                 )
+            //                 .as_str(),
+            //             );
+            //         }
+            //     }
 
-                draw_data[draw_y].push_str(mut_line.as_str());
-            }
+            //     draw_data[draw_y].push_str(mut_line.as_str());
+            // }
 
-            let n = self.rect.w as usize - (offset_x as usize + line.len());
-            draw_data[self.rect.y as usize + index].push_str(" ".repeat(n).as_str());
+            // let n = self.rect.w as usize - (offset_x as usize + line.len());
+            // draw_data[self.rect.y as usize + index].push_str(" ".repeat(n).as_str());
         }
 
         Ok(())
@@ -328,35 +325,37 @@ impl Editor {
         self.rect.w = term_w;
         self.rect.h = term_h;
 
-        match evt.clone() {
-            Event::Command(cmd) => match cmd.as_str() {
-                "editor.quit" => safe_exit(),
+        if let Event::Command(cmd) = evt.clone() {
+            match cmd.as_str() {
+                "editor.quit" => events.push(Event::Quit),
                 "editor.mode.normal" => self.set_normal_mode()?,
                 "editor.mode.command" => self.set_command_mode(),
                 "editor.mode.insert" => self.set_insert_mode(false)?,
                 "editor.mode.append" => self.set_insert_mode(true)?,
                 "editor.mode.visual" => self.set_visual_mode()?,
                 _ => {}
-            },
-            Event::CrosstermEvent(evt) => match evt {
-                CrosstermEvent::Key(evt) => match evt.code {
-                    KeyCode::Enter => {
-                        events.push(Event::RunCommand(self.command_input_buf.clone()));
-                        self.set_normal_mode()?;
-                    }
-                    KeyCode::Backspace => {
+            }
+        }
+
+        if let EditorMode::Command = self.mode {
+            if let Event::Input(key) = evt.clone() {
+                match key {
+                    Key::Backspace => {
                         if self.command_input_buf.len() == 0 {
                             self.set_normal_mode()?;
                         } else {
                             self.command_input_buf.pop();
                         }
                     }
-                    KeyCode::Char(c) => self.command_input_buf.push(c),
+                    Key::Char('\n') => {
+                        debug!("test");
+                        self.set_normal_mode()?;
+                        events.push(Event::RunCommand(self.command_input_buf.clone()));
+                    }
+                    Key::Char(c) => self.command_input_buf.push(c),
                     _ => {}
-                },
-                _ => {}
-            },
-            _ => {}
+                }
+            }
         }
 
         let mode = {
@@ -380,15 +379,15 @@ impl Editor {
             }
         }
 
-        if let Some(current) = self.buffer_manager.get_current() {
-            let Ok(current) = current.lock() else {
-                return Err(EditorError::LockError);
-            };
+        // if let Some(current) = self.buffer_manager.get_current() {
+        // let Ok(current) = current.lock() else {
+        //     return Err(EditorError::LockError);
+        // };
 
-            if let Some(tokens) = current.highlight() {
-                self.highlight_tokens = tokens;
-            }
-        }
+        // if let Some(tokens) = current.highlight() {
+        //     self.highlight_tokens = tokens;
+        // }
+        // }
 
         Ok(events)
     }
@@ -427,12 +426,13 @@ impl Editor {
             }
 
             for (index, draw_data) in draw_data.iter().enumerate() {
-                if draw_data.is_empty() {
-                    execute!(
-                        stdout(),
-                        MoveTo(0, index as u16),
-                        Print(" ".repeat(self.rect.w as usize))
-                    )?;
+                let len = draw_data.len();
+                if len == self.rect.w as usize {
+                    execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))?;
+                } else if len < self.rect.w as usize {
+                    let draw_data =
+                        format!("{}{}", draw_data, " ".repeat(self.rect.w as usize - len));
+                    execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))?;
                 } else {
                     execute!(stdout(), MoveTo(0, index as u16), Print(draw_data))?;
                 }

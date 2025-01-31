@@ -8,22 +8,7 @@ use arboard::Clipboard;
 use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use thiserror::Error;
 
-use crate::{
-    lang_support::{
-        highlight::HighlightToken,
-        langs::{
-            commit_message::CommitMessageLanguageSupport, css::CSSLanguageSupport,
-            html::HTMLLanguageSupport, markdown::MarkdownLanguageSupport,
-        },
-        LanguageSupport,
-    },
-    utils::{
-        event::Event,
-        file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
-        mode::EditorMode,
-        vec2::Vec2,
-    },
-};
+use crate::utils::{event::Event, key_binding::Key, mode::EditorMode, vec2::Vec2};
 
 use super::{
     code_buf::{EditorCodeBuffer, EditorCodeBufferError},
@@ -60,18 +45,17 @@ pub(crate) enum EditorBufferError {
 pub(crate) struct EditorBuffer {
     code: EditorCodeBuffer,
     cursor: EditorCursor,
-    lang_support: Option<Box<dyn LanguageSupport>>,
     file: Option<File>,
 }
 
 impl EditorBuffer {
     pub fn open(path: PathBuf) -> Result<Self, EditorBufferError> {
-        let file_name = path
-            .file_name()
-            .ok_or_else(|| EditorBufferError::FileNameRetrievalFailed)?
-            .to_str()
-            .ok_or_else(|| EditorBufferError::FileNameRetrievalFailed)?
-            .to_string();
+        // let file_name = path
+        //     .file_name()
+        //     .ok_or_else(|| EditorBufferError::FileNameRetrievalFailed)?
+        //     .to_str()
+        //     .ok_or_else(|| EditorBufferError::FileNameRetrievalFailed)?
+        //     .to_string();
 
         let mut file = OpenOptions::new()
             .read(true)
@@ -84,21 +68,20 @@ impl EditorBuffer {
         file.read_to_string(&mut buf)
             .map_err(|err| EditorBufferError::FileReadFailed(err))?;
 
-        let file_type = FileType::file_name_to_type(file_name);
+        // let file_type = FileType::file_name_to_type(file_name);
 
-        let lang_support: Option<Box<dyn LanguageSupport>> = match file_type.get().as_str() {
-            HTML => Some(Box::new(HTMLLanguageSupport::new())),
-            CSS => Some(Box::new(CSSLanguageSupport::new())),
-            MARKDOWN => Some(Box::new(MarkdownLanguageSupport::new())),
-            COMMIT_MESSAGE => Some(Box::new(CommitMessageLanguageSupport::new())),
-            _ => None,
-        };
+        // let lang_support: Option<Box<dyn LanguageSupport>> = match file_type.get().as_str() {
+        //     HTML => Some(Box::new(HTMLLanguageSupport::new())),
+        //     CSS => Some(Box::new(CSSLanguageSupport::new())),
+        //     MARKDOWN => Some(Box::new(MarkdownLanguageSupport::new())),
+        //     COMMIT_MESSAGE => Some(Box::new(CommitMessageLanguageSupport::new())),
+        //     _ => None,
+        // };
 
         Ok(Self {
             code: EditorCodeBuffer::from(buf),
             cursor: EditorCursor::default(),
             file: Some(file),
-            lang_support,
         })
     }
 
@@ -148,13 +131,13 @@ impl EditorBuffer {
         &self.code
     }
 
-    pub fn highlight(&self) -> Option<Vec<HighlightToken>> {
-        let Some(lang_support) = &self.lang_support else {
-            return None;
-        };
+    // pub fn highlight(&self) -> Option<Vec<HighlightToken>> {
+    //     let Some(lang_support) = &self.lang_support else {
+    //         return None;
+    //     };
 
-        Some(lang_support.highlight(self.code.to_string().as_str())?)
-    }
+    //     Some(lang_support.highlight(self.code.to_string().as_str())?)
+    // }
 
     pub fn on_event(
         &mut self,
@@ -206,28 +189,24 @@ impl EditorBuffer {
                 _ => {}
             },
             EditorMode::Insert { append: _ } => match evt {
-                Event::CrosstermEvent(evt) => {
-                    if let CrosstermEvent::Key(evt) = evt {
-                        match evt.code {
-                            KeyCode::Delete => self.code.delete(&mut self.cursor, mode),
-                            KeyCode::Backspace => self.code.backspace(&mut self.cursor, mode)?,
-                            KeyCode::Tab => {
-                                self.code.append(cursor_x, cursor_y, '\t');
-                                self.cursor.move_by(1, 0, &self.code, mode)?;
-                            }
-                            KeyCode::Enter => {
-                                self.code.append(cursor_x, cursor_y, '\n');
-                                self.cursor.move_by(0, 1, &self.code, mode)?;
-                                self.cursor.move_x_to(0, &self.code, mode);
-                            }
-                            KeyCode::Char(c) => {
-                                self.code.append(cursor_x, cursor_y, c);
-                                self.cursor.move_by(1, 0, &self.code, mode)?;
-                            }
-                            _ => {}
-                        }
+                Event::Input(key) => match key {
+                    Key::Delete => self.code.delete(&mut self.cursor, mode),
+                    Key::Backspace => self.code.backspace(&mut self.cursor, mode)?,
+                    Key::Char('\t') => {
+                        self.code.append(cursor_x, cursor_y, '\t');
+                        self.cursor.move_by(1, 0, &self.code, mode)?;
                     }
-                }
+                    Key::Char('\n') => {
+                        self.code.append(cursor_x, cursor_y, '\n');
+                        self.cursor.move_by(0, 1, &self.code, mode)?;
+                        self.cursor.move_x_to(0, &self.code, mode);
+                    }
+                    Key::Char(c) => {
+                        self.code.append(cursor_x, cursor_y, c);
+                        self.cursor.move_by(1, 0, &self.code, mode)?;
+                    }
+                    _ => {}
+                },
                 _ => {}
             },
             EditorMode::Visual { start } => match evt {
@@ -260,7 +239,7 @@ impl Default for EditorBuffer {
         Self {
             code: EditorCodeBuffer::default(),
             cursor: EditorCursor::default(),
-            lang_support: None,
+            // lang_support: None,
             file: None,
         }
     }

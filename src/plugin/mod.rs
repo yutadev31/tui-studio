@@ -3,7 +3,6 @@ use std::{
     io::{self, BufRead, BufReader, BufWriter, Write},
     path::PathBuf,
     process::{Child, ChildStdin, Command, Stdio},
-    sync::{Arc, Mutex},
     thread,
 };
 
@@ -54,7 +53,6 @@ impl PluginManager {
             loop {
                 let mut buf = String::new();
                 match reader.read_line(&mut buf) {
-                    Ok(0) => break, // EOF reached
                     Ok(_) => {
                         debug!("{}", buf);
                     }

@@ -2,6 +2,7 @@ mod buf;
 mod client;
 mod error;
 mod info;
+pub mod language_support;
 mod net;
 
 pub use buf::*;

@@ -1,19 +1,9 @@
-pub mod complete;
-pub mod highlight;
-pub mod lint;
-pub mod lsp;
-pub mod snippets;
-
-pub mod langs;
-
 use std::any::Any;
 
-use complete::CompletionItem;
-use highlight::HighlightToken;
-use lint::LintError;
-use snippets::Snippet;
+use super::{
+    complete::CompletionItem, highlight::HighlightToken, lint::LintError, snippets::Snippet,
+};
 
-// ランゲージサポート
 pub trait LanguageSupport: Any + Send + Sync {
     fn file_type(&self) -> &'static str;
 

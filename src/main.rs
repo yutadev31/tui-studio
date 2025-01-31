@@ -2,9 +2,8 @@ use clap::Parser;
 use fluent_templates::static_loader;
 use log::error;
 use tui_studio::{
-    run_app,
     utils::term::{init_term, safe_exit},
-    PublicAppError,
+    App, PublicAppError,
 };
 
 static_loader! {
@@ -25,12 +24,10 @@ fn main() -> Result<(), PublicAppError> {
     init_term()?;
     let args = Args::parse();
 
-    match run_app(args.path) {
-        Err(err) => {
-            error!("{}", err);
-        }
+    match App::run(args.path) {
+        Err(err) => error!("{}", err),
         Ok(_) => {}
-    }
+    };
 
     safe_exit();
 
