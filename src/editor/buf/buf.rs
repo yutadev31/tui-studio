@@ -223,7 +223,7 @@ impl EditorBuffer {
                     Key::Char('\n') => {
                         self.code.append(cursor_x, cursor_y, '\n');
                         self.cursor
-                            .move_by_y(1, &self.code, window_size, &mut self.scroll);
+                            .move_by_y(1, &self.code, mode, window_size, &mut self.scroll);
                         self.cursor.move_to_x(0, &self.code, mode);
                     }
                     Key::Char(c) => {

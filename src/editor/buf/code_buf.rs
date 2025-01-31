@@ -228,7 +228,7 @@ impl EditorCodeBuffer {
             }
 
             let line_length = self.get_line_length(cursor_pos.y - 1);
-            cursor.move_by_y(-1, &self, window_size, scroll);
+            cursor.move_by_y(-1, &self, mode, window_size, scroll);
 
             // line_length - 1 するのが本来は良いが usize が 0 以下になるのを防ぐため、- 1 はしない
             cursor.move_to_x(line_length, &self, mode);

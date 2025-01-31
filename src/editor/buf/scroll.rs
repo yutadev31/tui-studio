@@ -1,6 +1,9 @@
-use crate::utils::vec2::{IVec2, UVec2};
+use crate::{
+    editor::mode::EditorMode,
+    utils::vec2::{IVec2, UVec2},
+};
 
-use super::code_buf::EditorCodeBuffer;
+use super::{code_buf::EditorCodeBuffer, cursor::EditorCursor};
 
 #[derive(Default)]
 pub struct EditorScroll {
@@ -33,5 +36,19 @@ impl EditorScroll {
         }
     }
 
-    // pub fn sync(&mut self, cursor: &EditorCursor) {}
+    pub fn sync_y(
+        &mut self,
+        cursor: &EditorCursor,
+        code: &EditorCodeBuffer,
+        mode: &EditorMode,
+        window_size: UVec2,
+    ) {
+        let position = cursor.get(code, mode);
+
+        if position.y >= self.value.y + window_size.y - 1 {
+            self.scroll_to_y(position.y - (window_size.y - 1));
+        } else if position.y < self.value.y {
+            self.scroll_to_y(position.y);
+        }
+    }
 }

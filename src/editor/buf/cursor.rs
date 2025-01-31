@@ -111,17 +111,12 @@ impl EditorCursor {
         &mut self,
         y: isize,
         code: &EditorCodeBuffer,
+        mode: &EditorMode,
         window_size: UVec2,
         scroll: &mut EditorScroll,
     ) {
-        let scroll_y = scroll.get().y;
-
         if y > 0 {
             self.position.y = self.clamp_y(self.position.y + y as usize, code);
-
-            if self.position.y >= scroll_y + window_size.y - 1 {
-                scroll.scroll_to_y(self.position.y - (window_size.y - 1));
-            }
         } else if y < 0 {
             if self.position.y < -y as usize {
                 self.position.y = 0;
@@ -130,9 +125,7 @@ impl EditorCursor {
             }
         }
 
-        if self.position.y < scroll_y {
-            scroll.scroll_to_y(self.position.y);
-        }
+        scroll.sync_y(self, code, mode, window_size);
     }
 
     pub fn move_by(
@@ -144,7 +137,7 @@ impl EditorCursor {
         scroll: &mut EditorScroll,
     ) {
         self.move_by_x(offset.x, code, mode, window_size);
-        self.move_by_y(offset.y, code, window_size, scroll);
+        self.move_by_y(offset.y, code, mode, window_size, scroll);
     }
 
     pub fn move_to_back_word(&mut self, code: &EditorCodeBuffer) {
@@ -225,8 +218,8 @@ impl EditorCursor {
     ) -> Result<(), EditorCursorError> {
         match action {
             EditorCursorAction::Left => self.move_by_x(-1, code, mode, window_size),
-            EditorCursorAction::Down => self.move_by_y(1, code, window_size, scroll),
-            EditorCursorAction::Up => self.move_by_y(-1, code, window_size, scroll),
+            EditorCursorAction::Down => self.move_by_y(1, code, mode, window_size, scroll),
+            EditorCursorAction::Up => self.move_by_y(-1, code, mode, window_size, scroll),
             EditorCursorAction::Right => self.move_by_x(1, code, mode, window_size),
             EditorCursorAction::LineStart => self.move_to_x(0, code, mode),
             EditorCursorAction::LineEnd => {
