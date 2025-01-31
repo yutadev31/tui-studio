@@ -1,15 +1,18 @@
 use crossterm::style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor};
 use thiserror::Error;
 
-use crate::{
-    language_support::highlight::HighlightToken,
-    utils::{
-        string::CodeString,
-        vec2::{IVec2, UVec2},
-    },
+#[cfg(feature = "language_support")]
+use crate::language_support::highlight::HighlightToken;
+
+use crate::utils::{
+    string::CodeString,
+    vec2::{IVec2, UVec2},
 };
 
 use super::{mode::EditorMode, Editor};
+
+#[cfg(not(feature = "language_support"))]
+type HighlightToken = ();
 
 #[derive(Debug, Error)]
 pub enum EditorRendererError {
@@ -51,6 +54,7 @@ impl EditorRenderer {
     ) {
         let mut code = code.clone();
 
+        #[cfg(feature = "language_support")]
         for highlight_token in tokens.iter().skip(scroll_y).rev() {
             if highlight_token.end.y == y {
                 if let Some(x) = highlight_token.end.x.checked_sub(x) {

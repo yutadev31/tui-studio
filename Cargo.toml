@@ -47,3 +47,7 @@ serde.workspace = true
 serde_json.workspace = true
 log.workspace = true
 fern.workspace = true
+
+[features]
+default = ["language_support"]
+language_support = []

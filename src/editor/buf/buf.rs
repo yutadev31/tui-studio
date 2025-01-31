@@ -7,16 +7,18 @@ use std::{
 use arboard::Clipboard;
 use thiserror::Error;
 
+#[cfg(feature = "language_support")]
+use crate::language_support::{
+    highlight::HighlightToken,
+    langs::{
+        commit_message::CommitMessageLanguageSupport, css::CSSLanguageSupport,
+        html::HTMLLanguageSupport, markdown::MarkdownLanguageSupport,
+    },
+    LanguageSupport,
+};
+
 use crate::{
     editor::{action::EditorBufferAction, mode::EditorMode},
-    language_support::{
-        highlight::HighlightToken,
-        langs::{
-            commit_message::CommitMessageLanguageSupport, css::CSSLanguageSupport,
-            html::HTMLLanguageSupport, markdown::MarkdownLanguageSupport,
-        },
-        LanguageSupport,
-    },
     utils::{
         event::Event,
         file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
@@ -63,6 +65,7 @@ pub(crate) struct EditorBuffer {
     code: EditorCodeBuffer,
     cursor: EditorCursor,
     scroll: EditorScroll,
+    #[cfg(feature = "language_support")]
     language_support: Option<Box<dyn LanguageSupport>>,
     file: Option<File>,
 }
@@ -89,6 +92,7 @@ impl EditorBuffer {
 
         let file_type = FileType::file_name_to_type(file_name);
 
+        #[cfg(feature = "language_support")]
         let language_support: Option<Box<dyn LanguageSupport>> = match file_type.get().as_str() {
             HTML => Some(Box::new(HTMLLanguageSupport::new())),
             CSS => Some(Box::new(CSSLanguageSupport::new())),
@@ -100,6 +104,7 @@ impl EditorBuffer {
         Ok(Self {
             code: EditorCodeBuffer::from(buf),
             file: Some(file),
+            #[cfg(feature = "language_support")]
             language_support,
             ..Default::default()
         })
@@ -129,6 +134,7 @@ impl EditorBuffer {
         self.cursor.get_draw_position(&self.code, mode)
     }
 
+    #[cfg(feature = "language_support")]
     pub fn highlight(&self) -> Option<Vec<HighlightToken>> {
         if let Some(language_support) = &self.language_support {
             language_support.highlight(self.code.to_string().as_str())

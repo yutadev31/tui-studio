@@ -9,9 +9,11 @@ use crossterm::{
 };
 use thiserror::Error;
 
+#[cfg(feature = "language_support")]
+use crate::language_support::highlight::HighlightToken;
+
 use crate::{
     action::AppAction,
-    language_support::highlight::HighlightToken,
     utils::{
         command::CommandManager,
         event::Event,
@@ -61,6 +63,7 @@ pub struct Editor {
     buffer_manager: EditorBufferManager,
     mode: EditorMode,
     clipboard: Clipboard,
+    #[cfg(feature = "language_support")]
     highlight_tokens: Vec<HighlightToken>,
     command_input_buf: String,
     renderer: EditorRenderer,
@@ -73,6 +76,7 @@ impl Editor {
             buffer_manager: EditorBufferManager::new(path)?,
             mode: EditorMode::Normal,
             clipboard: Clipboard::new()?,
+            #[cfg(feature = "language_support")]
             highlight_tokens: vec![],
             command_input_buf: String::new(),
             renderer: EditorRenderer::default(),
@@ -214,6 +218,7 @@ impl Editor {
             current.on_event(evt, &self.mode, window_size)?;
         }
 
+        #[cfg(feature = "language_support")]
         if let Some(current) = self.buffer_manager.get_current() {
             let Ok(current) = current.lock() else {
                 return Err(EditorError::LockError);
@@ -229,6 +234,17 @@ impl Editor {
 
     pub(crate) fn draw(&self) -> Result<(), EditorError> {
         let mut screen = vec![String::new(); self.rect.size.y].into_boxed_slice();
+
+        #[cfg(not(feature = "language_support"))]
+        let cursor_pos = self.renderer.render(
+            &mut screen,
+            self.rect.size,
+            self,
+            &vec![],
+            &self.command_input_buf,
+        )?;
+
+        #[cfg(feature = "language_support")]
         let cursor_pos = self.renderer.render(
             &mut screen,
             self.rect.size,
