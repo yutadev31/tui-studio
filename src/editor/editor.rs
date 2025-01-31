@@ -104,7 +104,8 @@ impl Editor {
 
             if let EditorMode::Insert { append } = self.mode {
                 if append {
-                    current.cursor_move_by(-1, 0, &self.mode)?;
+                    let (_, window_size) = self.rect.clone().into();
+                    current.cursor_move_by(-1, 0, window_size, &self.mode)?;
                 }
             }
 
@@ -141,7 +142,8 @@ impl Editor {
             self.mode = EditorMode::Insert { append };
 
             if append {
-                current.cursor_move_by(1, 0, &self.mode)?;
+                let (_, window_size) = self.rect.clone().into();
+                current.cursor_move_by(1, 0, window_size, &self.mode)?;
             }
 
             current.cursor_sync(&self.mode);
@@ -343,7 +345,8 @@ impl Editor {
                         return Err(EditorError::LockError);
                     };
 
-                    current.on_action(action, &self.mode, &mut self.clipboard)?;
+                    let (_, window_size) = self.rect.clone().into();
+                    current.on_action(action, &self.mode, &mut self.clipboard, window_size)?;
                 }
             }
         };
@@ -383,7 +386,8 @@ impl Editor {
                 return Err(EditorError::LockError);
             };
 
-            current.on_event(evt, &self.mode)?;
+            let (_, window_size) = self.rect.clone().into();
+            current.on_event(evt, &self.mode, window_size)?;
         }
 
         // if let Some(tokens) = current.highlight() {

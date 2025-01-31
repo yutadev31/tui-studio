@@ -8,7 +8,10 @@ use crate::{
     utils::{mode::EditorMode, string::CodeString, vec2::Vec2},
 };
 
-use super::cursor::{EditorCursor, EditorCursorError};
+use super::{
+    cursor::{EditorCursor, EditorCursorError},
+    scroll::EditorScroll,
+};
 
 #[derive(Debug, Error)]
 pub(crate) enum EditorCodeBufferError {
@@ -201,11 +204,12 @@ impl EditorCodeBuffer {
         cursor: &mut EditorCursor,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
+        window_size: Vec2,
     ) -> Result<(), EditorCodeBufferError> {
         let (x, y) = cursor.get(self, mode).into();
         let text = clipboard.get_text()?;
         self.append_str(x, y, text.as_str());
-        cursor.move_by_x(text.chars().count() as isize, self, mode);
+        cursor.move_by_x(text.chars().count() as isize, self, mode, window_size);
         Ok(())
     }
 
@@ -213,6 +217,8 @@ impl EditorCodeBuffer {
         &mut self,
         cursor: &mut EditorCursor,
         mode: &EditorMode,
+        window_size: Vec2,
+        scroll: &mut EditorScroll,
     ) -> Result<(), EditorCodeBufferError> {
         let cursor_pos = cursor.get(&self, mode);
 
@@ -222,14 +228,14 @@ impl EditorCodeBuffer {
             }
 
             let line_length = self.get_line_length(cursor_pos.y - 1);
-            cursor.move_by_y(-1, &self);
+            cursor.move_by_y(-1, &self, window_size, scroll);
 
             // line_length - 1 するのが本来は良いが usize が 0 以下になるのを防ぐため、- 1 はしない
             cursor.move_to_x(line_length, &self, mode);
             self.join_lines(cursor_pos.y - 1);
         } else {
             let remove_x = cursor_pos.x - 1;
-            cursor.move_by_x(-1, &self, mode);
+            cursor.move_by_x(-1, &self, mode, window_size);
 
             self.lines[cursor_pos.y].remove(remove_x);
         }
@@ -251,13 +257,14 @@ impl EditorCodeBuffer {
         cursor: &mut EditorCursor,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
+        window_size: Vec2,
     ) -> Result<(), EditorCodeBufferError> {
         match action {
             EditorEditAction::DeleteLine => self.delete_line(cursor, mode, clipboard)?,
             EditorEditAction::DeleteSelection => self.delete_selection(cursor, mode, clipboard)?,
             EditorEditAction::YankLine => self.yank_line(cursor, mode, clipboard)?,
             EditorEditAction::YankSelection => self.yank_selection(cursor, mode, clipboard)?,
-            EditorEditAction::Paste => self.paste(cursor, mode, clipboard)?,
+            EditorEditAction::Paste => self.paste(cursor, mode, clipboard, window_size)?,
         }
 
         Ok(())

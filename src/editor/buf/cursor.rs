@@ -8,7 +8,7 @@ use crate::{
     utils::{mode::EditorMode, vec2::Vec2},
 };
 
-use super::code_buf::EditorCodeBuffer;
+use super::{code_buf::EditorCodeBuffer, scroll::EditorScroll};
 
 #[derive(Debug, Error)]
 pub(crate) enum EditorCursorError {
@@ -87,7 +87,13 @@ impl EditorCursor {
         self.move_to_x(x, code, mode);
     }
 
-    pub fn move_by_x(&mut self, x: isize, code: &EditorCodeBuffer, mode: &EditorMode) {
+    pub fn move_by_x(
+        &mut self,
+        x: isize,
+        code: &EditorCodeBuffer,
+        mode: &EditorMode,
+        window_size: Vec2,
+    ) {
         if x > 0 {
             self.sync(code, mode);
             self.position.x = self.clamp_x(self.position.x + x as usize, code, mode);
@@ -101,9 +107,21 @@ impl EditorCursor {
         }
     }
 
-    pub fn move_by_y(&mut self, y: isize, code: &EditorCodeBuffer) {
+    pub fn move_by_y(
+        &mut self,
+        y: isize,
+        code: &EditorCodeBuffer,
+        window_size: Vec2,
+        scroll: &mut EditorScroll,
+    ) {
+        let scroll_y = scroll.get().y;
+
         if y > 0 {
             self.position.y = self.clamp_y(self.position.y + y as usize, code);
+
+            if self.position.y >= scroll_y + window_size.y - 1 {
+                scroll.scroll_to_y(self.position.y - (window_size.y - 1));
+            }
         } else if y < 0 {
             if self.position.y < -y as usize {
                 self.position.y = 0;
@@ -112,17 +130,22 @@ impl EditorCursor {
             }
         }
 
-        // if self.position.y >= self.scroll.y + term_h as usize {
-        //     self.scroll.y = self.position.y - term_h as usize;
-        // }
-        // if self.position.y < self.scroll.y {
-        //     self.scroll.y = self.position.y;
-        // }
+        if self.position.y < scroll_y {
+            scroll.scroll_to_y(self.position.y);
+        }
     }
 
-    pub fn move_by(&mut self, x: isize, y: isize, code: &EditorCodeBuffer, mode: &EditorMode) {
-        self.move_by_x(x, code, mode);
-        self.move_by_y(y, code);
+    pub fn move_by(
+        &mut self,
+        x: isize,
+        y: isize,
+        code: &EditorCodeBuffer,
+        mode: &EditorMode,
+        window_size: Vec2,
+        scroll: &mut EditorScroll,
+    ) {
+        self.move_by_x(x, code, mode, window_size);
+        self.move_by_y(y, code, window_size, scroll);
     }
 
     pub fn move_to_back_word(&mut self, code: &EditorCodeBuffer) {
@@ -194,12 +217,14 @@ impl EditorCursor {
         action: EditorCursorAction,
         code: &EditorCodeBuffer,
         mode: &EditorMode,
+        window_size: Vec2,
+        scroll: &mut EditorScroll,
     ) -> Result<(), EditorCursorError> {
         match action {
-            EditorCursorAction::Left => self.move_by_x(-1, code, mode),
-            EditorCursorAction::Down => self.move_by_y(1, code),
-            EditorCursorAction::Up => self.move_by_y(-1, code),
-            EditorCursorAction::Right => self.move_by_x(1, code, mode),
+            EditorCursorAction::Left => self.move_by_x(-1, code, mode, window_size),
+            EditorCursorAction::Down => self.move_by_y(1, code, window_size, scroll),
+            EditorCursorAction::Up => self.move_by_y(-1, code, window_size, scroll),
+            EditorCursorAction::Right => self.move_by_x(1, code, mode, window_size),
             EditorCursorAction::LineStart => self.move_to_x(0, code, mode),
             EditorCursorAction::LineEnd => {
                 let line_length = code.get_line_length(self.position.y);
@@ -216,8 +241,4 @@ impl EditorCursor {
 
         Ok(())
     }
-
-    // pub fn scroll_y_to(&mut self, y: usize) {
-    //     self.scroll.y = y;
-    // }
 }

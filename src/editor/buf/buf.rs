@@ -123,9 +123,12 @@ impl EditorBuffer {
         &mut self,
         x: isize,
         y: isize,
+        window_size: Vec2,
         mode: &EditorMode,
     ) -> Result<(), EditorBufferError> {
-        Ok(self.cursor.move_by(x, y, &self.code, mode))
+        Ok(self
+            .cursor
+            .move_by(x, y, &self.code, mode, window_size, &mut self.scroll))
     }
 
     pub fn cursor_sync(&mut self, mode: &EditorMode) {
@@ -141,15 +144,17 @@ impl EditorBuffer {
         action: EditorBufferAction,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
+        window_size: Vec2,
     ) -> Result<(), EditorBufferError> {
         match action {
             EditorBufferAction::Save => self.save()?,
             EditorBufferAction::Cursor(action) => {
-                self.cursor.on_action(action, &self.code, mode)?
+                self.cursor
+                    .on_action(action, &self.code, mode, window_size, &mut self.scroll)?
             }
             EditorBufferAction::Edit(action) => {
                 self.code
-                    .on_action(action, &mut self.cursor, mode, clipboard)?
+                    .on_action(action, &mut self.cursor, mode, clipboard, window_size)?
             }
         };
 
@@ -160,6 +165,7 @@ impl EditorBuffer {
         &mut self,
         evt: Event,
         mode: &EditorMode,
+        window_size: Vec2,
     ) -> Result<Option<EditorMode>, EditorBufferError> {
         let cursor_pos = self.cursor.get(&self.code, mode);
         let cursor_x = cursor_pos.x;
@@ -177,19 +183,27 @@ impl EditorBuffer {
             EditorMode::Insert { append: _ } => match evt {
                 Event::Input(key) => match key {
                     Key::Delete => self.code.delete(&mut self.cursor, mode),
-                    Key::Backspace => self.code.backspace(&mut self.cursor, mode)?,
+                    Key::Backspace => self.code.backspace(
+                        &mut self.cursor,
+                        mode,
+                        window_size,
+                        &mut self.scroll,
+                    )?,
                     Key::Char('\t') => {
                         self.code.append(cursor_x, cursor_y, '\t');
-                        self.cursor.move_by(1, 0, &self.code, mode);
+                        self.cursor
+                            .move_by(1, 0, &self.code, mode, window_size, &mut self.scroll);
                     }
                     Key::Char('\n') => {
                         self.code.append(cursor_x, cursor_y, '\n');
-                        self.cursor.move_by(0, 1, &self.code, mode);
+                        self.cursor
+                            .move_by(0, 1, &self.code, mode, window_size, &mut self.scroll);
                         self.cursor.move_to_x(0, &self.code, mode);
                     }
                     Key::Char(c) => {
                         self.code.append(cursor_x, cursor_y, c);
-                        self.cursor.move_by(1, 0, &self.code, mode);
+                        self.cursor
+                            .move_by(1, 0, &self.code, mode, window_size, &mut self.scroll);
                     }
                     _ => {}
                 },
