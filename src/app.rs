@@ -77,12 +77,10 @@ impl App {
         };
 
         let home_dir = dirs::home_dir().unwrap();
+        #[cfg(not(debug_assertions))]
         plugin_manager.load_dir(home_dir.join(".tui-studio/plugins"))?;
-
         #[cfg(debug_assertions)]
-        {
-            plugin_manager.load_dir(home_dir.join(".tui-studio/debug/plugins"))?;
-        }
+        plugin_manager.load_dir(home_dir.join(".tui-studio/debug/plugins"))?;
 
         Ok(())
     }
