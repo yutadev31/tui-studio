@@ -78,12 +78,27 @@ impl EditorCursor {
         self.position.x = self.clamp_x(x, code, mode);
     }
 
-    pub fn move_to_y(&mut self, y: usize, code: &EditorCodeBuffer) {
+    pub fn move_to_y(
+        &mut self,
+        y: usize,
+        code: &EditorCodeBuffer,
+        scroll: &mut EditorScroll,
+        mode: &EditorMode,
+        window_size: UVec2,
+    ) {
         self.position.y = self.clamp_y(y, code);
+        scroll.sync_y(self, code, mode, window_size);
     }
 
-    pub fn move_to(&mut self, target: UVec2, code: &EditorCodeBuffer, mode: &EditorMode) {
-        self.move_to_y(target.y, code);
+    pub fn move_to(
+        &mut self,
+        target: UVec2,
+        code: &EditorCodeBuffer,
+        mode: &EditorMode,
+        scroll: &mut EditorScroll,
+        window_size: UVec2,
+    ) {
+        self.move_to_y(target.y, code, scroll, mode, window_size);
         self.move_to_x(target.x, code, mode);
     }
 
@@ -226,10 +241,10 @@ impl EditorCursor {
                 let line_length = code.get_line_length(self.position.y);
                 self.move_to_x(line_length, code, mode);
             }
-            EditorCursorAction::Top => self.move_to_y(0, code),
+            EditorCursorAction::Top => self.move_to_y(0, code, scroll, mode, window_size),
             EditorCursorAction::Bottom => {
                 let line_count = code.get_line_count() - 1;
-                self.move_to_y(line_count, code);
+                self.move_to_y(line_count, code, scroll, mode, window_size);
             }
             EditorCursorAction::NextWord => self.move_to_next_word(code),
             EditorCursorAction::BackWord => self.move_to_back_word(code),

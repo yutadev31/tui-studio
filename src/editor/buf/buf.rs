@@ -201,7 +201,13 @@ impl EditorBuffer {
                         0
                     };
 
-                    self.cursor.move_to_y(pos.y + scroll_y, &self.code);
+                    self.cursor.move_to_y(
+                        pos.y + scroll_y,
+                        &self.code,
+                        &mut self.scroll,
+                        mode,
+                        window_size,
+                    );
                     self.cursor.move_to_x(x, &self.code, mode);
                 }
                 Event::Scroll(scroll) => self.scroll.scroll_by(scroll, &self.code),
