@@ -23,6 +23,7 @@ use crate::{
         action::{EditorBufferAction, EditorCursorAction, EditorEditAction, EditorScrollAction},
         mode::EditorMode,
     },
+    language_support::from_file_type,
     utils::{
         event::Event,
         file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
@@ -98,13 +99,7 @@ impl EditorBuffer {
         let file_type = FileType::file_name_to_type(file_name);
 
         #[cfg(feature = "language_support")]
-        let language_support: Option<Box<dyn LanguageSupport>> = match file_type.get().as_str() {
-            HTML => Some(Box::new(HTMLLanguageSupport::new())),
-            CSS => Some(Box::new(CSSLanguageSupport::new())),
-            MARKDOWN => Some(Box::new(MarkdownLanguageSupport::new())),
-            COMMIT_MESSAGE => Some(Box::new(CommitMessageLanguageSupport::new())),
-            _ => None,
-        };
+        let language_support: Option<Box<dyn LanguageSupport>> = from_file_type(file_type);
 
         Ok(Self {
             code: EditorCodeBuffer::from(buf),
