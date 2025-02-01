@@ -204,12 +204,11 @@ impl EditorCodeBuffer {
         cursor: &mut EditorCursor,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
-        window_size: U16Vec2,
     ) -> Result<(), EditorCodeBufferError> {
         let (x, y) = cursor.get(self, mode).into();
         let text = clipboard.get_text()?;
         self.append_str(x, y, text.as_str());
-        cursor.move_by_x(text.chars().count() as isize, self, mode, window_size);
+        cursor.move_by_x(text.chars().count() as isize, self, mode);
         Ok(())
     }
 
@@ -234,7 +233,7 @@ impl EditorCodeBuffer {
             self.join_lines(cursor.y - 1);
         } else {
             let remove_x = cursor.x - 1;
-            mut_cursor.move_by_x(-1, &self, mode, window_size);
+            mut_cursor.move_by_x(-1, &self, mode);
 
             self.lines[cursor.y].remove(remove_x);
         }
@@ -270,7 +269,7 @@ impl EditorCodeBuffer {
                     mut_cursor.move_to_x(0, self, mode);
                 } else {
                     self.append(cursor_x, cursor_y, ch);
-                    mut_cursor.move_by_x(1, self, mode, window_size);
+                    mut_cursor.move_by_x(1, self, mode);
                 }
             }
             EditorEditAction::Delete => self.delete(cursor),
@@ -281,7 +280,7 @@ impl EditorCodeBuffer {
             EditorEditAction::DeleteSelection => self.delete_selection(cursor, mode, clipboard)?,
             EditorEditAction::YankLine => self.yank_line(mut_cursor, mode, clipboard)?,
             EditorEditAction::YankSelection => self.yank_selection(mut_cursor, mode, clipboard)?,
-            EditorEditAction::Paste => self.paste(mut_cursor, mode, clipboard, window_size)?,
+            EditorEditAction::Paste => self.paste(mut_cursor, mode, clipboard)?,
         }
 
         Ok(())

@@ -100,13 +100,7 @@ impl EditorCursor {
         self.move_to_x(target.x, code, mode);
     }
 
-    pub fn move_by_x(
-        &mut self,
-        x: isize,
-        code: &EditorCodeBuffer,
-        mode: &EditorMode,
-        window_size: U16Vec2,
-    ) {
+    pub fn move_by_x(&mut self, x: isize, code: &EditorCodeBuffer, mode: &EditorMode) {
         if x > 0 {
             self.sync(code, mode);
             self.position.x = self.clamp_x(self.position.x + x as usize, code, mode);
@@ -149,7 +143,7 @@ impl EditorCursor {
         window_size: U16Vec2,
         scroll: &mut EditorScroll,
     ) {
-        self.move_by_x(offset.x, code, mode, window_size);
+        self.move_by_x(offset.x, code, mode);
         self.move_by_y(offset.y, code, mode, window_size, scroll);
     }
 

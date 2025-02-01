@@ -27,15 +27,12 @@ use crossterm::event::{self, Event as CrosstermEvent, MouseEventKind};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum AppError {
+pub(crate) enum AppError {
     #[error("{0}")]
     EditorError(#[from] EditorError),
 
     #[error("{0}")]
     IOError(#[from] io::Error),
-
-    #[error("Failed to get plugin manager")]
-    GetPluginManagerFailed,
 }
 
 pub struct App {

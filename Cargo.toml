@@ -48,7 +48,3 @@ serde_json.workspace = true
 log.workspace = true
 fern.workspace = true
 algebra.path = "crates/algebra"
-
-[features]
-default = ["language_support"]
-language_support = []

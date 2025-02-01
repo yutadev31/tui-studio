@@ -55,7 +55,6 @@ impl EditorPanel {
     ) {
         let code = code.clone();
 
-        #[cfg(feature = "language_support")]
         if let Some(tokens) = tokens {
             for highlight_token in tokens.iter().skip(scroll_y).rev() {
                 if highlight_token.start.y <= y && highlight_token.end.y >= y {
