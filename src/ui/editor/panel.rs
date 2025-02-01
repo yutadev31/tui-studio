@@ -1,7 +1,10 @@
 use std::sync::{Arc, Mutex};
 
 use algebra::vec2::{isize::ISizeVec2, u16::U16Vec2, usize::USizeVec2};
-use crossterm::style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor};
+use crossterm::{
+    cursor::SetCursorStyle,
+    style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor},
+};
 
 use crate::{
     editor::{mode::EditorMode, Editor},
@@ -264,6 +267,7 @@ impl Widget for EditorPanel {
 
         if let Some(current) = editor.get_buffer_manager().get_current() {
             let Ok(current) = current.lock() else {
+                renderer.set_cursor(U16Vec2::default(), None);
                 return;
             };
 
@@ -302,6 +306,14 @@ impl Widget for EditorPanel {
                 self.render_command_box(renderer, size, editor.get_command_input_buf());
         }
 
-        renderer.set_cursor(draw_cursor_pos);
+        renderer.set_cursor(
+            draw_cursor_pos,
+            Some(match mode {
+                EditorMode::Normal => SetCursorStyle::SteadyBlock,
+                EditorMode::Visual { start: _ } => SetCursorStyle::SteadyBlock,
+                EditorMode::Insert { append: _ } => SetCursorStyle::SteadyBar,
+                EditorMode::Command => SetCursorStyle::SteadyBar,
+            }),
+        );
     }
 }

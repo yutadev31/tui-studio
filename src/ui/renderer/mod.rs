@@ -2,7 +2,7 @@ use std::io::{self, stdout};
 
 use algebra::vec2::u16::U16Vec2;
 use crossterm::{
-    cursor::MoveTo,
+    cursor::{Hide, MoveTo, SetCursorStyle, Show},
     execute,
     style::Print,
     terminal::{Clear, ClearType},
@@ -12,7 +12,8 @@ use crossterm::{
 pub struct UIRenderer {
     size: U16Vec2,
     buf: Vec<Vec<char>>,
-    cursor: U16Vec2,
+    cursor_pos: U16Vec2,
+    cursor_style: Option<SetCursorStyle>,
 }
 
 impl UIRenderer {
@@ -20,7 +21,8 @@ impl UIRenderer {
         Self {
             buf: vec![vec![' '; size.x as usize]; size.y as usize],
             size,
-            cursor: U16Vec2::default(),
+            cursor_pos: U16Vec2::default(),
+            cursor_style: None,
         }
     }
 
@@ -40,7 +42,9 @@ impl UIRenderer {
                     buf_line[draw_x] = ch.clone();
                 });
             });
-        self.cursor = child.cursor;
+
+        self.cursor_pos = child.cursor_pos;
+        self.cursor_style = child.cursor_style;
     }
 
     pub fn render_text(&mut self, text: String, pos: U16Vec2) {
@@ -64,11 +68,22 @@ impl UIRenderer {
                 Print(line)
             )?;
         }
-        execute!(stdout(), MoveTo(renderer.cursor.x, renderer.cursor.y))?;
+        execute!(
+            stdout(),
+            MoveTo(renderer.cursor_pos.x, renderer.cursor_pos.y),
+        )?;
+
+        if let Some(style) = renderer.cursor_style {
+            execute!(stdout(), Show, style)?;
+        } else {
+            execute!(stdout(), Hide)?;
+        }
+
         Ok(())
     }
 
-    pub fn set_cursor(&mut self, cursor: U16Vec2) {
-        self.cursor = cursor;
+    pub fn set_cursor(&mut self, pos: U16Vec2, style: Option<SetCursorStyle>) {
+        self.cursor_pos = pos;
+        self.cursor_style = style;
     }
 }
