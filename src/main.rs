@@ -17,7 +17,7 @@ static_loader! {
 #[command(version, about, long_about = None)]
 struct Args {
     #[arg()]
-    path: Option<String>,
+    path: Vec<String>,
 }
 
 fn main() -> Result<(), PublicAppError> {

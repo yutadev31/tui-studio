@@ -46,7 +46,7 @@ pub struct App {
 }
 
 impl App {
-    pub(crate) fn new(path: Option<String>) -> Result<Self, AppError> {
+    pub(crate) fn new(path: Vec<String>) -> Result<Self, AppError> {
         let term_size = get_term_size()?;
 
         Ok(Self {
@@ -158,7 +158,7 @@ impl App {
         Ok(())
     }
 
-    pub fn run(path: Option<String>) -> Result<(), PublicAppError> {
+    pub fn run(path: Vec<String>) -> Result<(), PublicAppError> {
         let app = Arc::new(Mutex::new(App::new(path)?));
         let running = Arc::new(AtomicBool::new(true));
 

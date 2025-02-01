@@ -244,12 +244,14 @@ impl EditorRenderer {
         tokens: &Vec<HighlightToken>,
         command_input_buf: &String,
     ) -> Result<Option<USizeVec2>, EditorRendererError> {
+        let mut draw_cursor_pos = Some(USizeVec2::default());
+
+        let mode = editor.get_mode();
+
         if let Some(current) = editor.get_buffer_manager().get_current() {
             let Ok(current) = current.lock() else {
                 return Err(EditorRendererError::LockError);
             };
-
-            let mode = editor.get_mode();
 
             let lines = current.get_code_buf().get_lines();
 
@@ -259,10 +261,11 @@ impl EditorRenderer {
             let scroll_y = current.get_scroll_position().y;
 
             let cursor_pos = current.get_cursor_position(&mode);
-            let draw_cursor_pos = current.get_draw_cursor_position(&mode);
 
-            let mut draw_cursor_pos = draw_cursor_pos
-                .checked_add(ISizeVec2::new(offset_x as isize, -(scroll_y as isize)));
+            draw_cursor_pos = {
+                let draw_cursor_pos = current.get_draw_cursor_position(&mode);
+                draw_cursor_pos.checked_add(ISizeVec2::new(offset_x as isize, -(scroll_y as isize)))
+            };
 
             self.render_numbers(screen, window_size, &lines, scroll_y, offset_x);
             self.render_code(
@@ -274,15 +277,12 @@ impl EditorRenderer {
                 &lines,
                 tokens,
             )?;
-
-            if let EditorMode::Command = mode {
-                draw_cursor_pos =
-                    Some(self.render_command_box(screen, window_size, command_input_buf));
-            }
-
-            Ok(draw_cursor_pos)
-        } else {
-            Ok(None)
         }
+
+        if let EditorMode::Command = mode {
+            draw_cursor_pos = Some(self.render_command_box(screen, window_size, command_input_buf));
+        }
+
+        Ok(draw_cursor_pos)
     }
 }

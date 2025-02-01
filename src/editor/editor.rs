@@ -70,7 +70,7 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub(crate) fn new(path: Option<String>, rect: Rect) -> Result<Self, EditorError> {
+    pub(crate) fn new(path: Vec<String>, rect: Rect) -> Result<Self, EditorError> {
         Ok(Self {
             rect,
             buffer_manager: EditorBufferManager::new(path)?,
@@ -119,7 +119,8 @@ impl Editor {
             self.mode = EditorMode::Normal;
             Ok(())
         } else {
-            Err(EditorError::BufferNotOpen)
+            self.mode = EditorMode::Normal;
+            Ok(())
         }
     }
 

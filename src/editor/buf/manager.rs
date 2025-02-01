@@ -19,18 +19,23 @@ pub struct EditorBufferManager {
 }
 
 impl EditorBufferManager {
-    pub fn new(path: Option<String>) -> Result<Self, EditorBufferManagerError> {
-        Ok(match path {
-            None => Self {
-                buffers: vec![Arc::new(Mutex::new(EditorBuffer::default()))],
-                current_index: Some(0),
-            },
-            Some(path) => Self {
-                buffers: vec![Arc::new(Mutex::new(EditorBuffer::open(PathBuf::from(
-                    path,
-                ))?))],
-                current_index: Some(0),
-            },
+    pub fn new(path: Vec<String>) -> Result<Self, EditorBufferManagerError> {
+        let buffers: Vec<Arc<Mutex<EditorBuffer>>> = path
+            .iter()
+            .filter_map(|path| {
+                if let Ok(buf) = EditorBuffer::open(PathBuf::from(path)) {
+                    Some(Arc::new(Mutex::new(buf)))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let current_index = if buffers.is_empty() { None } else { Some(0) };
+
+        Ok(Self {
+            current_index,
+            buffers,
         })
     }
 
@@ -43,7 +48,14 @@ impl EditorBufferManager {
                 .buffers
                 .push(Arc::new(Mutex::new(EditorBuffer::open(path)?))),
         }
+
         Ok(())
+    }
+
+    pub fn set_current(&mut self, index: usize) {
+        if self.buffers.len() > index {
+            self.current_index = Some(index);
+        }
     }
 
     pub fn close(&mut self, index: usize) {
