@@ -63,10 +63,7 @@ pub struct Editor {
     buffer_manager: EditorBufferManager,
     mode: EditorMode,
     clipboard: Clipboard,
-    #[cfg(feature = "language_support")]
-    highlight_tokens: Vec<HighlightToken>,
     command_input_buf: String,
-    renderer: EditorRenderer,
 }
 
 impl Editor {
@@ -76,15 +73,16 @@ impl Editor {
             buffer_manager: EditorBufferManager::new(path)?,
             mode: EditorMode::Normal,
             clipboard: Clipboard::new()?,
-            #[cfg(feature = "language_support")]
-            highlight_tokens: vec![],
             command_input_buf: String::new(),
-            renderer: EditorRenderer::default(),
         })
     }
 
     pub(crate) fn get_buffer_manager(&self) -> &EditorBufferManager {
         &self.buffer_manager
+    }
+
+    pub(crate) fn get_command_input_buf(&self) -> &String {
+        &self.command_input_buf
     }
 
     pub(crate) fn get_mode(&self) -> EditorMode {
@@ -221,66 +219,55 @@ impl Editor {
             }
         }
 
-        #[cfg(feature = "language_support")]
-        if let Some(current) = self.buffer_manager.get_current() {
-            let Ok(current) = current.lock() else {
-                return Err(EditorError::LockError);
-            };
-
-            if let Some(tokens) = current.highlight() {
-                self.highlight_tokens = tokens;
-            }
-        }
-
         Ok(events)
     }
 
     pub(crate) fn draw(&self) -> Result<(), EditorError> {
-        let mut screen = vec![String::new(); self.rect.size.y as usize].into_boxed_slice();
+        // let mut screen = vec![String::new(); self.rect.size.y as usize].into_boxed_slice();
 
-        #[cfg(not(feature = "language_support"))]
-        let cursor_pos = self.renderer.render(
-            &mut screen,
-            self.rect.size,
-            self,
-            &vec![],
-            &self.command_input_buf,
-        )?;
+        // #[cfg(not(feature = "language_support"))]
+        // let cursor_pos = self.renderer.render(
+        //     &mut screen,
+        //     self.rect.size,
+        //     self,
+        //     &vec![],
+        //     &self.command_input_buf,
+        // )?;
 
-        #[cfg(feature = "language_support")]
-        let cursor_pos = self.renderer.render(
-            &mut screen,
-            self.rect.size,
-            self,
-            &self.highlight_tokens,
-            &self.command_input_buf,
-        )?;
+        // #[cfg(feature = "language_support")]
+        // let cursor_pos = self.renderer.render(
+        //     &mut screen,
+        //     self.rect.size,
+        //     self,
+        //     &self.highlight_tokens,
+        //     &self.command_input_buf,
+        // )?;
 
-        for (y, line) in screen.iter().enumerate() {
-            execute!(
-                stdout(),
-                MoveTo(self.rect.pos.x, self.rect.pos.y + y as u16),
-                Clear(ClearType::CurrentLine),
-                Print(line)
-            )?;
-        }
+        // for (y, line) in screen.iter().enumerate() {
+        //     execute!(
+        //         stdout(),
+        //         MoveTo(self.rect.pos.x, self.rect.pos.y + y as u16),
+        //         Clear(ClearType::CurrentLine),
+        //         Print(line)
+        //     )?;
+        // }
 
-        if let Some(cursor_pos) = cursor_pos {
-            execute!(
-                stdout(),
-                Show,
-                MoveTo(cursor_pos.x as u16, cursor_pos.y as u16)
-            )?;
+        // if let Some(cursor_pos) = cursor_pos {
+        //     execute!(
+        //         stdout(),
+        //         Show,
+        //         MoveTo(cursor_pos.x as u16, cursor_pos.y as u16)
+        //     )?;
 
-            match self.mode {
-                EditorMode::Normal => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
-                EditorMode::Visual { start: _ } => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
-                EditorMode::Insert { append: _ } => execute!(stdout(), SetCursorStyle::SteadyBar)?,
-                EditorMode::Command => execute!(stdout(), SetCursorStyle::SteadyBar)?,
-            }
-        } else {
-            execute!(stdout(), Hide)?;
-        }
+        //     match self.mode {
+        //         EditorMode::Normal => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
+        //         EditorMode::Visual { start: _ } => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
+        //         EditorMode::Insert { append: _ } => execute!(stdout(), SetCursorStyle::SteadyBar)?,
+        //         EditorMode::Command => execute!(stdout(), SetCursorStyle::SteadyBar)?,
+        //     }
+        // } else {
+        //     execute!(stdout(), Hide)?;
+        // }
         Ok(())
     }
 

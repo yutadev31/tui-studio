@@ -11,6 +11,7 @@ use std::{
 use crate::{
     action::AppAction,
     editor::{Editor, EditorError},
+    ui::{editor::panel::EditorPanel, renderer::UIRenderer, widget::Widget},
     utils::{
         command::CommandManager,
         event::Event,
@@ -38,9 +39,10 @@ pub enum AppError {
 }
 
 pub struct App {
-    editor: Editor,
+    editor: Arc<Mutex<Editor>>,
     key_config: KeyConfig,
     cmd_mgr: CommandManager,
+    editor_panel: EditorPanel,
     first_key_time: Option<DateTime<Utc>>,
     key_buf: Vec<Key>,
 }
@@ -48,9 +50,15 @@ pub struct App {
 impl App {
     pub(crate) fn new(path: Vec<String>) -> Result<Self, AppError> {
         let term_size = get_term_size()?;
+        let editor = Arc::new(Mutex::new(Editor::new(
+            path,
+            Rect::new(U16Vec2::default(), term_size),
+        )?));
+        let editor_clone = Arc::clone(&editor);
 
         Ok(Self {
-            editor: Editor::new(path, Rect::new(U16Vec2::default(), term_size))?,
+            editor_panel: EditorPanel::new(editor_clone),
+            editor,
             key_config: KeyConfig::default(),
             cmd_mgr: CommandManager::default(),
             key_buf: Vec::new(),
@@ -60,9 +68,9 @@ impl App {
 
     pub(crate) fn init(&mut self) -> Result<(), AppError> {
         // Editor
-        self.editor.register_keybindings(&mut self.key_config);
-        self.editor.register_commands(&mut self.cmd_mgr);
-
+        let editor = self.editor.lock().expect("Failed to lock editor");
+        editor.register_keybindings(&mut self.key_config);
+        editor.register_commands(&mut self.cmd_mgr);
         Ok(())
     }
 
@@ -72,31 +80,33 @@ impl App {
     ) -> Result<Option<Event>, AppError> {
         match evt {
             CrosstermEvent::Key(evt) => {
-                if self.key_buf.len() == 0 {
-                    self.first_key_time = Some(Utc::now())
-                } else if let Some(first_key_time) = self.first_key_time {
-                    let now = Utc::now();
-                    let elapsed = now - first_key_time;
+                if let Ok(editor) = self.editor.lock() {
+                    if self.key_buf.len() == 0 {
+                        self.first_key_time = Some(Utc::now())
+                    } else if let Some(first_key_time) = self.first_key_time {
+                        let now = Utc::now();
+                        let elapsed = now - first_key_time;
 
-                    if elapsed >= Duration::milliseconds(500) {
-                        self.key_buf = Vec::new();
+                        if elapsed >= Duration::milliseconds(500) {
+                            self.key_buf = Vec::new();
+                        }
                     }
-                }
 
-                self.key_buf.push(Key::from(evt));
+                    self.key_buf.push(Key::from(evt));
 
-                match self
-                    .key_config
-                    .get_action(self.editor.get_mode(), self.key_buf.clone())
-                {
-                    None => {}
-                    Some(action) => {
-                        self.key_buf = Vec::new();
-                        return Ok(Some(Event::Action(action.clone())));
-                    }
+                    match self
+                        .key_config
+                        .get_action(editor.get_mode(), self.key_buf.clone())
+                    {
+                        None => {}
+                        Some(action) => {
+                            self.key_buf = Vec::new();
+                            return Ok(Some(Event::Action(action.clone())));
+                        }
+                    };
+
+                    return Ok(Some(Event::Input(Key::from(evt))));
                 };
-
-                return Ok(Some(Event::Input(Key::from(evt))));
             }
             CrosstermEvent::Mouse(evt) => match evt.kind {
                 MouseEventKind::ScrollUp => return Ok(Some(Event::Scroll(I16Vec2::up()))),
@@ -119,7 +129,11 @@ impl App {
     pub(crate) fn on_action(&mut self, action: AppAction) -> Result<bool, AppError> {
         match action {
             AppAction::Quit => return Ok(true),
-            AppAction::EditorAction(action) => self.editor.on_action(action)?,
+            AppAction::EditorAction(action) => {
+                if let Ok(mut editor) = self.editor.lock() {
+                    editor.on_action(action)?;
+                }
+            }
         };
 
         Ok(false)
@@ -142,7 +156,13 @@ impl App {
             }
             Event::Action(action) => return self.on_action(action),
             evt => {
-                for event in self.editor.on_event(evt)? {
+                let events = if let Ok(mut editor) = self.editor.lock() {
+                    editor.on_event(evt)?
+                } else {
+                    return Ok(false);
+                };
+
+                for event in events {
                     if self.on_event(event)? {
                         return Ok(true);
                     }
@@ -154,7 +174,11 @@ impl App {
     }
 
     pub(crate) fn draw(&self) -> Result<(), AppError> {
-        self.editor.draw()?;
+        let term_size = get_term_size()?;
+
+        let mut renderer = UIRenderer::new(term_size);
+        self.editor_panel.render(&mut renderer, term_size);
+        UIRenderer::render(renderer);
         Ok(())
     }
 

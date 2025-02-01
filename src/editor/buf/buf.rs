@@ -139,6 +139,11 @@ impl EditorBuffer {
         self.cursor.get_draw_position(&self.code, mode)
     }
 
+    #[cfg(not(feature = "language_support"))]
+    pub fn highlight(&self) -> Option<Vec<HighlightToken>> {
+        None
+    }
+
     #[cfg(feature = "language_support")]
     pub fn highlight(&self) -> Option<Vec<HighlightToken>> {
         if let Some(language_support) = &self.language_support {
