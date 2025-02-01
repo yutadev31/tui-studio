@@ -33,7 +33,7 @@ use crate::{
 use super::{
     code_buf::{EditorCodeBuffer, EditorCodeBufferError},
     cursor::{EditorCursor, EditorCursorError},
-    history::EditorHistory,
+    history::{EditorHistory, EditorState},
     scroll::EditorScroll,
 };
 
@@ -185,11 +185,25 @@ impl EditorBuffer {
                 self.cursor
                     .on_action(action, &self.code, mode, window_size, &mut self.scroll)?
             }
+            EditorBufferAction::History(action) => {
+                self.history.on_action(
+                    action,
+                    &mut self.cursor,
+                    &mut self.code,
+                    mode,
+                    &mut self.scroll,
+                    window_size,
+                );
+            }
             EditorBufferAction::Scroll(action) => {
                 self.scroll.on_action(action, &self.code);
             }
             EditorBufferAction::Edit(action) => {
-                self.history.action(action.clone());
+                self.history.action(EditorState {
+                    code: self.code.to_string(),
+                    cursor: self.cursor.get(&self.code, mode),
+                });
+
                 self.code.on_action(
                     action,
                     &mut self.cursor,

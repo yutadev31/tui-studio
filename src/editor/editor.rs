@@ -16,7 +16,9 @@ use crate::{
 };
 
 use super::{
-    action::{EditorAction, EditorBufferAction, EditorCursorAction, EditorEditAction},
+    action::{
+        EditorAction, EditorBufferAction, EditorCursorAction, EditorEditAction, EditorHistoryAction,
+    },
     buf::{
         manager::{EditorBufferManager, EditorBufferManagerError},
         EditorBufferError,
@@ -351,6 +353,22 @@ impl Editor {
             vec![Key::Char('y')],
             AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Edit(
                 EditorEditAction::YankSelection,
+            ))),
+        );
+
+        // History
+        key_config.register(
+            KeyConfigType::NormalAndVisual,
+            vec![Key::Char('u')],
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::History(
+                EditorHistoryAction::Undo,
+            ))),
+        );
+        key_config.register(
+            KeyConfigType::NormalAndVisual,
+            vec![Key::Ctrl('r')],
+            AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::History(
+                EditorHistoryAction::Redo,
             ))),
         );
     }

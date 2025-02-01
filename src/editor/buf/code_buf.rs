@@ -32,6 +32,10 @@ pub struct EditorCodeBuffer {
 }
 
 impl EditorCodeBuffer {
+    pub fn set_code(&mut self, code: String) {
+        self.lines = code.lines().map(|line| CodeString::from(line)).collect();
+    }
+
     pub fn get_lines(&self) -> Vec<CodeString> {
         self.lines.clone()
     }

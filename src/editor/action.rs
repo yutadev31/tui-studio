@@ -21,6 +21,18 @@ impl EditorCursorAction {
 }
 
 #[derive(Debug, Clone, Hash)]
+pub enum EditorHistoryAction {
+    Undo,
+    Redo,
+}
+
+impl EditorHistoryAction {
+    pub fn to_app(self) -> AppAction {
+        EditorBufferAction::History(self).to_app()
+    }
+}
+
+#[derive(Debug, Clone, Hash)]
 pub enum EditorScrollAction {
     By(ISizeVec2),
     To(USizeVec2),
@@ -55,6 +67,7 @@ pub enum EditorBufferAction {
     Save,
     Cursor(EditorCursorAction),
     Scroll(EditorScrollAction),
+    History(EditorHistoryAction),
     Edit(EditorEditAction),
 }
 
