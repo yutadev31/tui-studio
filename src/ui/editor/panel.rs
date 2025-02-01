@@ -4,7 +4,7 @@ use algebra::vec2::{isize::ISizeVec2, u16::U16Vec2, usize::USizeVec2};
 use crossterm::style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor};
 
 use crate::{
-    editor::{mode::EditorMode, renderer::EditorRendererError, Editor},
+    editor::{mode::EditorMode, Editor},
     language_support::highlight::HighlightToken,
     ui::{renderer::UIRenderer, widget::Widget},
     utils::string::CodeString,
