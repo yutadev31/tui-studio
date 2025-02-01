@@ -2,16 +2,7 @@ use std::io::{self, stdout};
 
 use algebra::vec2::{isize::ISizeVec2, usize::USizeVec2};
 use arboard::Clipboard;
-use crossterm::{
-    cursor::{Hide, MoveTo, SetCursorStyle, Show},
-    execute,
-    style::Print,
-    terminal::{Clear, ClearType},
-};
 use thiserror::Error;
-
-#[cfg(feature = "language_support")]
-use crate::language_support::highlight::HighlightToken;
 
 use crate::{
     action::AppAction,
@@ -31,7 +22,6 @@ use super::{
         EditorBufferError,
     },
     mode::EditorMode,
-    renderer::{EditorRenderer, EditorRendererError},
 };
 
 #[derive(Debug, Error)]
@@ -50,9 +40,6 @@ pub(crate) enum EditorError {
 
     #[error("{0}")]
     EditorBufferManagerError(#[from] EditorBufferManagerError),
-
-    #[error("{0}")]
-    EditorRendererError(#[from] EditorRendererError),
 
     #[error("{0}")]
     ClipboardError(#[from] arboard::Error),
