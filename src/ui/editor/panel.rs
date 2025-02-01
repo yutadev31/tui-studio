@@ -279,8 +279,6 @@ impl Widget for EditorPanel {
             let num_len = (lines.len() - 1).to_string().len();
             let offset_x = num_len + 1;
 
-            log::debug!("{}", offset_x);
-
             let scroll_y = current.get_scroll_position().y;
 
             let cursor_pos = current.get_cursor_position(&mode);
