@@ -178,7 +178,7 @@ impl App {
 
         let mut renderer = UIRenderer::new(term_size);
         self.editor_panel.render(&mut renderer, term_size);
-        UIRenderer::render(renderer);
+        UIRenderer::render(renderer)?;
         Ok(())
     }
 
