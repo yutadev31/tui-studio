@@ -1,4 +1,4 @@
-use std::io::{self, stdout};
+use std::io;
 
 use algebra::vec2::{isize::ISizeVec2, usize::USizeVec2};
 use arboard::Clipboard;

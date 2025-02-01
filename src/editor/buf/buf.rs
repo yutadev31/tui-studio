@@ -9,14 +9,7 @@ use arboard::Clipboard;
 use thiserror::Error;
 
 #[cfg(feature = "language_support")]
-use crate::language_support::{
-    highlight::HighlightToken,
-    langs::{
-        commit_message::CommitMessageLanguageSupport, css::CSSLanguageSupport,
-        html::HTMLLanguageSupport, markdown::MarkdownLanguageSupport,
-    },
-    LanguageSupport,
-};
+use crate::language_support::{highlight::HighlightToken, LanguageSupport};
 
 use crate::{
     editor::{
@@ -24,11 +17,7 @@ use crate::{
         mode::EditorMode,
     },
     language_support::from_file_type,
-    utils::{
-        event::Event,
-        file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
-        key_binding::Key,
-    },
+    utils::{event::Event, file_type::FileType, key_binding::Key},
 };
 
 use super::{
