@@ -1,10 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use algebra::vec2::{isize::ISizeVec2, u16::U16Vec2, usize::USizeVec2};
-use crossterm::{
-    cursor::SetCursorStyle,
-    style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor},
-};
+use crossterm::cursor::SetCursorStyle;
 
 use crate::{
     editor::{mode::EditorMode, Editor},
