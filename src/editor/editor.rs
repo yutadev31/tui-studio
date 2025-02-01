@@ -323,28 +323,28 @@ impl Editor {
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('h')],
             AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
-                EditorCursorAction::Left,
+                EditorCursorAction::By(IVec2::left()),
             ))),
         );
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('j')],
             AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
-                EditorCursorAction::Down,
+                EditorCursorAction::By(IVec2::down()),
             ))),
         );
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('k')],
             AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
-                EditorCursorAction::Up,
+                EditorCursorAction::By(IVec2::up()),
             ))),
         );
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('l')],
             AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
-                EditorCursorAction::Right,
+                EditorCursorAction::By(IVec2::right()),
             ))),
         );
         key_config.register(

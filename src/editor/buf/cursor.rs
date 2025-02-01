@@ -232,10 +232,7 @@ impl EditorCursor {
         scroll: &mut EditorScroll,
     ) -> Result<(), EditorCursorError> {
         match action {
-            EditorCursorAction::Left => self.move_by_x(-1, code, mode, window_size),
-            EditorCursorAction::Down => self.move_by_y(1, code, mode, window_size, scroll),
-            EditorCursorAction::Up => self.move_by_y(-1, code, mode, window_size, scroll),
-            EditorCursorAction::Right => self.move_by_x(1, code, mode, window_size),
+            EditorCursorAction::By(offset) => self.move_by(offset, code, mode, window_size, scroll),
             EditorCursorAction::LineStart => self.move_to_x(0, code, mode),
             EditorCursorAction::LineEnd => {
                 let line_length = code.get_line_length(self.position.y);

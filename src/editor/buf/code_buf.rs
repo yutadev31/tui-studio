@@ -68,43 +68,38 @@ impl EditorCodeBuffer {
         }
     }
 
-    pub fn delete(&mut self, cursor: &mut EditorCursor, mode: &EditorMode) {
-        let cursor_pos = cursor.get(self, mode);
-
-        if cursor_pos.x == self.get_line_length(cursor_pos.y) {
-            self.join_lines(cursor_pos.y);
+    pub fn delete(&mut self, cursor: UVec2) {
+        if cursor.x == self.get_line_length(cursor.y) {
+            self.join_lines(cursor.y);
         } else {
-            self.lines[cursor_pos.y].remove(cursor_pos.x);
+            self.lines[cursor.y].remove(cursor.x);
         }
     }
 
     pub fn delete_line(
         &mut self,
-        cursor: &mut EditorCursor,
-        mode: &EditorMode,
+        cursor: UVec2,
         clipboard: &mut Clipboard,
     ) -> Result<(), EditorCodeBufferError> {
-        let y = cursor.get(self, mode).y;
-        clipboard.set_text(self.lines[y].to_string())?;
-        self.lines.remove(y);
+        clipboard.set_text(self.lines[cursor.y].to_string())?;
+        self.lines.remove(cursor.y);
         Ok(())
     }
 
     pub fn delete_selection(
         &mut self,
-        cursor: &mut EditorCursor,
+        cursor: UVec2,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
     ) -> Result<(), EditorCodeBufferError> {
-        let start = cursor.get(self, mode);
         let end = if let EditorMode::Visual { start } = mode.clone() {
             start
         } else {
             return Err(EditorCodeBufferError::NoSelection);
         };
 
-        let min = start.min(end);
-        let max = start.max(end) + UVec2::new(1, 0);
+        let min = cursor.min(end);
+        let max = cursor.max(end) + UVec2::new(1, 0);
 
         if min.y == max.y {
             let line = self.lines[min.y].clone();
@@ -215,29 +210,28 @@ impl EditorCodeBuffer {
 
     pub fn backspace(
         &mut self,
-        cursor: &mut EditorCursor,
+        cursor: UVec2,
+        mut_cursor: &mut EditorCursor,
         mode: &EditorMode,
         window_size: UVec2,
         scroll: &mut EditorScroll,
     ) -> Result<(), EditorCodeBufferError> {
-        let cursor_pos = cursor.get(&self, mode);
-
-        if cursor_pos.x == 0 {
-            if cursor_pos.y == 0 {
+        if cursor.x == 0 {
+            if cursor.y == 0 {
                 return Ok(());
             }
 
-            let line_length = self.get_line_length(cursor_pos.y - 1);
-            cursor.move_by_y(-1, &self, mode, window_size, scroll);
+            let line_length = self.get_line_length(cursor.y - 1);
+            mut_cursor.move_by_y(-1, &self, mode, window_size, scroll);
 
             // line_length - 1 するのが本来は良いが usize が 0 以下になるのを防ぐため、- 1 はしない
-            cursor.move_to_x(line_length, &self, mode);
-            self.join_lines(cursor_pos.y - 1);
+            mut_cursor.move_to_x(line_length, &self, mode);
+            self.join_lines(cursor.y - 1);
         } else {
-            let remove_x = cursor_pos.x - 1;
-            cursor.move_by_x(-1, &self, mode, window_size);
+            let remove_x = cursor.x - 1;
+            mut_cursor.move_by_x(-1, &self, mode, window_size);
 
-            self.lines[cursor_pos.y].remove(remove_x);
+            self.lines[cursor.y].remove(remove_x);
         }
 
         Ok(())
@@ -254,31 +248,35 @@ impl EditorCodeBuffer {
     pub(crate) fn on_action(
         &mut self,
         action: EditorEditAction,
-        cursor: &mut EditorCursor,
+        mut_cursor: &mut EditorCursor,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
         window_size: UVec2,
         scroll: &mut EditorScroll,
     ) -> Result<(), EditorCodeBufferError> {
+        let cursor = mut_cursor.get(self, mode);
+
         match action {
-            EditorEditAction::Append(c) => {
-                let (cursor_x, cursor_y) = cursor.get(self, mode).into();
-                if c == '\n' {
+            EditorEditAction::Append(ch) => {
+                let (cursor_x, cursor_y) = mut_cursor.get(self, mode).into();
+                if ch == '\n' {
                     self.append(cursor_x, cursor_y, '\n');
-                    cursor.move_by_y(1, self, mode, window_size, scroll);
-                    cursor.move_to_x(0, self, mode);
+                    mut_cursor.move_by_y(1, self, mode, window_size, scroll);
+                    mut_cursor.move_to_x(0, self, mode);
                 } else {
-                    self.append(cursor_x, cursor_y, c);
-                    cursor.move_by_x(1, self, mode, window_size);
+                    self.append(cursor_x, cursor_y, ch);
+                    mut_cursor.move_by_x(1, self, mode, window_size);
                 }
             }
-            EditorEditAction::Delete => self.delete(cursor, mode),
-            EditorEditAction::Backspace => self.backspace(cursor, mode, window_size, scroll)?,
-            EditorEditAction::DeleteLine => self.delete_line(cursor, mode, clipboard)?,
+            EditorEditAction::Delete => self.delete(cursor),
+            EditorEditAction::Backspace => {
+                self.backspace(cursor, mut_cursor, mode, window_size, scroll)?
+            }
+            EditorEditAction::DeleteLine => self.delete_line(cursor, clipboard)?,
             EditorEditAction::DeleteSelection => self.delete_selection(cursor, mode, clipboard)?,
-            EditorEditAction::YankLine => self.yank_line(cursor, mode, clipboard)?,
-            EditorEditAction::YankSelection => self.yank_selection(cursor, mode, clipboard)?,
-            EditorEditAction::Paste => self.paste(cursor, mode, clipboard, window_size)?,
+            EditorEditAction::YankLine => self.yank_line(mut_cursor, mode, clipboard)?,
+            EditorEditAction::YankSelection => self.yank_selection(mut_cursor, mode, clipboard)?,
+            EditorEditAction::Paste => self.paste(mut_cursor, mode, clipboard, window_size)?,
         }
 
         Ok(())

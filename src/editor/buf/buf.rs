@@ -183,14 +183,17 @@ impl EditorBuffer {
             EditorBufferAction::Scroll(action) => {
                 self.scroll.on_action(action, &self.code);
             }
-            EditorBufferAction::Edit(action) => self.code.on_action(
-                action,
-                &mut self.cursor,
-                mode,
-                clipboard,
-                window_size,
-                &mut self.scroll,
-            )?,
+            EditorBufferAction::Edit(action) => {
+                self.history.action(action.clone());
+                self.code.on_action(
+                    action,
+                    &mut self.cursor,
+                    mode,
+                    clipboard,
+                    window_size,
+                    &mut self.scroll,
+                )?;
+            }
         };
 
         Ok(())

@@ -8,19 +8,19 @@ use std::{
     time::Duration as StdDuration,
 };
 
-use crate::utils::{
-    command::CommandManager,
-    event::Event,
-    key_binding::{Key, KeyConfig},
-    rect::Rect,
-    term::get_term_size,
-    vec2::IVec2,
-};
 use crate::{
     action::AppAction,
     editor::{Editor, EditorError},
-    utils::vec2::UVec2,
+    utils::{
+        command::CommandManager,
+        event::Event,
+        key_binding::{Key, KeyConfig},
+        rect::Rect,
+        term::get_term_size,
+        vec2::{IVec2, UVec2},
+    },
 };
+
 use chrono::{DateTime, Duration, Utc};
 use crossterm::event::{self, Event as CrosstermEvent, MouseEventKind};
 use thiserror::Error;

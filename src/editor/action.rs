@@ -6,16 +6,13 @@ use crate::{
 
 #[derive(Debug, Clone, Hash)]
 pub enum EditorCursorAction {
-    Left,
-    Right,
-    Up,
-    Down,
     LineStart,
     LineEnd,
     Top,
     Bottom,
     BackWord,
     NextWord,
+    By(IVec2),
     To(UVec2),
 }
 
@@ -43,8 +40,8 @@ pub enum EditorEditAction {
     Delete,
     Backspace,
     DeleteLine,
-    YankLine,
     DeleteSelection,
+    YankLine,
     YankSelection,
     Paste,
 }
