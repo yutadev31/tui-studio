@@ -4,6 +4,7 @@ use std::{
     path::PathBuf,
 };
 
+use algebra::vec2::{isize::ISizeVec2, u16::U16Vec2, usize::USizeVec2};
 use arboard::Clipboard;
 use thiserror::Error;
 
@@ -26,7 +27,6 @@ use crate::{
         event::Event,
         file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
         key_binding::Key,
-        vec2::{IVec2, UVec2},
     },
 };
 
@@ -127,15 +127,15 @@ impl EditorBuffer {
         }
     }
 
-    pub fn get_cursor_position(&self, mode: &EditorMode) -> UVec2 {
+    pub fn get_cursor_position(&self, mode: &EditorMode) -> USizeVec2 {
         self.cursor.get(&self.code, mode)
     }
 
-    pub fn get_scroll_position(&self) -> UVec2 {
+    pub fn get_scroll_position(&self) -> USizeVec2 {
         self.scroll.get()
     }
 
-    pub fn get_draw_cursor_position(&self, mode: &EditorMode) -> UVec2 {
+    pub fn get_draw_cursor_position(&self, mode: &EditorMode) -> USizeVec2 {
         self.cursor.get_draw_position(&self.code, mode)
     }
 
@@ -150,8 +150,8 @@ impl EditorBuffer {
 
     pub fn cursor_move_by(
         &mut self,
-        offset: IVec2,
-        window_size: UVec2,
+        offset: ISizeVec2,
+        window_size: U16Vec2,
         mode: &EditorMode,
     ) -> Result<(), EditorBufferError> {
         Ok(self
@@ -172,7 +172,7 @@ impl EditorBuffer {
         action: EditorBufferAction,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
-        window_size: UVec2,
+        window_size: U16Vec2,
     ) -> Result<(), EditorBufferError> {
         match action {
             EditorBufferAction::Save => self.save()?,
@@ -207,18 +207,28 @@ impl EditorBuffer {
                     let offset_x = num_len + 1;
                     let scroll_y = self.scroll.get().y;
 
-                    let x = if let Some(x) = pos.x.checked_sub(offset_x) {
+                    let x = if let Some(x) = pos.x.checked_sub(offset_x as u16) {
                         x
                     } else {
                         0
                     };
 
                     return Ok(vec![Event::Action(
-                        EditorCursorAction::To(UVec2::new(x, pos.y + scroll_y)).to_app(),
+                        EditorCursorAction::To(USizeVec2::new(
+                            x as usize,
+                            pos.y as usize + scroll_y,
+                        ))
+                        .to_app(),
                     )]);
                 }
                 Event::Scroll(scroll) => {
-                    return Ok(vec![Event::Action(EditorScrollAction::By(scroll).to_app())]);
+                    return Ok(vec![Event::Action(
+                        EditorScrollAction::By(ISizeVec2::new(
+                            scroll.x as isize,
+                            scroll.y as isize,
+                        ))
+                        .to_app(),
+                    )]);
                 }
                 _ => {}
             },

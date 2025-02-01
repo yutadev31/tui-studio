@@ -1,5 +1,5 @@
 [workspace]
-members = []
+members = ["crates/algebra"]
 resolver = "2"
 
 [workspace.package]
@@ -47,6 +47,7 @@ serde.workspace = true
 serde_json.workspace = true
 log.workspace = true
 fern.workspace = true
+algebra.path = "crates/algebra"
 
 [features]
 default = ["language_support"]

@@ -1,15 +1,13 @@
+use algebra::vec2::usize::USizeVec2;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::utils::{
-    color::{Color, ToColor},
-    vec2::UVec2,
-};
+use crate::utils::color::{Color, ToColor};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct HighlightToken {
-    pub start: UVec2,
-    pub end: UVec2,
+    pub start: USizeVec2,
+    pub end: USizeVec2,
     pub color: Color,
 }
 
@@ -17,18 +15,18 @@ fn get_line_widths(text: &str) -> Vec<usize> {
     text.lines().map(|line| line.len()).collect()
 }
 
-fn index_to_vec2(index: usize, line_widths: &[usize]) -> UVec2 {
+fn index_to_vec2(index: usize, line_widths: &[usize]) -> USizeVec2 {
     let mut cumulative_index = 0;
 
     for (y, width) in line_widths.iter().enumerate() {
         if index < cumulative_index + width + 1 {
             let x = index - cumulative_index;
-            return UVec2::new(x, y);
+            return USizeVec2::new(x, y);
         }
         cumulative_index += width + 1;
     }
 
-    UVec2::new(0, 0) // この点に到達することはないはず
+    USizeVec2::new(0, 0) // この点に到達することはないはず
 }
 
 pub fn regex_tokenize<T: ToColor + Clone>(

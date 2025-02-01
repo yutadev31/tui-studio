@@ -1,17 +1,16 @@
-use crate::{
-    editor::{action::EditorScrollAction, mode::EditorMode},
-    utils::vec2::{IVec2, UVec2},
-};
+use algebra::vec2::{isize::ISizeVec2, u16::U16Vec2, usize::USizeVec2};
+
+use crate::editor::{action::EditorScrollAction, mode::EditorMode};
 
 use super::{code_buf::EditorCodeBuffer, cursor::EditorCursor};
 
 #[derive(Default)]
 pub struct EditorScroll {
-    value: UVec2,
+    value: USizeVec2,
 }
 
 impl EditorScroll {
-    pub fn get(&self) -> UVec2 {
+    pub fn get(&self) -> USizeVec2 {
         self.value.clone()
     }
 
@@ -23,7 +22,7 @@ impl EditorScroll {
         self.value.y = y;
     }
 
-    pub fn scroll_to(&mut self, target: UVec2) {
+    pub fn scroll_to(&mut self, target: USizeVec2) {
         self.scroll_to_x(target.x);
         self.scroll_to_y(target.y);
     }
@@ -31,7 +30,7 @@ impl EditorScroll {
     // pub fn scroll_by_x(&mut self, x: isize) {}
     // pub fn scroll_by_y(&mut self, y: isize) {}
 
-    pub fn scroll_by(&mut self, scroll: IVec2, code: &EditorCodeBuffer) {
+    pub fn scroll_by(&mut self, scroll: ISizeVec2, code: &EditorCodeBuffer) {
         if let Some(value) = self.value.checked_add(scroll) {
             if code.get_line_count() > value.y {
                 self.value = value;
@@ -44,12 +43,12 @@ impl EditorScroll {
         cursor: &EditorCursor,
         code: &EditorCodeBuffer,
         mode: &EditorMode,
-        window_size: UVec2,
+        window_size: U16Vec2,
     ) {
         let position = cursor.get(code, mode);
 
-        if position.y >= self.value.y + window_size.y - 1 {
-            self.scroll_to_y(position.y - (window_size.y - 1));
+        if position.y >= self.value.y + window_size.y as usize - 1 {
+            self.scroll_to_y(position.y - (window_size.y as usize - 1));
         } else if position.y < self.value.y {
             self.scroll_to_y(position.y);
         }

@@ -18,6 +18,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "algebra"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "android-tzdata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1191,6 +1198,7 @@ dependencies = [
 name = "tui-studio"
 version = "0.1.0"
 dependencies = [
+ "algebra",
  "arboard",
  "chrono",
  "clap",

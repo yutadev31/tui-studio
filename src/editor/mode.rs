@@ -1,11 +1,11 @@
 use std::fmt::Display;
 
-use crate::utils::vec2::UVec2;
+use algebra::vec2::usize::USizeVec2;
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum EditorMode {
     Normal,
-    Visual { start: UVec2 },
+    Visual { start: USizeVec2 },
     Command,
     Insert { append: bool },
 }

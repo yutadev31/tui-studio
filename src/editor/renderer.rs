@@ -1,13 +1,11 @@
+use algebra::vec2::{isize::ISizeVec2, u16::U16Vec2, usize::USizeVec2};
 use crossterm::style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor};
 use thiserror::Error;
 
 #[cfg(feature = "language_support")]
 use crate::language_support::highlight::HighlightToken;
 
-use crate::utils::{
-    string::CodeString,
-    vec2::{IVec2, UVec2},
-};
+use crate::utils::string::CodeString;
 
 use super::{mode::EditorMode, Editor};
 
@@ -27,7 +25,7 @@ impl EditorRenderer {
     fn render_numbers(
         &self,
         screen: &mut Box<[String]>,
-        window_size: UVec2,
+        window_size: U16Vec2,
         lines: &Vec<CodeString>,
         scroll_y: usize,
         offset_x: usize,
@@ -90,8 +88,8 @@ impl EditorRenderer {
         y: usize,
         draw_y: usize,
         line: &CodeString,
-        cursor_pos: UVec2,
-        start_pos: UVec2,
+        cursor_pos: USizeVec2,
+        start_pos: USizeVec2,
         scroll_y: usize,
         tokens: &Vec<HighlightToken>,
     ) {
@@ -175,7 +173,7 @@ impl EditorRenderer {
         screen: &mut Box<[String]>,
         mode: &EditorMode,
         scroll_y: usize,
-        cursor_pos: UVec2,
+        cursor_pos: USizeVec2,
         y: usize,
         draw_y: usize,
         line: &CodeString,
@@ -195,14 +193,19 @@ impl EditorRenderer {
     fn render_code(
         &self,
         screen: &mut Box<[String]>,
-        window_size: UVec2,
+        window_size: U16Vec2,
         mode: &EditorMode,
         scroll_y: usize,
-        cursor_pos: UVec2,
+        cursor_pos: USizeVec2,
         lines: &Vec<CodeString>,
         tokens: &Vec<HighlightToken>,
     ) -> Result<(), EditorRendererError> {
-        for (draw_y, line) in lines.iter().skip(scroll_y).take(window_size.y).enumerate() {
+        for (draw_y, line) in lines
+            .iter()
+            .skip(scroll_y)
+            .take(window_size.y as usize)
+            .enumerate()
+        {
             self.render_code_line(
                 screen,
                 mode,
@@ -221,26 +224,26 @@ impl EditorRenderer {
     fn render_command_box(
         &self,
         screen: &mut Box<[String]>,
-        window_size: UVec2,
+        window_size: U16Vec2,
         command_input_buf: &String,
-    ) -> UVec2 {
-        let y = window_size.y - 1;
+    ) -> USizeVec2 {
+        let y = window_size.y as usize - 1;
         screen[y] = ":".to_string();
         screen[y].push_str(command_input_buf.as_str());
         let len = screen[y].len();
-        screen[y].push_str(" ".repeat(window_size.x - len).as_str());
+        screen[y].push_str(" ".repeat(window_size.x as usize - len).as_str());
 
-        UVec2::new(len, y)
+        USizeVec2::new(len, y)
     }
 
     pub fn render(
         &self,
         screen: &mut Box<[String]>,
-        window_size: UVec2,
+        window_size: U16Vec2,
         editor: &Editor,
         tokens: &Vec<HighlightToken>,
         command_input_buf: &String,
-    ) -> Result<Option<UVec2>, EditorRendererError> {
+    ) -> Result<Option<USizeVec2>, EditorRendererError> {
         if let Some(current) = editor.get_buffer_manager().get_current() {
             let Ok(current) = current.lock() else {
                 return Err(EditorRendererError::LockError);
@@ -258,8 +261,8 @@ impl EditorRenderer {
             let cursor_pos = current.get_cursor_position(&mode);
             let draw_cursor_pos = current.get_draw_cursor_position(&mode);
 
-            let mut draw_cursor_pos =
-                draw_cursor_pos.checked_add(IVec2::new(offset_x as isize, -(scroll_y as isize)));
+            let mut draw_cursor_pos = draw_cursor_pos
+                .checked_add(ISizeVec2::new(offset_x as isize, -(scroll_y as isize)));
 
             self.render_numbers(screen, window_size, &lines, scroll_y, offset_x);
             self.render_code(

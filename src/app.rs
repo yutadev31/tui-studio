@@ -17,10 +17,10 @@ use crate::{
         key_binding::{Key, KeyConfig},
         rect::Rect,
         term::get_term_size,
-        vec2::{IVec2, UVec2},
     },
 };
 
+use algebra::vec2::{i16::I16Vec2, u16::U16Vec2};
 use chrono::{DateTime, Duration, Utc};
 use crossterm::event::{self, Event as CrosstermEvent, MouseEventKind};
 use thiserror::Error;
@@ -50,7 +50,7 @@ impl App {
         let term_size = get_term_size()?;
 
         Ok(Self {
-            editor: Editor::new(path, Rect::new(UVec2::default(), term_size))?,
+            editor: Editor::new(path, Rect::new(U16Vec2::default(), term_size))?,
             key_config: KeyConfig::default(),
             cmd_mgr: CommandManager::default(),
             key_buf: Vec::new(),
@@ -99,16 +99,13 @@ impl App {
                 return Ok(Some(Event::Input(Key::from(evt))));
             }
             CrosstermEvent::Mouse(evt) => match evt.kind {
-                MouseEventKind::ScrollUp => return Ok(Some(Event::Scroll(IVec2::up()))),
-                MouseEventKind::ScrollDown => return Ok(Some(Event::Scroll(IVec2::down()))),
-                MouseEventKind::ScrollLeft => return Ok(Some(Event::Scroll(IVec2::left()))),
-                MouseEventKind::ScrollRight => return Ok(Some(Event::Scroll(IVec2::right()))),
+                MouseEventKind::ScrollUp => return Ok(Some(Event::Scroll(I16Vec2::up()))),
+                MouseEventKind::ScrollDown => return Ok(Some(Event::Scroll(I16Vec2::down()))),
+                MouseEventKind::ScrollLeft => return Ok(Some(Event::Scroll(I16Vec2::left()))),
+                MouseEventKind::ScrollRight => return Ok(Some(Event::Scroll(I16Vec2::right()))),
                 MouseEventKind::Down(btn) => {
                     if btn == crossterm::event::MouseButton::Left {
-                        return Ok(Some(Event::Click(UVec2::new(
-                            evt.column as usize,
-                            evt.row as usize,
-                        ))));
+                        return Ok(Some(Event::Click(U16Vec2::new(evt.column, evt.row))));
                     }
                 }
                 _ => {}

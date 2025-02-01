@@ -1,11 +1,12 @@
 use std::fmt::{self, Display, Formatter};
 
+use algebra::vec2::{u16::U16Vec2, usize::USizeVec2};
 use arboard::Clipboard;
 use thiserror::Error;
 
 use crate::{
     editor::{action::EditorEditAction, mode::EditorMode},
-    utils::{string::CodeString, vec2::UVec2},
+    utils::string::CodeString,
 };
 
 use super::{
@@ -68,7 +69,7 @@ impl EditorCodeBuffer {
         }
     }
 
-    pub fn delete(&mut self, cursor: UVec2) {
+    pub fn delete(&mut self, cursor: USizeVec2) {
         if cursor.x == self.get_line_length(cursor.y) {
             self.join_lines(cursor.y);
         } else {
@@ -78,7 +79,7 @@ impl EditorCodeBuffer {
 
     pub fn delete_line(
         &mut self,
-        cursor: UVec2,
+        cursor: USizeVec2,
         clipboard: &mut Clipboard,
     ) -> Result<(), EditorCodeBufferError> {
         clipboard.set_text(self.lines[cursor.y].to_string())?;
@@ -88,7 +89,7 @@ impl EditorCodeBuffer {
 
     pub fn delete_selection(
         &mut self,
-        cursor: UVec2,
+        cursor: USizeVec2,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
     ) -> Result<(), EditorCodeBufferError> {
@@ -99,7 +100,7 @@ impl EditorCodeBuffer {
         };
 
         let min = cursor.min(end);
-        let max = cursor.max(end) + UVec2::new(1, 0);
+        let max = cursor.max(end) + USizeVec2::new(1, 0);
 
         if min.y == max.y {
             let line = self.lines[min.y].clone();
@@ -151,7 +152,7 @@ impl EditorCodeBuffer {
         };
 
         let min = start.min(end);
-        let max = start.max(end) + UVec2::new(1, 0);
+        let max = start.max(end) + USizeVec2::new(1, 0);
 
         if min.y == max.y {
             let line = self.lines[min.y].clone();
@@ -199,7 +200,7 @@ impl EditorCodeBuffer {
         cursor: &mut EditorCursor,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
-        window_size: UVec2,
+        window_size: U16Vec2,
     ) -> Result<(), EditorCodeBufferError> {
         let (x, y) = cursor.get(self, mode).into();
         let text = clipboard.get_text()?;
@@ -210,10 +211,10 @@ impl EditorCodeBuffer {
 
     pub fn backspace(
         &mut self,
-        cursor: UVec2,
+        cursor: USizeVec2,
         mut_cursor: &mut EditorCursor,
         mode: &EditorMode,
-        window_size: UVec2,
+        window_size: U16Vec2,
         scroll: &mut EditorScroll,
     ) -> Result<(), EditorCodeBufferError> {
         if cursor.x == 0 {
@@ -251,7 +252,7 @@ impl EditorCodeBuffer {
         mut_cursor: &mut EditorCursor,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
-        window_size: UVec2,
+        window_size: U16Vec2,
         scroll: &mut EditorScroll,
     ) -> Result<(), EditorCodeBufferError> {
         let cursor = mut_cursor.get(self, mode);

@@ -1,8 +1,6 @@
-use crate::{
-    action::AppAction,
-    editor::mode::EditorMode,
-    utils::vec2::{IVec2, UVec2},
-};
+use algebra::vec2::{isize::ISizeVec2, usize::USizeVec2};
+
+use crate::{action::AppAction, editor::mode::EditorMode};
 
 #[derive(Debug, Clone, Hash)]
 pub enum EditorCursorAction {
@@ -12,8 +10,8 @@ pub enum EditorCursorAction {
     Bottom,
     BackWord,
     NextWord,
-    By(IVec2),
-    To(UVec2),
+    By(ISizeVec2),
+    To(USizeVec2),
 }
 
 impl EditorCursorAction {
@@ -24,8 +22,8 @@ impl EditorCursorAction {
 
 #[derive(Debug, Clone, Hash)]
 pub enum EditorScrollAction {
-    By(IVec2),
-    To(UVec2),
+    By(ISizeVec2),
+    To(USizeVec2),
 }
 
 impl EditorScrollAction {

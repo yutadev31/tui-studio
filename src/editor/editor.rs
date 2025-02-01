@@ -1,5 +1,6 @@
 use std::io::{self, stdout};
 
+use algebra::vec2::{isize::ISizeVec2, usize::USizeVec2};
 use arboard::Clipboard;
 use crossterm::{
     cursor::{Hide, MoveTo, SetCursorStyle, Show},
@@ -20,7 +21,6 @@ use crate::{
         key_binding::{Key, KeyConfig, KeyConfigType},
         rect::Rect,
         term::get_term_size,
-        vec2::{IVec2, UVec2},
     },
 };
 
@@ -112,7 +112,7 @@ impl Editor {
             if let EditorMode::Insert { append } = self.mode {
                 if append {
                     let (_, window_size) = self.rect.clone().into();
-                    current.cursor_move_by(IVec2::left(), window_size, &self.mode)?;
+                    current.cursor_move_by(ISizeVec2::left(), window_size, &self.mode)?;
                 }
             }
 
@@ -150,7 +150,7 @@ impl Editor {
 
             if append {
                 let (_, window_size) = self.rect.clone().into();
-                current.cursor_move_by(IVec2::right(), window_size, &self.mode)?;
+                current.cursor_move_by(ISizeVec2::right(), window_size, &self.mode)?;
             }
 
             current.cursor_sync(&self.mode);
@@ -235,7 +235,7 @@ impl Editor {
     }
 
     pub(crate) fn draw(&self) -> Result<(), EditorError> {
-        let mut screen = vec![String::new(); self.rect.size.y].into_boxed_slice();
+        let mut screen = vec![String::new(); self.rect.size.y as usize].into_boxed_slice();
 
         #[cfg(not(feature = "language_support"))]
         let cursor_pos = self.renderer.render(
@@ -258,7 +258,7 @@ impl Editor {
         for (y, line) in screen.iter().enumerate() {
             execute!(
                 stdout(),
-                MoveTo(self.rect.pos.x as u16, (self.rect.pos.y + y) as u16),
+                MoveTo(self.rect.pos.x, self.rect.pos.y + y as u16),
                 Clear(ClearType::CurrentLine),
                 Print(line)
             )?;
@@ -314,7 +314,7 @@ impl Editor {
             KeyConfigType::Normal,
             vec![Key::Char('v')],
             AppAction::EditorAction(EditorAction::SetMode(EditorMode::Visual {
-                start: UVec2::default(),
+                start: USizeVec2::default(),
             })),
         );
 
@@ -323,28 +323,28 @@ impl Editor {
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('h')],
             AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
-                EditorCursorAction::By(IVec2::left()),
+                EditorCursorAction::By(ISizeVec2::left()),
             ))),
         );
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('j')],
             AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
-                EditorCursorAction::By(IVec2::down()),
+                EditorCursorAction::By(ISizeVec2::down()),
             ))),
         );
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('k')],
             AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
-                EditorCursorAction::By(IVec2::up()),
+                EditorCursorAction::By(ISizeVec2::up()),
             ))),
         );
         key_config.register(
             KeyConfigType::NormalAndVisual,
             vec![Key::Char('l')],
             AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Cursor(
-                EditorCursorAction::By(IVec2::right()),
+                EditorCursorAction::By(ISizeVec2::right()),
             ))),
         );
         key_config.register(

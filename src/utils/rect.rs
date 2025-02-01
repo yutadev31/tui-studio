@@ -1,19 +1,19 @@
-use super::vec2::UVec2;
+use algebra::vec2::u16::U16Vec2;
 
 #[derive(Default, Clone)]
 pub struct Rect {
-    pub pos: UVec2,
-    pub size: UVec2,
+    pub pos: U16Vec2,
+    pub size: U16Vec2,
 }
 
 impl Rect {
-    pub fn new(pos: UVec2, size: UVec2) -> Self {
+    pub fn new(pos: U16Vec2, size: U16Vec2) -> Self {
         Self { pos, size }
     }
 }
 
-impl Into<(UVec2, UVec2)> for Rect {
-    fn into(self) -> (UVec2, UVec2) {
+impl Into<(U16Vec2, U16Vec2)> for Rect {
+    fn into(self) -> (U16Vec2, U16Vec2) {
         (self.pos, self.size)
     }
 }
