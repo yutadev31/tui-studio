@@ -9,7 +9,10 @@ use crossterm::{
 use crate::{
     editor::{mode::EditorMode, Editor},
     language_support::highlight::HighlightToken,
-    ui::{renderer::UIRenderer, widget::Widget},
+    ui::{
+        renderer::{ColorToken, RGBColor, UIRenderer},
+        widget::Widget,
+    },
     utils::string::CodeString,
 };
 
@@ -49,41 +52,36 @@ impl EditorPanel {
         y: usize,
         offset_x: usize,
         draw_y: usize,
-        is_select: bool,
         scroll_y: usize,
         tokens: &Option<Vec<HighlightToken>>,
         code: &CodeString,
     ) {
-        let mut code = code.clone();
-        log::debug!("x: {}", offset_x);
+        let code = code.clone();
 
         #[cfg(feature = "language_support")]
         if let Some(tokens) = tokens {
             for highlight_token in tokens.iter().skip(scroll_y).rev() {
-                if highlight_token.end.y == y {
-                    if let Some(x) = highlight_token.end.x.checked_sub(x) {
-                        code.insert_str(x, format!("{}", ResetColor));
-                    }
-                }
+                if highlight_token.start.y <= y && highlight_token.end.y >= y {
+                    let start = if highlight_token.start.y == y {
+                        highlight_token.start.x.checked_sub(x).unwrap()
+                    } else {
+                        0
+                    };
 
-                if highlight_token.start.y == y {
-                    if let Some(x) = highlight_token.start.x.checked_sub(x) {
-                        code.insert_str(
-                            x,
-                            format!(
-                                "{}",
-                                SetForegroundColor(highlight_token.clone().color.into()),
-                            ),
-                        );
-                    }
+                    let end = if highlight_token.end.y == y {
+                        highlight_token.end.x.checked_sub(x).unwrap()
+                    } else {
+                        code.len()
+                    };
+
+                    renderer.add_color_token(
+                        y as u16,
+                        (start + offset_x) as u16,
+                        (end + offset_x) as u16,
+                        ColorToken::Fg(highlight_token.color.clone().into()),
+                    );
                 }
             }
-        }
-
-        if is_select {
-            code.insert_str(0, format!("{}", SetBackgroundColor(Color::White)));
-        } else {
-            code.insert_str(0, format!("{}", SetBackgroundColor(Color::Reset)));
         }
 
         renderer.render_text(
@@ -151,13 +149,23 @@ impl EditorPanel {
                 (start, line.get_range(start, line.len()))
             };
 
+            renderer.add_color_token(
+                y as u16,
+                select_index as u16,
+                back_index as u16,
+                ColorToken::Bg(RGBColor {
+                    r: 128,
+                    g: 128,
+                    b: 128,
+                }),
+            );
+
             self.render_code_string(
                 renderer,
                 front_index,
                 y,
                 offset_x,
                 draw_y,
-                false,
                 scroll_y,
                 tokens,
                 &front_text,
@@ -168,18 +176,15 @@ impl EditorPanel {
                 y,
                 offset_x,
                 draw_y,
-                true,
                 scroll_y,
                 tokens,
                 &select_text,
             );
             self.render_code_string(
-                renderer, back_index, y, offset_x, draw_y, false, scroll_y, tokens, &back_text,
+                renderer, back_index, y, offset_x, draw_y, scroll_y, tokens, &back_text,
             );
         } else {
-            self.render_code_string(
-                renderer, 0, y, offset_x, draw_y, false, scroll_y, tokens, line,
-            );
+            self.render_code_string(renderer, 0, y, offset_x, draw_y, scroll_y, tokens, line);
         }
     }
 
@@ -200,9 +205,7 @@ impl EditorPanel {
                 renderer, y, offset_x, draw_y, line, cursor_pos, start, scroll_y, tokens,
             );
         } else {
-            self.render_code_string(
-                renderer, 0, y, offset_x, draw_y, false, scroll_y, tokens, &line,
-            );
+            self.render_code_string(renderer, 0, y, offset_x, draw_y, scroll_y, tokens, &line);
         }
     }
 

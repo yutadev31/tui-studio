@@ -1,6 +1,8 @@
 use crossterm::style::Color as CrosstermColor;
 use serde::{Deserialize, Serialize};
 
+use crate::ui::renderer::RGBColor;
+
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub enum Color {
     Red,
@@ -16,12 +18,12 @@ pub enum Color {
     White,
 }
 
-fn rgb(r: u8, g: u8, b: u8) -> CrosstermColor {
-    CrosstermColor::Rgb { r, g, b }
+fn rgb(r: u8, g: u8, b: u8) -> RGBColor {
+    RGBColor { r, g, b }
 }
 
-impl Into<CrosstermColor> for Color {
-    fn into(self) -> CrosstermColor {
+impl Into<RGBColor> for Color {
+    fn into(self) -> RGBColor {
         match self {
             Self::Red => rgb(251, 44, 54),
             Self::Orange => rgb(255, 105, 0),
