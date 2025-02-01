@@ -1,0 +1,17 @@
+{
+  "name": "TUI Studio Default Dark Theme",
+  "colors": {
+    "bg": "#101828",
+    "white": "#ffffff",
+    "gray": "#ffffff",
+    "red": "#ffffff",
+    "orange": "#ffffff",
+    "yellow": "#ffffff",
+    "lime": "#ffffff",
+    "green": "#ffffff",
+    "sky": "#ffffff",
+    "blue": "#ffffff",
+    "purple": "#ffffff",
+    "rose": "#ffffff"
+  }
+}

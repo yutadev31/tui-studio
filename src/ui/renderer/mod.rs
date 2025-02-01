@@ -7,26 +7,11 @@ use algebra::vec2::u16::U16Vec2;
 use crossterm::{
     cursor::{Hide, MoveTo, SetCursorStyle, Show},
     execute,
-    style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
+    style::{Print, ResetColor, SetBackgroundColor, SetForegroundColor},
     terminal::{Clear, ClearType},
 };
 
-#[derive(Clone, Debug)]
-pub struct RGBColor {
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
-}
-
-impl Into<Color> for &RGBColor {
-    fn into(self) -> Color {
-        Color::Rgb {
-            r: self.r,
-            g: self.g,
-            b: self.b,
-        }
-    }
-}
+use crate::utils::color::RGBColor;
 
 #[derive(Clone, Debug)]
 pub enum ColorToken {

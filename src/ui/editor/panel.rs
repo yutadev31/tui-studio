@@ -7,10 +7,10 @@ use crate::{
     editor::{mode::EditorMode, Editor},
     language_support::highlight::HighlightToken,
     ui::{
-        renderer::{ColorToken, RGBColor, UIRenderer},
+        renderer::{ColorToken, UIRenderer},
         widget::Widget,
     },
-    utils::string::CodeString,
+    utils::{color::RGBColor, string::CodeString},
 };
 
 pub struct EditorPanel {
