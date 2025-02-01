@@ -395,5 +395,17 @@ impl Editor {
                 AppAction::Quit,
             ],
         );
+        cmd_manager.register(
+            "undo",
+            vec![AppAction::EditorAction(EditorAction::Buffer(
+                EditorBufferAction::History(EditorHistoryAction::Undo),
+            ))],
+        );
+        cmd_manager.register(
+            "redo",
+            vec![AppAction::EditorAction(EditorAction::Buffer(
+                EditorBufferAction::History(EditorHistoryAction::Redo),
+            ))],
+        );
     }
 }
