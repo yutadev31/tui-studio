@@ -261,7 +261,8 @@ impl Widget for EditorPanel {
         };
 
         let mut draw_cursor_pos = U16Vec2::default();
-        let mut cursor_style = None;
+        // let mut cursor_style = None;
+        let mut is_show_cursor = false;
 
         let mode = editor.get_mode();
 
@@ -280,22 +281,16 @@ impl Widget for EditorPanel {
 
             let cursor_pos = current.get_cursor_position(&mode);
 
-            (draw_cursor_pos, cursor_style) = {
+            draw_cursor_pos = {
                 let draw_cursor_pos = current.get_draw_cursor_position(&mode);
                 if let Some(draw_cursor_pos) = draw_cursor_pos
                     .checked_add(ISizeVec2::new(offset_x as isize, -(scroll_y as isize)))
                 {
-                    (
-                        U16Vec2::new(draw_cursor_pos.x as u16, draw_cursor_pos.y as u16),
-                        Some(match mode {
-                            EditorMode::Normal => SetCursorStyle::SteadyBlock,
-                            EditorMode::Visual { start: _ } => SetCursorStyle::SteadyBlock,
-                            EditorMode::Insert { append: _ } => SetCursorStyle::SteadyBar,
-                            EditorMode::Command => SetCursorStyle::SteadyBar,
-                        }),
-                    )
+                    is_show_cursor = true;
+                    U16Vec2::new(draw_cursor_pos.x as u16, draw_cursor_pos.y as u16)
                 } else {
-                    (U16Vec2::default(), None)
+                    is_show_cursor = false;
+                    U16Vec2::default()
                 }
             };
 
@@ -308,10 +303,23 @@ impl Widget for EditorPanel {
         }
 
         if let EditorMode::Command = mode {
+            is_show_cursor = true;
             draw_cursor_pos =
                 self.render_command_box(renderer, size, editor.get_command_input_buf());
         }
 
-        renderer.set_cursor(draw_cursor_pos, cursor_style);
+        renderer.set_cursor(
+            draw_cursor_pos,
+            if is_show_cursor {
+                Some(match mode {
+                    EditorMode::Normal => SetCursorStyle::SteadyBlock,
+                    EditorMode::Visual { start: _ } => SetCursorStyle::SteadyBlock,
+                    EditorMode::Insert { append: _ } => SetCursorStyle::SteadyBar,
+                    EditorMode::Command => SetCursorStyle::SteadyBar,
+                })
+            } else {
+                None
+            },
+        );
     }
 }
