@@ -5,6 +5,8 @@ use std::{
 
 use thiserror::Error;
 
+use crate::editor::action::EditorBufferManagerAction;
+
 use super::buf::{EditorBuffer, EditorBufferError};
 
 #[derive(Debug, Error)]
@@ -49,6 +51,7 @@ impl EditorBufferManager {
                 .push(Arc::new(Mutex::new(EditorBuffer::open(path)?))),
         }
 
+        self.set_current(self.buffers.len() - 1);
         Ok(())
     }
 
@@ -77,5 +80,17 @@ impl EditorBufferManager {
             None => None,
             Some(index) => Some(self.buffers[index].as_ref()),
         }
+    }
+
+    pub(crate) fn on_action(
+        &mut self,
+        action: EditorBufferManagerAction,
+    ) -> Result<(), EditorBufferManagerError> {
+        match action {
+            EditorBufferManagerAction::Open(path) => self.open(Some(PathBuf::from(path)))?,
+            EditorBufferManagerAction::CloseCurrent => self.close_current(),
+            EditorBufferManagerAction::Close(index) => self.close(index),
+        }
+        Ok(())
     }
 }

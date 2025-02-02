@@ -142,8 +142,7 @@ impl App {
                 return Ok(true);
             }
             Event::Command(cmd) => {
-                let commands = self.cmd_mgr.clone();
-                if let Some(actions) = commands.get_action(cmd.as_str()) {
+                if let Some(actions) = self.cmd_mgr.get_action(cmd.as_str()) {
                     for action in actions {
                         if self.on_event(Event::Action(action.clone()))? {
                             return Ok(true);

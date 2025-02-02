@@ -78,8 +78,22 @@ impl EditorBufferAction {
 }
 
 #[derive(Debug, Clone, Hash)]
+pub enum EditorBufferManagerAction {
+    Open(String),
+    CloseCurrent,
+    Close(usize),
+}
+
+impl EditorBufferManagerAction {
+    pub fn to_app(self) -> AppAction {
+        EditorAction::BufferManager(self).to_app()
+    }
+}
+
+#[derive(Debug, Clone, Hash)]
 pub enum EditorAction {
     SetMode(EditorMode),
+    BufferManager(EditorBufferManagerAction),
     Buffer(EditorBufferAction),
 }
 

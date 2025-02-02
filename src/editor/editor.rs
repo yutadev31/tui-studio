@@ -6,6 +6,7 @@ use thiserror::Error;
 
 use crate::{
     action::AppAction,
+    editor::action::EditorBufferManagerAction,
     utils::{
         command::CommandManager,
         event::Event,
@@ -156,6 +157,9 @@ impl Editor {
     pub(crate) fn on_action(&mut self, action: EditorAction) -> Result<(), EditorError> {
         match action {
             EditorAction::SetMode(mode) => self.set_mode(mode)?,
+            EditorAction::BufferManager(action) => {
+                self.buffer_manager.on_action(action);
+            }
             EditorAction::Buffer(action) => {
                 if let Some(current) = self.buffer_manager.get_current() {
                     let Ok(mut current) = current.lock() else {
@@ -374,38 +378,25 @@ impl Editor {
     }
 
     pub(crate) fn register_commands(&self, cmd_manager: &mut CommandManager) {
-        cmd_manager.register("q", vec![AppAction::Quit]);
-        cmd_manager.register(
-            "w",
-            vec![AppAction::EditorAction(EditorAction::Buffer(
-                EditorBufferAction::Save,
-            ))],
-        );
-        cmd_manager.register(
-            "x",
-            vec![
-                AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Save)),
-                AppAction::Quit,
-            ],
-        );
-        cmd_manager.register(
-            "wq",
-            vec![
-                AppAction::EditorAction(EditorAction::Buffer(EditorBufferAction::Save)),
-                AppAction::Quit,
-            ],
-        );
-        cmd_manager.register(
-            "undo",
-            vec![AppAction::EditorAction(EditorAction::Buffer(
-                EditorBufferAction::History(EditorHistoryAction::Undo),
-            ))],
-        );
-        cmd_manager.register(
-            "redo",
-            vec![AppAction::EditorAction(EditorAction::Buffer(
-                EditorBufferAction::History(EditorHistoryAction::Redo),
-            ))],
-        );
+        cmd_manager.register("q", |_| vec![AppAction::Quit]);
+        cmd_manager.register("w", |_| vec![EditorBufferAction::Save.to_app()]);
+        cmd_manager.register("x", |_| {
+            vec![EditorBufferAction::Save.to_app(), AppAction::Quit]
+        });
+        cmd_manager.register("wq", |_| {
+            vec![EditorBufferAction::Save.to_app(), AppAction::Quit]
+        });
+        cmd_manager.register("undo", |_| vec![EditorHistoryAction::Undo.to_app()]);
+        cmd_manager.register("redo", |_| vec![EditorHistoryAction::Redo.to_app()]);
+        cmd_manager.register("open", |args| {
+            if let Some(path) = args.get(0) {
+                vec![EditorBufferManagerAction::Open(path.to_string()).to_app()]
+            } else {
+                vec![]
+            }
+        });
+        cmd_manager.register("close", |_| {
+            vec![EditorBufferManagerAction::CloseCurrent.to_app()]
+        });
     }
 }
