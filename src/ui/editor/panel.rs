@@ -7,7 +7,7 @@ use crate::{
     editor::{mode::EditorMode, Editor},
     language_support::highlight::HighlightToken,
     ui::{
-        renderer::{ColorToken, UIRenderer},
+        renderer::{ColorToken, WidgetRenderer},
         widget::Widget,
     },
     utils::{color::RGBColor, string::CodeString},
@@ -24,7 +24,7 @@ impl EditorPanel {
 
     fn render_numbers(
         &self,
-        renderer: &mut UIRenderer,
+        renderer: &mut WidgetRenderer,
         window_size: U16Vec2,
         lines: &Vec<CodeString>,
         scroll_y: usize,
@@ -44,7 +44,7 @@ impl EditorPanel {
 
     fn render_code_string(
         &self,
-        renderer: &mut UIRenderer,
+        renderer: &mut WidgetRenderer,
         x: usize,
         y: usize,
         offset_x: usize,
@@ -88,7 +88,7 @@ impl EditorPanel {
 
     fn render_code_visual_mode(
         &self,
-        renderer: &mut UIRenderer,
+        renderer: &mut WidgetRenderer,
         y: usize,
         offset_x: usize,
         draw_y: usize,
@@ -186,7 +186,7 @@ impl EditorPanel {
 
     fn render_code_line(
         &self,
-        renderer: &mut UIRenderer,
+        renderer: &mut WidgetRenderer,
         mode: &EditorMode,
         offset_x: usize,
         scroll_y: usize,
@@ -207,7 +207,7 @@ impl EditorPanel {
 
     fn render_code(
         &self,
-        renderer: &mut UIRenderer,
+        renderer: &mut WidgetRenderer,
         window_size: U16Vec2,
         mode: &EditorMode,
         offset_x: usize,
@@ -238,7 +238,7 @@ impl EditorPanel {
 
     fn render_command_box(
         &self,
-        renderer: &mut UIRenderer,
+        renderer: &mut WidgetRenderer,
         window_size: U16Vec2,
         command_input_buf: &String,
     ) -> U16Vec2 {
@@ -255,7 +255,7 @@ impl EditorPanel {
 }
 
 impl Widget for EditorPanel {
-    fn render(&self, renderer: &mut UIRenderer, size: U16Vec2) {
+    fn render(&self, renderer: &mut WidgetRenderer, size: U16Vec2) {
         let Ok(editor) = self.editor.lock() else {
             return;
         };

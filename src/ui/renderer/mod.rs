@@ -31,7 +31,7 @@ impl ToString for ColorToken {
 }
 
 #[derive(Default)]
-pub struct UIRenderer {
+pub struct WidgetRenderer {
     size: U16Vec2,
     buf: Vec<Vec<char>>,
     color_tokens: Vec<(u16, u16, u16, ColorToken)>, // y, x_start, x_end
@@ -39,7 +39,7 @@ pub struct UIRenderer {
     cursor_style: Option<SetCursorStyle>,
 }
 
-impl UIRenderer {
+impl WidgetRenderer {
     pub fn new(size: U16Vec2) -> Self {
         Self {
             buf: vec![vec![' '; size.x as usize]; size.y as usize],
@@ -50,7 +50,7 @@ impl UIRenderer {
         }
     }
 
-    pub fn render_child(&mut self, child: UIRenderer, pos: U16Vec2) {
+    pub fn render_child(&mut self, child: WidgetRenderer, pos: U16Vec2) {
         child
             .buf
             .iter()

@@ -11,7 +11,7 @@ use std::{
 use crate::{
     action::AppAction,
     editor::{Editor, EditorError},
-    ui::{editor::panel::EditorPanel, renderer::UIRenderer, widget::Widget},
+    ui::{editor::panel::EditorPanel, renderer::WidgetRenderer, widget::Widget},
     utils::{
         command::CommandManager,
         event::Event,
@@ -173,9 +173,9 @@ impl App {
     pub(crate) fn draw(&self) -> Result<(), AppError> {
         let term_size = get_term_size()?;
 
-        let mut renderer = UIRenderer::new(term_size);
+        let mut renderer = WidgetRenderer::new(term_size);
         self.editor_panel.render(&mut renderer, term_size);
-        UIRenderer::render(renderer)?;
+        WidgetRenderer::render(renderer)?;
         Ok(())
     }
 

@@ -1,6 +1,6 @@
 use algebra::vec2::u16::U16Vec2;
 
-use crate::ui::{renderer::UIRenderer, widget::Widget};
+use crate::ui::{renderer::WidgetRenderer, widget::Widget};
 
 #[derive(Default)]
 pub struct TabPanel {
@@ -18,10 +18,10 @@ impl TabPanel {
 }
 
 impl Widget for TabPanel {
-    fn render(&self, renderer: &mut UIRenderer, size: U16Vec2) {
+    fn render(&self, renderer: &mut WidgetRenderer, size: U16Vec2) {
         if let Some(index) = self.current_index {
             if let Some(child) = self.children.get(index) {
-                let child_renderer = UIRenderer::new(size);
+                let child_renderer = WidgetRenderer::new(size);
                 // child.draw(&mut child_screen, size);
                 // for line in child_screen {
                 //     screen.push(line);
