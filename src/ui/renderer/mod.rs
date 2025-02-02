@@ -115,13 +115,14 @@ impl UIRenderer {
                 ResetColor,
             )?;
         }
-        execute!(
-            stdout(),
-            MoveTo(renderer.cursor_pos.x, renderer.cursor_pos.y),
-        )?;
 
         if let Some(style) = renderer.cursor_style {
-            execute!(stdout(), Show, style)?;
+            execute!(
+                stdout(),
+                Show,
+                style,
+                MoveTo(renderer.cursor_pos.x, renderer.cursor_pos.y),
+            )?;
         } else {
             execute!(stdout(), Hide)?;
         }

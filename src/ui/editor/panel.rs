@@ -261,6 +261,7 @@ impl Widget for EditorPanel {
         };
 
         let mut draw_cursor_pos = U16Vec2::default();
+        let mut cursor_style = None;
 
         let mode = editor.get_mode();
 
@@ -279,14 +280,22 @@ impl Widget for EditorPanel {
 
             let cursor_pos = current.get_cursor_position(&mode);
 
-            draw_cursor_pos = {
+            (draw_cursor_pos, cursor_style) = {
                 let draw_cursor_pos = current.get_draw_cursor_position(&mode);
                 if let Some(draw_cursor_pos) = draw_cursor_pos
                     .checked_add(ISizeVec2::new(offset_x as isize, -(scroll_y as isize)))
                 {
-                    U16Vec2::new(draw_cursor_pos.x as u16, draw_cursor_pos.y as u16)
+                    (
+                        U16Vec2::new(draw_cursor_pos.x as u16, draw_cursor_pos.y as u16),
+                        Some(match mode {
+                            EditorMode::Normal => SetCursorStyle::SteadyBlock,
+                            EditorMode::Visual { start: _ } => SetCursorStyle::SteadyBlock,
+                            EditorMode::Insert { append: _ } => SetCursorStyle::SteadyBar,
+                            EditorMode::Command => SetCursorStyle::SteadyBar,
+                        }),
+                    )
                 } else {
-                    U16Vec2::default()
+                    (U16Vec2::default(), None)
                 }
             };
 
@@ -303,14 +312,6 @@ impl Widget for EditorPanel {
                 self.render_command_box(renderer, size, editor.get_command_input_buf());
         }
 
-        renderer.set_cursor(
-            draw_cursor_pos,
-            Some(match mode {
-                EditorMode::Normal => SetCursorStyle::SteadyBlock,
-                EditorMode::Visual { start: _ } => SetCursorStyle::SteadyBlock,
-                EditorMode::Insert { append: _ } => SetCursorStyle::SteadyBar,
-                EditorMode::Command => SetCursorStyle::SteadyBar,
-            }),
-        );
+        renderer.set_cursor(draw_cursor_pos, cursor_style);
     }
 }
