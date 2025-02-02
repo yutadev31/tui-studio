@@ -8,12 +8,12 @@ pub struct CommandManager {
 }
 
 impl CommandManager {
-    pub fn register(&mut self, alias: &str, actions: Vec<AppAction>) {
-        self.commands.insert(alias.to_string(), actions);
+    pub fn register(&mut self, command: &str, actions: Vec<AppAction>) {
+        self.commands.insert(command.to_string(), actions);
     }
 
-    pub fn get_command(&self, alias: &str) -> Option<&Vec<AppAction>> {
-        self.commands.get(&alias.to_string())
+    pub fn get_action(&self, command: &str) -> Option<&Vec<AppAction>> {
+        self.commands.get(&command.to_string())
     }
 }
 
