@@ -4,6 +4,7 @@ use std::{
     path::PathBuf,
 };
 
+use algebra::vec2::usize::USizeVec2;
 use utils::wide_string::WideString;
 
 use crate::types::error::{EditorError, EditorResult};
@@ -51,6 +52,24 @@ impl EditorContent {
 
     pub fn set_lines(&mut self, content: Vec<WideString>) {
         self.content = content;
+    }
+
+    pub fn insert_char(&mut self, ch: char, pos: USizeVec2) {
+        match self.content.get_mut(pos.y) {
+            Some(line) => {
+                line.insert(pos.x, ch);
+            }
+            None => {}
+        }
+    }
+
+    pub fn delete_char(&mut self, pos: USizeVec2) {
+        match self.content.get_mut(pos.y) {
+            Some(line) => {
+                line.remove(pos.x);
+            }
+            None => {}
+        }
     }
 }
 

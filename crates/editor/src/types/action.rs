@@ -1,5 +1,7 @@
 use algebra::vec2::{isize::ISizeVec2, usize::USizeVec2};
 
+use super::mode::EditorMode;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CursorAction {
     To(USizeVec2),
@@ -28,4 +30,5 @@ pub enum ContentAction {
 pub enum EditorAction {
     Cursor(CursorAction),
     Content(ContentAction),
+    SetMode(EditorMode),
 }

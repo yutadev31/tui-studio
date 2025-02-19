@@ -49,16 +49,14 @@ impl EditorPanel {
         //     vec![Key::Char(':')],
         //     AppAction::EditorAction(EditorAction::SetMode(EditorMode::Command)),
         // );
-        // key_config.register(
-        //     KeyConfigType::Normal,
-        //     vec![Key::Char('i')],
-        //     AppAction::EditorAction(EditorAction::SetMode(EditorMode::Insert { append: false })),
-        // );
-        // key_config.register(
-        //     KeyConfigType::Normal,
-        //     vec![Key::Char('a')],
-        //     AppAction::EditorAction(EditorAction::SetMode(EditorMode::Insert { append: true })),
-        // );
+        key_config.register(
+            vec![Key::Char('i')],
+            EditorAction::SetMode(EditorMode::Insert { append: false }),
+        );
+        key_config.register(
+            vec![Key::Char('a')],
+            EditorAction::SetMode(EditorMode::Insert { append: true }),
+        );
         // key_config.register(
         //     KeyConfigType::Normal,
         //     vec![Key::Char('v')],
@@ -463,6 +461,7 @@ impl EditorPanel {
                 CursorAction::NextWord => {}
             },
             EditorAction::Content(action) => {}
+            EditorAction::SetMode(mode) => self.editor.set_mode(mode)?,
         }
 
         Ok(())
@@ -480,30 +479,51 @@ impl Widget for EditorPanel {
 
 impl Panel for EditorPanel {
     fn on_keydown(&mut self, key: Key) {
-        if self.key_buf.len() == 0 {
-            self.first_key_time = Some(Utc::now())
-        } else if let Some(first_key_time) = self.first_key_time {
-            let now = Utc::now();
-            let elapsed = now - first_key_time;
+        let Ok(mode) = self.editor.get_mode() else {
+            return;
+        };
 
-            if elapsed >= Duration::milliseconds(500) {
-                self.key_buf = Vec::new();
-            }
-        }
+        match mode {
+            EditorMode::Insert { .. } => match key {
+                Key::Char(ch) => {
+                    let _ = self.buf.insert_char(ch);
+                }
+                Key::Backspace => {
+                    let _ = self.buf.backspace();
+                }
+                Key::Delete => {
+                    let _ = self.buf.delete();
+                }
+                _ => {}
+            },
+            EditorMode::Command => {}
+            _ => {
+                if self.key_buf.len() == 0 {
+                    self.first_key_time = Some(Utc::now())
+                } else if let Some(first_key_time) = self.first_key_time {
+                    let now = Utc::now();
+                    let elapsed = now - first_key_time;
 
-        self.key_buf.push(key);
+                    if elapsed >= Duration::milliseconds(500) {
+                        self.key_buf = Vec::new();
+                    }
+                }
 
-        match self.key_config.get_action(&self.key_buf) {
-            None => {
-                return;
-            }
-            Some(action) => {
-                self.key_buf = Vec::new();
-                match self.on_action(action.clone()) {
-                    Ok(_) => {}
-                    Err(err) => log::error!("{}", err),
+                self.key_buf.push(key);
+
+                match self.key_config.get_action(&self.key_buf) {
+                    None => {
+                        return;
+                    }
+                    Some(action) => {
+                        self.key_buf = Vec::new();
+                        match self.on_action(action.clone()) {
+                            Ok(_) => {}
+                            Err(err) => log::error!("{}", err),
+                        };
+                    }
                 };
             }
-        };
+        }
     }
 }

@@ -55,6 +55,36 @@ impl EditorBufferAPI {
         Ok(())
     }
 
+    pub fn insert_char(&mut self, ch: char) -> EditorResult<()> {
+        let mut buf = self.get_buf()?;
+        let pos = buf.get_cursor().get();
+        let content = buf.get_content_mut();
+        content.insert_char(ch, pos);
+        Ok(())
+    }
+
+    pub fn delete(&mut self) -> EditorResult<()> {
+        let mut buf = self.get_buf()?;
+        let pos = buf.get_cursor().get();
+        let content = buf.get_content_mut();
+        content.delete_char(pos);
+        Ok(())
+    }
+
+    pub fn backspace(&mut self) -> EditorResult<()> {
+        let mut buf = self.get_buf()?;
+        let pos = buf.get_cursor().get();
+        let content = buf.get_content_mut();
+        content.delete_char(USizeVec2 {
+            x: match pos.x.checked_sub(1) {
+                Some(x) => x,
+                None => pos.x,
+            },
+            y: pos.y,
+        });
+        Ok(())
+    }
+
     /* Cursor */
     pub fn get_cursor_position(&self) -> EditorResult<USizeVec2> {
         let buf = self.get_buf()?;
