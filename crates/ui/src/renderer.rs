@@ -1,9 +1,9 @@
-use std::io::{self, stdout};
+use std::io::{self, stdout, Write};
 
 use algebra::vec2::u16::U16Vec2;
 use crossterm::{
     cursor::{Hide, MoveTo, SetCursorStyle, Show},
-    execute,
+    queue,
     style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
     terminal::{Clear, ClearType},
 };
@@ -99,7 +99,7 @@ impl Renderer {
                 }
             }
 
-            execute!(
+            queue!(
                 stdout(),
                 MoveTo(0, draw_y as u16),
                 Clear(ClearType::CurrentLine),
@@ -109,15 +109,17 @@ impl Renderer {
         }
 
         if let Some(style) = renderer.cursor_style {
-            execute!(
+            queue!(
                 stdout(),
                 Show,
                 style,
                 MoveTo(renderer.cursor_pos.x, renderer.cursor_pos.y),
             )?;
         } else {
-            execute!(stdout(), Hide)?;
+            queue!(stdout(), Hide)?;
         }
+
+        stdout().flush()?;
 
         Ok(())
     }
