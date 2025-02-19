@@ -1,9 +1,10 @@
+use std::io;
+
 use clap::Parser;
 use fluent_templates::static_loader;
-use log::error;
 use tui_studio::{
     utils::term::{init_term, safe_exit},
-    App, PublicAppError,
+    App,
 };
 
 static_loader! {
@@ -20,14 +21,11 @@ struct Args {
     path: Vec<String>,
 }
 
-fn main() -> Result<(), PublicAppError> {
+fn main() -> io::Result<()> {
     init_term()?;
-    let args = Args::parse();
 
-    match App::run(args.path) {
-        Err(err) => error!("{}", err),
-        Ok(_) => {}
-    };
+    let args = Args::parse();
+    App::run(args.path);
 
     safe_exit();
     Ok(())

@@ -1,0 +1,11 @@
+[package]
+name = "language_support"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+utils.workspace = true
+regex.workspace = true
+algebra.workspace = true

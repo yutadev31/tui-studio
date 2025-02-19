@@ -1,5 +1,11 @@
 [workspace]
-members = ["crates/algebra"]
+members = [
+  "crates/algebra",
+  "crates/editor",
+  "crates/language_support",
+  "crates/ui",
+  "crates/utils",
+]
 resolver = "2"
 
 [workspace.package]
@@ -24,6 +30,12 @@ tui-studio.path = "."
 dirs = "6.0.0"
 log = "0.4.25"
 fern = "0.7.1"
+bitflags = "2.8.0"
+
+algebra.path = "crates/algebra"
+editor.path = "crates/editor"
+ui.path = "crates/ui"
+utils.path = "crates/utils"
 
 [package]
 name = "tui-studio"
@@ -34,7 +46,6 @@ authors.workspace = true
 
 [dependencies]
 crossterm.workspace = true
-unicode-width.workspace = true
 arboard.workspace = true
 thiserror.workspace = true
 fluent.workspace = true
@@ -47,4 +58,7 @@ serde.workspace = true
 serde_json.workspace = true
 log.workspace = true
 fern.workspace = true
-algebra.path = "crates/algebra"
+algebra.workspace = true
+editor.workspace = true
+utils.workspace = true
+ui.workspace = true

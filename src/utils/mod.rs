@@ -1,9 +1,2 @@
-pub mod color;
-pub mod command;
-pub mod event;
-pub mod file_type;
-pub mod key_binding;
 pub mod log;
-pub mod rect;
-pub mod string;
 pub mod term;

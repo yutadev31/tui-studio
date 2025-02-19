@@ -1,0 +1,11 @@
+[package]
+name = "ui"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+algebra.workspace = true
+utils.workspace = true
+crossterm.workspace = true
