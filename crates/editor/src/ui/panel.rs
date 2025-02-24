@@ -26,7 +26,6 @@ pub struct EditorPanel {
 
     editor: EditorAPI,
     buf: EditorBufferAPI,
-    scroll: USizeVec2,
 }
 
 impl EditorPanel {
@@ -149,7 +148,6 @@ impl EditorPanel {
         Self {
             editor,
             buf,
-            scroll: USizeVec2::default(),
             first_key_time: None,
             key_buf: Vec::default(),
             key_config,
@@ -160,11 +158,12 @@ impl EditorPanel {
         &self,
         renderer: &mut Renderer,
         window_size: U16Vec2,
+        scroll_offset: USizeVec2,
         lines: &Vec<WideString>,
         offset_x: usize,
     ) {
         (0..lines.len())
-            .skip(self.scroll.y)
+            .skip(scroll_offset.y)
             .take(window_size.y.into())
             .enumerate()
             .for_each(|(draw_y, y)| {
@@ -349,13 +348,14 @@ impl EditorPanel {
         renderer: &mut Renderer,
         window_size: U16Vec2,
         offset_x: usize,
+        scroll_offset: USizeVec2,
         mode: &EditorMode,
         cursor_pos: USizeVec2,
         lines: &Vec<WideString>,
     ) {
         for (draw_y, line) in lines
             .iter()
-            .skip(self.scroll.y)
+            .skip(scroll_offset.y)
             .take(window_size.y as usize)
             .enumerate()
         {
@@ -364,7 +364,7 @@ impl EditorPanel {
                 mode,
                 offset_x,
                 cursor_pos,
-                draw_y + self.scroll.y,
+                draw_y + scroll_offset.y,
                 draw_y,
                 line,
             );
@@ -405,13 +405,15 @@ impl EditorPanel {
         let num_len = (len - 1).to_string().len();
         let offset_x = num_len + 1;
 
+        let scroll_offset = self.buf.get_scroll_offset()?;
         let cursor_pos = self.buf.get_cursor_position()?;
 
         draw_cursor_pos = {
             let draw_cursor_pos = self.buf.get_cursor_draw_position()?;
-            if let Some(draw_cursor_pos) = draw_cursor_pos
-                .checked_add(ISizeVec2::new(offset_x as isize, -(self.scroll.y as isize)))
-            {
+            if let Some(draw_cursor_pos) = draw_cursor_pos.checked_add(ISizeVec2::new(
+                offset_x as isize,
+                -(scroll_offset.y as isize),
+            )) {
                 is_show_cursor = true;
                 U16Vec2::new(draw_cursor_pos.x as u16, draw_cursor_pos.y as u16)
             } else {
@@ -420,8 +422,16 @@ impl EditorPanel {
             }
         };
 
-        self.render_numbers(renderer, size, &lines, offset_x);
-        self.render_code(renderer, size, offset_x, &mode, cursor_pos, &lines);
+        self.render_numbers(renderer, size, scroll_offset, &lines, offset_x);
+        self.render_code(
+            renderer,
+            size,
+            offset_x,
+            scroll_offset,
+            &mode,
+            cursor_pos,
+            &lines,
+        );
 
         // let tokens = &current.highlight();
 

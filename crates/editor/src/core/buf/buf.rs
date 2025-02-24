@@ -2,15 +2,20 @@ use std::path::PathBuf;
 
 use crate::types::error::EditorResult;
 
-use super::{content::EditorContent, cursor::EditorCursor, history::EditorHistory};
+use super::{
+    content::EditorContent, cursor::EditorCursor, history::EditorHistory, scroll::EditorScroll,
+};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct EditorBuffer {
     /// ファイルパス
     path: Option<PathBuf>,
 
     /// Bufferの内容
     content: EditorContent,
+
+    // スクロール
+    scroll: EditorScroll,
 
     /// カーソル
     cursor: EditorCursor,
@@ -42,22 +47,19 @@ impl EditorBuffer {
         &mut self.content
     }
 
+    pub fn get_scroll(&self) -> &EditorScroll {
+        &self.scroll
+    }
+
+    pub fn get_scroll_mut(&mut self) -> &mut EditorScroll {
+        &mut self.scroll
+    }
+
     pub fn get_cursor(&self) -> &EditorCursor {
         &self.cursor
     }
 
     pub fn get_cursor_mut(&mut self) -> &mut EditorCursor {
         &mut self.cursor
-    }
-}
-
-impl Default for EditorBuffer {
-    fn default() -> Self {
-        Self {
-            path: None,
-            cursor: EditorCursor::default(),
-            content: EditorContent::default(),
-            history: EditorHistory::default(),
-        }
     }
 }

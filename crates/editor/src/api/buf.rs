@@ -85,6 +85,13 @@ impl EditorBufferAPI {
         Ok(())
     }
 
+    /* Scroll */
+    pub fn get_scroll_offset(&self) -> EditorResult<USizeVec2> {
+        let buf = self.get_buf()?;
+        let scroll = buf.get_scroll();
+        Ok(scroll.get())
+    }
+
     /* Cursor */
     pub fn get_cursor_position(&self) -> EditorResult<USizeVec2> {
         let buf = self.get_buf()?;
