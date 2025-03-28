@@ -176,7 +176,7 @@ impl EditorBuffer {
                         mode,
                         window_size,
                     );
-                    self.cursor.move_to_x(x, &self.code, mode);
+                    self.cursor.move_to_x(x);
                 }
                 Event::Scroll(scroll) => self.scroll.scroll_by(scroll, &self.code),
                 _ => {}
@@ -198,7 +198,7 @@ impl EditorBuffer {
                         self.code.append(cursor_x, cursor_y, '\n');
                         self.cursor
                             .move_by_y(1, &self.code, mode, window_size, &mut self.scroll);
-                        self.cursor.move_to_x(0, &self.code, mode);
+                        self.cursor.move_to_x(0);
                     }
                     Key::Char(c) => {
                         self.code.append(cursor_x, cursor_y, c);

@@ -65,8 +65,8 @@ impl EditorCursor {
         }
     }
 
-    pub fn move_to_x(&mut self, x: usize, code: &EditorContent, mode: &EditorMode) {
-        self.position.x = self.clamp_x(x, code, mode);
+    pub fn move_to_x(&mut self, x: usize) {
+        self.position.x = x;
     }
 
     pub fn move_to_y(
@@ -90,7 +90,7 @@ impl EditorCursor {
         window_size: UVec2,
     ) {
         self.move_to_y(target.y, code, scroll, mode, window_size);
-        self.move_to_x(target.x, code, mode);
+        self.move_to_x(target.x);
     }
 
     pub fn move_by_x(
@@ -227,11 +227,8 @@ impl EditorCursor {
             EditorCursorAction::Down => self.move_by_y(1, code, mode, window_size, scroll),
             EditorCursorAction::Up => self.move_by_y(-1, code, mode, window_size, scroll),
             EditorCursorAction::Right => self.move_by_x(1, code, mode, window_size),
-            EditorCursorAction::LineStart => self.move_to_x(0, code, mode),
-            EditorCursorAction::LineEnd => {
-                let line_length = code.get_line_length(self.position.y);
-                self.move_to_x(line_length, code, mode);
-            }
+            EditorCursorAction::LineStart => self.move_to_x(0),
+            EditorCursorAction::LineEnd => self.move_to_x(usize::MAX),
             EditorCursorAction::Top => self.move_to_y(0, code, scroll, mode, window_size),
             EditorCursorAction::Bottom => {
                 let line_count = code.get_line_count() - 1;

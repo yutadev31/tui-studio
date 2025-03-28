@@ -216,7 +216,7 @@ impl EditorContent {
             cursor.move_by_y(-1, &self, mode, window_size, scroll);
 
             // line_length - 1 するのが本来は良いが usize が 0 以下になるのを防ぐため、- 1 はしない
-            cursor.move_to_x(line_length, &self, mode);
+            cursor.move_to_x(line_length);
             self.join_lines(cursor_pos.y - 1);
         } else {
             let remove_x = cursor_pos.x - 1;
