@@ -1,4 +1,8 @@
-use std::io::{stdout, Write};
+use std::{
+    io::{stdout, Write},
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 use anyhow::anyhow;
 use arboard::Clipboard;
@@ -24,14 +28,15 @@ use crate::{
 
 use super::{
     action::{EditorAction, EditorBufferAction, EditorCursorAction, EditorEditAction},
-    buf::manager::EditorBufferManager,
+    buffer::EditorBuffer,
     mode::EditorMode,
     renderer::EditorRenderer,
 };
 
 pub struct Editor {
     rect: Rect,
-    buffer_manager: EditorBufferManager,
+    buffers: Vec<Arc<Mutex<EditorBuffer>>>,
+    current_buffer_index: Option<usize>,
     mode: EditorMode,
     clipboard: Clipboard,
     highlight_tokens: Vec<HighlightToken>,
@@ -43,17 +48,19 @@ impl Editor {
     pub(crate) fn new(path: Option<String>, rect: Rect) -> anyhow::Result<Self> {
         Ok(Self {
             rect,
-            buffer_manager: EditorBufferManager::new(path)?,
+            buffers: match path {
+                None => vec![Arc::new(Mutex::new(EditorBuffer::new()))],
+                Some(path) => vec![Arc::new(Mutex::new(EditorBuffer::open(PathBuf::from(
+                    path,
+                ))?))],
+            },
+            current_buffer_index: Some(0),
             mode: EditorMode::Normal,
             clipboard: Clipboard::new()?,
             highlight_tokens: vec![],
             command_input_buf: String::new(),
             renderer: EditorRenderer::default(),
         })
-    }
-
-    pub(crate) fn get_buffer_manager(&self) -> &EditorBufferManager {
-        &self.buffer_manager
     }
 
     pub(crate) fn get_mode(&self) -> EditorMode {
@@ -71,9 +78,13 @@ impl Editor {
         Ok(())
     }
 
+    pub(crate) fn get_current_buffer(&self) -> Option<Arc<Mutex<EditorBuffer>>> {
+        self.current_buffer_index
+            .map(|index| self.buffers[index].clone())
+    }
+
     pub(crate) fn set_normal_mode(&mut self) -> anyhow::Result<()> {
-        let current = self.buffer_manager.get_current();
-        if let Some(current) = current {
+        if let Some(current) = self.get_current_buffer() {
             let Ok(mut current) = current.lock() else {
                 return Err(anyhow!("Failed to lock current buffer"));
             };
@@ -81,7 +92,7 @@ impl Editor {
             if let EditorMode::Insert { append } = self.mode {
                 if append {
                     let (_, window_size) = self.rect.clone().into();
-                    current.cursor_move_by(IVec2::left(), window_size, &self.mode)?;
+                    current.move_by(IVec2::left(), &self.mode, window_size);
                 }
             }
 
@@ -93,13 +104,12 @@ impl Editor {
     }
 
     pub(crate) fn set_visual_mode(&mut self) -> anyhow::Result<()> {
-        let current = self.buffer_manager.get_current();
-        if let Some(current) = current {
+        if let Some(current) = self.get_current_buffer() {
             let Ok(current) = current.lock() else {
                 return Err(anyhow!("Failed to lock current buffer"));
             };
 
-            let start = current.get_cursor_position(&self.mode);
+            let start = current.get_position(&self.mode);
             self.mode = EditorMode::Visual { start };
             Ok(())
         } else {
@@ -108,21 +118,20 @@ impl Editor {
     }
 
     pub(crate) fn set_insert_mode(&mut self, append: bool) -> anyhow::Result<()> {
-        let current = self.buffer_manager.get_current();
-        if let Some(current) = current {
+        if let Some(current) = self.get_current_buffer() {
             let Ok(mut current) = current.lock() else {
                 return Err(anyhow!("Failed to lock current buffer"));
             };
 
-            current.cursor_sync(&self.mode);
+            current.sync(&self.mode);
             self.mode = EditorMode::Insert { append };
 
             if append {
                 let (_, window_size) = self.rect.clone().into();
-                current.cursor_move_by(IVec2::right(), window_size, &self.mode)?;
+                current.move_by(IVec2::right(), &self.mode, window_size);
             }
 
-            current.cursor_sync(&self.mode);
+            current.sync(&self.mode);
             Ok(())
         } else {
             Err(anyhow!("No buffer open"))
@@ -138,7 +147,7 @@ impl Editor {
         match action {
             EditorAction::SetMode(mode) => self.set_mode(mode)?,
             EditorAction::Buffer(action) => {
-                if let Some(current) = self.buffer_manager.get_current() {
+                if let Some(current) = self.get_current_buffer() {
                     let Ok(mut current) = current.lock() else {
                         return Err(anyhow!("Failed to lock current buffer"));
                     };
@@ -178,7 +187,7 @@ impl Editor {
             }
         }
 
-        if let Some(current) = self.buffer_manager.get_current() {
+        if let Some(current) = self.get_current_buffer() {
             let Ok(mut current) = current.lock() else {
                 return Err(anyhow!("Failed to lock current buffer"));
             };
@@ -187,15 +196,15 @@ impl Editor {
             current.on_event(evt, &self.mode, window_size)?;
         }
 
-        if let Some(current) = self.buffer_manager.get_current() {
-            let Ok(current) = current.lock() else {
-                return Err(anyhow!("Failed to lock current buffer"));
-            };
+        // if let Some(current) = self.buffer_manager.get_current() {
+        //     let Ok(current) = current.lock() else {
+        //         return Err(anyhow!("Failed to lock current buffer"));
+        //     };
 
-            if let Some(tokens) = current.highlight() {
-                self.highlight_tokens = tokens;
-            }
-        }
+        //     if let Some(tokens) = current.highlight() {
+        //         self.highlight_tokens = tokens;
+        //     }
+        // }
 
         Ok(events)
     }
