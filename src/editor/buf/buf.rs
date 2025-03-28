@@ -25,11 +25,11 @@ use crate::{
     },
 };
 
-use super::{code_buf::EditorCodeBuffer, cursor::EditorCursor, scroll::EditorScroll};
+use super::{content::EditorContent, cursor::EditorCursor, scroll::EditorScroll};
 
 #[derive(Default)]
 pub(crate) struct EditorBuffer {
-    code: EditorCodeBuffer,
+    code: EditorContent,
     cursor: EditorCursor,
     scroll: EditorScroll,
     language_support: Option<Box<dyn LanguageSupport>>,
@@ -66,7 +66,7 @@ impl EditorBuffer {
         };
 
         Ok(Self {
-            code: EditorCodeBuffer::from(buf),
+            code: EditorContent::from(buf),
             file: Some(file),
             language_support,
             ..Default::default()
@@ -120,7 +120,7 @@ impl EditorBuffer {
         self.cursor.sync(&self.code, mode);
     }
 
-    pub fn get_code_buf(&self) -> &EditorCodeBuffer {
+    pub fn get_code_buf(&self) -> &EditorContent {
         &self.code
     }
 

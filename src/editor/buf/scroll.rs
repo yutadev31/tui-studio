@@ -3,7 +3,7 @@ use crate::{
     utils::vec2::{IVec2, UVec2},
 };
 
-use super::{code_buf::EditorCodeBuffer, cursor::EditorCursor};
+use super::{content::EditorContent, cursor::EditorCursor};
 
 #[derive(Default)]
 pub struct EditorScroll {
@@ -28,7 +28,7 @@ impl EditorScroll {
     // pub fn scroll_by_x(&mut self, x: isize) {}
     // pub fn scroll_by_y(&mut self, y: isize) {}
 
-    pub fn scroll_by(&mut self, scroll: IVec2, code: &EditorCodeBuffer) {
+    pub fn scroll_by(&mut self, scroll: IVec2, code: &EditorContent) {
         if let Some(value) = self.value.checked_add(scroll) {
             if code.get_line_count() > value.y {
                 self.value = value;
@@ -39,7 +39,7 @@ impl EditorScroll {
     pub fn sync_y(
         &mut self,
         cursor: &EditorCursor,
-        code: &EditorCodeBuffer,
+        code: &EditorContent,
         mode: &EditorMode,
         window_size: UVec2,
     ) {

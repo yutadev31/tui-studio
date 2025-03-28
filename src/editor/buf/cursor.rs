@@ -5,7 +5,7 @@ use crate::{
     utils::vec2::{IVec2, UVec2},
 };
 
-use super::{code_buf::EditorCodeBuffer, scroll::EditorScroll};
+use super::{content::EditorContent, scroll::EditorScroll};
 
 #[derive(Clone, Default)]
 pub struct EditorCursor {
@@ -13,11 +13,11 @@ pub struct EditorCursor {
 }
 
 impl EditorCursor {
-    pub fn get(&self, code: &EditorCodeBuffer, mode: &EditorMode) -> UVec2 {
+    pub fn get(&self, code: &EditorContent, mode: &EditorMode) -> UVec2 {
         UVec2::new(self.clamp_x(self.position.x, code, mode), self.position.y)
     }
 
-    pub fn get_draw_position(&self, code: &EditorCodeBuffer, mode: &EditorMode) -> UVec2 {
+    pub fn get_draw_position(&self, code: &EditorContent, mode: &EditorMode) -> UVec2 {
         let line = code.get_line(self.position.y);
         let x = self.clamp_x(self.position.x, code, mode);
 
@@ -31,7 +31,7 @@ impl EditorCursor {
         )
     }
 
-    fn clamp_x(&self, x: usize, code: &EditorCodeBuffer, mode: &EditorMode) -> usize {
+    fn clamp_x(&self, x: usize, code: &EditorContent, mode: &EditorMode) -> usize {
         let line_len = code.get_line_length(self.position.y);
 
         match mode {
@@ -55,7 +55,7 @@ impl EditorCursor {
         }
     }
 
-    fn clamp_y(&self, y: usize, code: &EditorCodeBuffer) -> usize {
+    fn clamp_y(&self, y: usize, code: &EditorContent) -> usize {
         let line_count = code.get_line_count();
 
         if y > line_count - 1 {
@@ -65,14 +65,14 @@ impl EditorCursor {
         }
     }
 
-    pub fn move_to_x(&mut self, x: usize, code: &EditorCodeBuffer, mode: &EditorMode) {
+    pub fn move_to_x(&mut self, x: usize, code: &EditorContent, mode: &EditorMode) {
         self.position.x = self.clamp_x(x, code, mode);
     }
 
     pub fn move_to_y(
         &mut self,
         y: usize,
-        code: &EditorCodeBuffer,
+        code: &EditorContent,
         scroll: &mut EditorScroll,
         mode: &EditorMode,
         window_size: UVec2,
@@ -84,7 +84,7 @@ impl EditorCursor {
     pub fn move_to(
         &mut self,
         target: UVec2,
-        code: &EditorCodeBuffer,
+        code: &EditorContent,
         mode: &EditorMode,
         scroll: &mut EditorScroll,
         window_size: UVec2,
@@ -96,7 +96,7 @@ impl EditorCursor {
     pub fn move_by_x(
         &mut self,
         x: isize,
-        code: &EditorCodeBuffer,
+        code: &EditorContent,
         mode: &EditorMode,
         window_size: UVec2,
     ) {
@@ -116,7 +116,7 @@ impl EditorCursor {
     pub fn move_by_y(
         &mut self,
         y: isize,
-        code: &EditorCodeBuffer,
+        code: &EditorContent,
         mode: &EditorMode,
         window_size: UVec2,
         scroll: &mut EditorScroll,
@@ -137,7 +137,7 @@ impl EditorCursor {
     pub fn move_by(
         &mut self,
         offset: IVec2,
-        code: &EditorCodeBuffer,
+        code: &EditorContent,
         mode: &EditorMode,
         window_size: UVec2,
         scroll: &mut EditorScroll,
@@ -146,7 +146,7 @@ impl EditorCursor {
         self.move_by_y(offset.y, code, mode, window_size, scroll);
     }
 
-    pub fn move_to_back_word(&mut self, code: &EditorCodeBuffer) {
+    pub fn move_to_back_word(&mut self, code: &EditorContent) {
         let line = code.get_line(self.position.y);
         let mut x = self.position.x;
 
@@ -175,7 +175,7 @@ impl EditorCursor {
         self.position.x = x;
     }
 
-    pub fn move_to_next_word(&mut self, code: &EditorCodeBuffer) {
+    pub fn move_to_next_word(&mut self, code: &EditorContent) {
         let line = code.get_line(self.position.y);
         let mut x = self.position.x;
 
@@ -201,15 +201,15 @@ impl EditorCursor {
         self.position.x = x;
     }
 
-    pub fn sync_x(&mut self, code: &EditorCodeBuffer, mode: &EditorMode) {
+    pub fn sync_x(&mut self, code: &EditorContent, mode: &EditorMode) {
         self.position.x = self.clamp_x(self.position.x, code, mode);
     }
 
-    pub fn sync_y(&mut self, code: &EditorCodeBuffer) {
+    pub fn sync_y(&mut self, code: &EditorContent) {
         self.position.y = self.clamp_y(self.position.y, code);
     }
 
-    pub fn sync(&mut self, code: &EditorCodeBuffer, mode: &EditorMode) {
+    pub fn sync(&mut self, code: &EditorContent, mode: &EditorMode) {
         self.sync_x(code, mode);
         self.sync_y(code);
     }
@@ -217,7 +217,7 @@ impl EditorCursor {
     pub fn on_action(
         &mut self,
         action: EditorCursorAction,
-        code: &EditorCodeBuffer,
+        code: &EditorContent,
         mode: &EditorMode,
         window_size: UVec2,
         scroll: &mut EditorScroll,

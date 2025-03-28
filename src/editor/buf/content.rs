@@ -11,11 +11,11 @@ use crate::{
 use super::{cursor::EditorCursor, scroll::EditorScroll};
 
 #[derive(Clone)]
-pub struct EditorCodeBuffer {
+pub struct EditorContent {
     lines: Vec<CodeString>,
 }
 
-impl EditorCodeBuffer {
+impl EditorContent {
     pub fn get_lines(&self) -> Vec<CodeString> {
         self.lines.clone()
     }
@@ -256,7 +256,7 @@ impl EditorCodeBuffer {
     }
 }
 
-impl Default for EditorCodeBuffer {
+impl Default for EditorContent {
     fn default() -> Self {
         Self {
             lines: vec![CodeString::new()],
@@ -264,7 +264,7 @@ impl Default for EditorCodeBuffer {
     }
 }
 
-impl Display for EditorCodeBuffer {
+impl Display for EditorContent {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
@@ -278,7 +278,7 @@ impl Display for EditorCodeBuffer {
     }
 }
 
-impl From<String> for EditorCodeBuffer {
+impl From<String> for EditorContent {
     fn from(code: String) -> Self {
         let code = if !code.ends_with('\n') {
             code + "\n"
@@ -292,7 +292,7 @@ impl From<String> for EditorCodeBuffer {
     }
 }
 
-impl Into<String> for EditorCodeBuffer {
+impl Into<String> for EditorContent {
     fn into(self) -> String {
         self.to_string()
     }
