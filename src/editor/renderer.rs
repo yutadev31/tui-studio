@@ -1,5 +1,5 @@
+use anyhow::anyhow;
 use crossterm::style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor};
-use thiserror::Error;
 
 use crate::{
     language_support::highlight::HighlightToken,
@@ -10,12 +10,6 @@ use crate::{
 };
 
 use super::{mode::EditorMode, Editor};
-
-#[derive(Debug, Error)]
-pub enum EditorRendererError {
-    #[error("Failed to acquire editor lock")]
-    LockError,
-}
 
 #[derive(Default)]
 pub struct EditorRenderer {}
@@ -176,7 +170,7 @@ impl EditorRenderer {
         draw_y: usize,
         line: &CodeString,
         tokens: &Vec<HighlightToken>,
-    ) -> Result<(), EditorRendererError> {
+    ) -> anyhow::Result<()> {
         if let EditorMode::Visual { start } = mode.clone() {
             self.render_code_visual_mode(
                 screen, y, draw_y, line, cursor_pos, start, scroll_y, tokens,
@@ -197,7 +191,7 @@ impl EditorRenderer {
         cursor_pos: UVec2,
         lines: &Vec<CodeString>,
         tokens: &Vec<HighlightToken>,
-    ) -> Result<(), EditorRendererError> {
+    ) -> anyhow::Result<()> {
         for (draw_y, line) in lines.iter().skip(scroll_y).take(window_size.y).enumerate() {
             self.render_code_line(
                 screen,
@@ -236,10 +230,10 @@ impl EditorRenderer {
         editor: &Editor,
         tokens: &Vec<HighlightToken>,
         command_input_buf: &String,
-    ) -> Result<Option<UVec2>, EditorRendererError> {
+    ) -> anyhow::Result<Option<UVec2>> {
         if let Some(current) = editor.get_buffer_manager().get_current() {
             let Ok(current) = current.lock() else {
-                return Err(EditorRendererError::LockError);
+                return Err(anyhow!("Failed to lock current buffer"));
             };
 
             let mode = editor.get_mode();

@@ -3,15 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use thiserror::Error;
-
-use super::buf::{EditorBuffer, EditorBufferError};
-
-#[derive(Debug, Error)]
-pub(crate) enum EditorBufferManagerError {
-    #[error("{0}")]
-    EditorBufferError(#[from] EditorBufferError),
-}
+use super::buf::EditorBuffer;
 
 pub struct EditorBufferManager {
     buffers: Vec<Arc<Mutex<EditorBuffer>>>,
@@ -19,7 +11,7 @@ pub struct EditorBufferManager {
 }
 
 impl EditorBufferManager {
-    pub fn new(path: Option<String>) -> Result<Self, EditorBufferManagerError> {
+    pub fn new(path: Option<String>) -> anyhow::Result<Self> {
         Ok(match path {
             None => Self {
                 buffers: vec![Arc::new(Mutex::new(EditorBuffer::default()))],
@@ -34,7 +26,7 @@ impl EditorBufferManager {
         })
     }
 
-    pub fn open(&mut self, path: Option<PathBuf>) -> Result<(), EditorBufferManagerError> {
+    pub fn open(&mut self, path: Option<PathBuf>) -> anyhow::Result<()> {
         match path {
             None => self
                 .buffers

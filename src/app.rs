@@ -1,5 +1,4 @@
 use std::{
-    io,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
@@ -16,26 +15,9 @@ use crate::utils::{
     term::get_term_size,
     vec2::IVec2,
 };
-use crate::{
-    action::AppAction,
-    editor::{Editor, EditorError},
-    utils::vec2::UVec2,
-};
+use crate::{action::AppAction, editor::Editor, utils::vec2::UVec2};
 use chrono::{DateTime, Duration, Utc};
 use crossterm::event::{self, Event as CrosstermEvent, MouseEventKind};
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-pub enum AppError {
-    #[error("{0}")]
-    EditorError(#[from] EditorError),
-
-    #[error("{0}")]
-    IOError(#[from] io::Error),
-
-    #[error("Failed to get plugin manager")]
-    GetPluginManagerFailed,
-}
 
 pub struct App {
     editor: Editor,
@@ -46,7 +28,7 @@ pub struct App {
 }
 
 impl App {
-    pub(crate) fn new(path: Option<String>) -> Result<Self, AppError> {
+    pub(crate) fn new(path: Option<String>) -> anyhow::Result<Self> {
         let term_size = get_term_size()?;
 
         Ok(Self {
@@ -58,7 +40,7 @@ impl App {
         })
     }
 
-    pub(crate) fn init(&mut self) -> Result<(), AppError> {
+    pub(crate) fn init(&mut self) -> anyhow::Result<()> {
         // Editor
         self.editor.register_keybindings(&mut self.key_config);
         self.editor.register_commands(&mut self.cmd_mgr);
@@ -69,7 +51,7 @@ impl App {
     pub(crate) fn crossterm_event_to_editor_event(
         &mut self,
         evt: CrosstermEvent,
-    ) -> Result<Option<Event>, AppError> {
+    ) -> anyhow::Result<Option<Event>> {
         match evt {
             CrosstermEvent::Key(evt) => {
                 if self.key_buf.len() == 0 {
@@ -119,7 +101,7 @@ impl App {
         Ok(None)
     }
 
-    pub(crate) fn on_action(&mut self, action: AppAction) -> Result<bool, AppError> {
+    pub(crate) fn on_action(&mut self, action: AppAction) -> anyhow::Result<bool> {
         match action {
             AppAction::Quit => return Ok(true),
             AppAction::EditorAction(action) => self.editor.on_action(action)?,
@@ -128,7 +110,7 @@ impl App {
         Ok(false)
     }
 
-    pub(crate) fn on_event(&mut self, evt: Event) -> Result<bool, AppError> {
+    pub(crate) fn on_event(&mut self, evt: Event) -> anyhow::Result<bool> {
         match evt {
             Event::Quit => {
                 return Ok(true);
@@ -156,12 +138,12 @@ impl App {
         Ok(false)
     }
 
-    pub(crate) fn draw(&self) -> Result<(), AppError> {
+    pub(crate) fn draw(&self) -> anyhow::Result<()> {
         self.editor.draw()?;
         Ok(())
     }
 
-    pub fn run(path: Option<String>) -> Result<(), PublicAppError> {
+    pub fn run(path: Option<String>) -> anyhow::Result<()> {
         let app = Arc::new(Mutex::new(App::new(path)?));
         let running = Arc::new(AtomicBool::new(true));
 
@@ -216,13 +198,4 @@ impl App {
         thread::sleep(StdDuration::from_millis(32));
         Ok(())
     }
-}
-
-#[derive(Debug, Error)]
-pub enum PublicAppError {
-    #[error("{0}")]
-    AppError(#[from] AppError),
-
-    #[error("{0}")]
-    IOError(#[from] io::Error),
 }

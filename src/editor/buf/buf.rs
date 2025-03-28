@@ -1,11 +1,11 @@
 use std::{
     fs::{File, OpenOptions},
-    io::{self, Read, Seek, SeekFrom, Write},
+    io::{Read, Seek, SeekFrom, Write},
     path::PathBuf,
 };
 
+use anyhow::{anyhow, Context};
 use arboard::Clipboard;
-use thiserror::Error;
 
 use crate::{
     editor::{action::EditorBufferAction, mode::EditorMode},
@@ -25,38 +25,7 @@ use crate::{
     },
 };
 
-use super::{
-    code_buf::{EditorCodeBuffer, EditorCodeBufferError},
-    cursor::{EditorCursor, EditorCursorError},
-    scroll::EditorScroll,
-};
-
-#[derive(Debug, Error)]
-pub(crate) enum EditorBufferError {
-    #[error("Failed to open file: {0}")]
-    FileOpenFailed(#[source] io::Error),
-
-    #[error("Failed to read file: {0}")]
-    FileReadFailed(#[source] io::Error),
-
-    #[error("Failed to write file: {0}")]
-    FileWriteFailed(#[source] io::Error),
-
-    #[error("Failed to seek in file: {0}")]
-    FileSeekFailed(#[source] io::Error),
-
-    #[error("Failed to get file name")]
-    FileNameRetrievalFailed,
-
-    #[error("Cannot perform the operation because the file is not open")]
-    FileNotOpen,
-
-    #[error("{0}")]
-    EditorCursorError(#[from] EditorCursorError),
-
-    #[error("{0}")]
-    EditorCodeBufferError(#[from] EditorCodeBufferError),
-}
+use super::{code_buf::EditorCodeBuffer, cursor::EditorCursor, scroll::EditorScroll};
 
 #[derive(Default)]
 pub(crate) struct EditorBuffer {
@@ -68,12 +37,11 @@ pub(crate) struct EditorBuffer {
 }
 
 impl EditorBuffer {
-    pub fn open(path: PathBuf) -> Result<Self, EditorBufferError> {
+    pub fn open(path: PathBuf) -> anyhow::Result<Self> {
         let file_name = path
             .file_name()
-            .ok_or_else(|| EditorBufferError::FileNameRetrievalFailed)?
-            .to_str()
-            .ok_or_else(|| EditorBufferError::FileNameRetrievalFailed)?
+            .context("Failed to get file name")?
+            .to_string_lossy()
             .to_string();
 
         let mut file = OpenOptions::new()
@@ -81,11 +49,11 @@ impl EditorBuffer {
             .write(true)
             .create(true)
             .open(path.clone())
-            .map_err(|err| EditorBufferError::FileOpenFailed(err))?;
+            .context("Failed to open file")?;
 
         let mut buf = String::new();
         file.read_to_string(&mut buf)
-            .map_err(|err| EditorBufferError::FileReadFailed(err))?;
+            .context("Failed to read file")?;
 
         let file_type = FileType::file_name_to_type(file_name);
 
@@ -105,15 +73,15 @@ impl EditorBuffer {
         })
     }
 
-    pub fn save(&mut self) -> Result<(), EditorBufferError> {
+    pub fn save(&mut self) -> anyhow::Result<()> {
         if let Some(file) = &mut self.file {
             file.seek(SeekFrom::Start(0))
-                .map_err(|err| EditorBufferError::FileSeekFailed(err))?;
+                .context("Failed to seek file")?;
             file.write_all(self.code.to_string().as_bytes())
-                .map_err(|err| EditorBufferError::FileWriteFailed(err))?;
+                .context("Failed to write file")?;
             Ok(())
         } else {
-            Err(EditorBufferError::FileNotOpen)
+            Err(anyhow!("No buffer open"))
         }
     }
 
@@ -142,7 +110,7 @@ impl EditorBuffer {
         offset: IVec2,
         window_size: UVec2,
         mode: &EditorMode,
-    ) -> Result<(), EditorBufferError> {
+    ) -> anyhow::Result<()> {
         Ok(self
             .cursor
             .move_by(offset, &self.code, mode, window_size, &mut self.scroll))
@@ -162,7 +130,7 @@ impl EditorBuffer {
         mode: &EditorMode,
         clipboard: &mut Clipboard,
         window_size: UVec2,
-    ) -> Result<(), EditorBufferError> {
+    ) -> anyhow::Result<()> {
         match action {
             EditorBufferAction::Save => self.save()?,
             EditorBufferAction::Cursor(action) => {
@@ -183,7 +151,7 @@ impl EditorBuffer {
         evt: Event,
         mode: &EditorMode,
         window_size: UVec2,
-    ) -> Result<Option<EditorMode>, EditorBufferError> {
+    ) -> anyhow::Result<Option<EditorMode>> {
         let cursor_pos = self.cursor.get(&self.code, mode);
         let cursor_x = cursor_pos.x;
         let cursor_y = cursor_pos.y;

@@ -3,7 +3,7 @@ use fluent_templates::static_loader;
 use log::error;
 use tui_studio::{
     utils::term::{init_term, safe_exit},
-    App, PublicAppError,
+    App,
 };
 
 static_loader! {
@@ -20,7 +20,7 @@ struct Args {
     path: Option<String>,
 }
 
-fn main() -> Result<(), PublicAppError> {
+fn main() -> anyhow::Result<()> {
     init_term()?;
     let args = Args::parse();
 

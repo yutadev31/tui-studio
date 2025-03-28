@@ -1,29 +1,14 @@
 use std::fmt::{self, Display, Formatter};
 
+use anyhow::anyhow;
 use arboard::Clipboard;
-use thiserror::Error;
 
 use crate::{
     editor::{action::EditorEditAction, mode::EditorMode},
     utils::{string::CodeString, vec2::UVec2},
 };
 
-use super::{
-    cursor::{EditorCursor, EditorCursorError},
-    scroll::EditorScroll,
-};
-
-#[derive(Debug, Error)]
-pub(crate) enum EditorCodeBufferError {
-    #[error("{0}")]
-    ClipboardError(#[from] arboard::Error),
-
-    #[error("")]
-    NoSelection,
-
-    #[error("{0}")]
-    EditorCursorError(#[from] EditorCursorError),
-}
+use super::{cursor::EditorCursor, scroll::EditorScroll};
 
 #[derive(Clone)]
 pub struct EditorCodeBuffer {
@@ -83,7 +68,7 @@ impl EditorCodeBuffer {
         cursor: &mut EditorCursor,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
-    ) -> Result<(), EditorCodeBufferError> {
+    ) -> anyhow::Result<()> {
         let y = cursor.get(self, mode).y;
         clipboard.set_text(self.lines[y].to_string())?;
         self.lines.remove(y);
@@ -95,12 +80,12 @@ impl EditorCodeBuffer {
         cursor: &mut EditorCursor,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
-    ) -> Result<(), EditorCodeBufferError> {
+    ) -> anyhow::Result<()> {
         let start = cursor.get(self, mode);
         let end = if let EditorMode::Visual { start } = mode.clone() {
             start
         } else {
-            return Err(EditorCodeBufferError::NoSelection);
+            return Err(anyhow!("No selection"));
         };
 
         let min = start.min(end);
@@ -147,12 +132,12 @@ impl EditorCodeBuffer {
         cursor: &mut EditorCursor,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
-    ) -> Result<(), EditorCodeBufferError> {
+    ) -> anyhow::Result<()> {
         let start = cursor.get(self, mode);
         let end = if let EditorMode::Visual { start } = mode.clone() {
             start
         } else {
-            return Err(EditorCodeBufferError::NoSelection);
+            return Err(anyhow!("No selection"));
         };
 
         let min = start.min(end);
@@ -193,7 +178,7 @@ impl EditorCodeBuffer {
         cursor: &mut EditorCursor,
         mode: &EditorMode,
         clipboard: &mut Clipboard,
-    ) -> Result<(), EditorCodeBufferError> {
+    ) -> anyhow::Result<()> {
         let y = cursor.get(self, mode).y;
         clipboard.set_text(self.lines[y].to_string())?;
         Ok(())
@@ -205,7 +190,7 @@ impl EditorCodeBuffer {
         mode: &EditorMode,
         clipboard: &mut Clipboard,
         window_size: UVec2,
-    ) -> Result<(), EditorCodeBufferError> {
+    ) -> anyhow::Result<()> {
         let (x, y) = cursor.get(self, mode).into();
         let text = clipboard.get_text()?;
         self.append_str(x, y, text.as_str());
@@ -219,7 +204,7 @@ impl EditorCodeBuffer {
         mode: &EditorMode,
         window_size: UVec2,
         scroll: &mut EditorScroll,
-    ) -> Result<(), EditorCodeBufferError> {
+    ) -> anyhow::Result<()> {
         let cursor_pos = cursor.get(&self, mode);
 
         if cursor_pos.x == 0 {
@@ -258,7 +243,7 @@ impl EditorCodeBuffer {
         mode: &EditorMode,
         clipboard: &mut Clipboard,
         window_size: UVec2,
-    ) -> Result<(), EditorCodeBufferError> {
+    ) -> anyhow::Result<()> {
         match action {
             EditorEditAction::DeleteLine => self.delete_line(cursor, mode, clipboard)?,
             EditorEditAction::DeleteSelection => self.delete_selection(cursor, mode, clipboard)?,

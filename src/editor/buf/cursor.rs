@@ -1,6 +1,3 @@
-use std::io;
-
-use thiserror::Error;
 use unicode_width::UnicodeWidthChar;
 
 use crate::{
@@ -9,12 +6,6 @@ use crate::{
 };
 
 use super::{code_buf::EditorCodeBuffer, scroll::EditorScroll};
-
-#[derive(Debug, Error)]
-pub(crate) enum EditorCursorError {
-    #[error("{0}")]
-    IOError(#[from] io::Error),
-}
 
 #[derive(Clone, Default)]
 pub struct EditorCursor {
@@ -230,7 +221,7 @@ impl EditorCursor {
         mode: &EditorMode,
         window_size: UVec2,
         scroll: &mut EditorScroll,
-    ) -> Result<(), EditorCursorError> {
+    ) -> anyhow::Result<()> {
         match action {
             EditorCursorAction::Left => self.move_by_x(-1, code, mode, window_size),
             EditorCursorAction::Down => self.move_by_y(1, code, mode, window_size, scroll),

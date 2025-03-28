@@ -1,5 +1,6 @@
-use std::io::{self, stdout};
+use std::io::stdout;
 
+use anyhow::anyhow;
 use arboard::Clipboard;
 use crossterm::{
     cursor::{Hide, MoveTo, SetCursorStyle, Show},
@@ -7,7 +8,6 @@ use crossterm::{
     style::Print,
     terminal::{Clear, ClearType},
 };
-use thiserror::Error;
 
 use crate::{
     action::AppAction,
@@ -24,37 +24,10 @@ use crate::{
 
 use super::{
     action::{EditorAction, EditorBufferAction, EditorCursorAction, EditorEditAction},
-    buf::{
-        manager::{EditorBufferManager, EditorBufferManagerError},
-        EditorBufferError,
-    },
+    buf::manager::EditorBufferManager,
     mode::EditorMode,
-    renderer::{EditorRenderer, EditorRendererError},
+    renderer::EditorRenderer,
 };
-
-#[derive(Debug, Error)]
-pub(crate) enum EditorError {
-    #[error("Failed to acquire editor lock")]
-    LockError,
-
-    #[error("Cannot perform the operation because the buffer is not open")]
-    BufferNotOpen,
-
-    #[error("{0}")]
-    IOError(#[from] io::Error),
-
-    #[error("{0}")]
-    EditorBufferError(#[from] EditorBufferError),
-
-    #[error("{0}")]
-    EditorBufferManagerError(#[from] EditorBufferManagerError),
-
-    #[error("{0}")]
-    EditorRendererError(#[from] EditorRendererError),
-
-    #[error("{0}")]
-    ClipboardError(#[from] arboard::Error),
-}
 
 pub struct Editor {
     rect: Rect,
@@ -67,7 +40,7 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub(crate) fn new(path: Option<String>, rect: Rect) -> Result<Self, EditorError> {
+    pub(crate) fn new(path: Option<String>, rect: Rect) -> anyhow::Result<Self> {
         Ok(Self {
             rect,
             buffer_manager: EditorBufferManager::new(path)?,
@@ -87,7 +60,7 @@ impl Editor {
         self.mode.clone()
     }
 
-    pub(crate) fn set_mode(&mut self, mode: EditorMode) -> Result<(), EditorError> {
+    pub(crate) fn set_mode(&mut self, mode: EditorMode) -> anyhow::Result<()> {
         match mode {
             EditorMode::Normal => self.set_normal_mode()?,
             EditorMode::Command => self.set_command_mode(),
@@ -98,11 +71,11 @@ impl Editor {
         Ok(())
     }
 
-    pub(crate) fn set_normal_mode(&mut self) -> Result<(), EditorError> {
+    pub(crate) fn set_normal_mode(&mut self) -> anyhow::Result<()> {
         let current = self.buffer_manager.get_current();
         if let Some(current) = current {
             let Ok(mut current) = current.lock() else {
-                return Err(EditorError::LockError);
+                return Err(anyhow!("Failed to lock current buffer"));
             };
 
             if let EditorMode::Insert { append } = self.mode {
@@ -115,30 +88,30 @@ impl Editor {
             self.mode = EditorMode::Normal;
             Ok(())
         } else {
-            Err(EditorError::BufferNotOpen)
+            Err(anyhow!("No buffer open"))
         }
     }
 
-    pub(crate) fn set_visual_mode(&mut self) -> Result<(), EditorError> {
+    pub(crate) fn set_visual_mode(&mut self) -> anyhow::Result<()> {
         let current = self.buffer_manager.get_current();
         if let Some(current) = current {
             let Ok(current) = current.lock() else {
-                return Err(EditorError::LockError);
+                return Err(anyhow!("Failed to lock current buffer"));
             };
 
             let start = current.get_cursor_position(&self.mode);
             self.mode = EditorMode::Visual { start };
             Ok(())
         } else {
-            Err(EditorError::BufferNotOpen)
+            Err(anyhow!("No buffer open"))
         }
     }
 
-    pub(crate) fn set_insert_mode(&mut self, append: bool) -> Result<(), EditorError> {
+    pub(crate) fn set_insert_mode(&mut self, append: bool) -> anyhow::Result<()> {
         let current = self.buffer_manager.get_current();
         if let Some(current) = current {
             let Ok(mut current) = current.lock() else {
-                return Err(EditorError::LockError);
+                return Err(anyhow!("Failed to lock current buffer"));
             };
 
             current.cursor_sync(&self.mode);
@@ -152,7 +125,7 @@ impl Editor {
             current.cursor_sync(&self.mode);
             Ok(())
         } else {
-            Err(EditorError::BufferNotOpen)
+            Err(anyhow!("No buffer open"))
         }
     }
 
@@ -161,13 +134,13 @@ impl Editor {
         self.command_input_buf = String::new();
     }
 
-    pub(crate) fn on_action(&mut self, action: EditorAction) -> Result<(), EditorError> {
+    pub(crate) fn on_action(&mut self, action: EditorAction) -> anyhow::Result<()> {
         match action {
             EditorAction::SetMode(mode) => self.set_mode(mode)?,
             EditorAction::Buffer(action) => {
                 if let Some(current) = self.buffer_manager.get_current() {
                     let Ok(mut current) = current.lock() else {
-                        return Err(EditorError::LockError);
+                        return Err(anyhow!("Failed to lock current buffer"));
                     };
 
                     let (_, window_size) = self.rect.clone().into();
@@ -179,7 +152,7 @@ impl Editor {
         Ok(())
     }
 
-    pub(crate) fn on_event(&mut self, evt: Event) -> Result<Vec<Event>, EditorError> {
+    pub(crate) fn on_event(&mut self, evt: Event) -> anyhow::Result<Vec<Event>> {
         let mut events = vec![];
         let term_size = get_term_size()?;
 
@@ -207,7 +180,7 @@ impl Editor {
 
         if let Some(current) = self.buffer_manager.get_current() {
             let Ok(mut current) = current.lock() else {
-                return Err(EditorError::LockError);
+                return Err(anyhow!("Failed to lock current buffer"));
             };
 
             let (_, window_size) = self.rect.clone().into();
@@ -216,7 +189,7 @@ impl Editor {
 
         if let Some(current) = self.buffer_manager.get_current() {
             let Ok(current) = current.lock() else {
-                return Err(EditorError::LockError);
+                return Err(anyhow!("Failed to lock current buffer"));
             };
 
             if let Some(tokens) = current.highlight() {
@@ -227,7 +200,7 @@ impl Editor {
         Ok(events)
     }
 
-    pub(crate) fn draw(&self) -> Result<(), EditorError> {
+    pub(crate) fn draw(&self) -> anyhow::Result<()> {
         let mut screen = vec![String::new(); self.rect.size.y].into_boxed_slice();
         let cursor_pos = self.renderer.render(
             &mut screen,
