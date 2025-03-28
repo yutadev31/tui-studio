@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use arboard::Clipboard;
 use crossterm::{
     cursor::{Hide, MoveTo, SetCursorStyle, Show},
-    execute, queue,
+    queue,
     style::Print,
     terminal::{Clear, ClearType},
 };
