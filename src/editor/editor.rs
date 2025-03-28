@@ -1,10 +1,10 @@
-use std::io::stdout;
+use std::io::{stdout, Write};
 
 use anyhow::anyhow;
 use arboard::Clipboard;
 use crossterm::{
     cursor::{Hide, MoveTo, SetCursorStyle, Show},
-    execute,
+    execute, queue,
     style::Print,
     terminal::{Clear, ClearType},
 };
@@ -211,7 +211,7 @@ impl Editor {
         )?;
 
         for (y, line) in screen.iter().enumerate() {
-            execute!(
+            queue!(
                 stdout(),
                 MoveTo(self.rect.pos.x as u16, (self.rect.pos.y + y) as u16),
                 Clear(ClearType::CurrentLine),
@@ -220,21 +220,23 @@ impl Editor {
         }
 
         if let Some(cursor_pos) = cursor_pos {
-            execute!(
+            queue!(
                 stdout(),
                 Show,
                 MoveTo(cursor_pos.x as u16, cursor_pos.y as u16)
             )?;
 
             match self.mode {
-                EditorMode::Normal => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
-                EditorMode::Visual { start: _ } => execute!(stdout(), SetCursorStyle::SteadyBlock)?,
-                EditorMode::Insert { append: _ } => execute!(stdout(), SetCursorStyle::SteadyBar)?,
-                EditorMode::Command => execute!(stdout(), SetCursorStyle::SteadyBar)?,
+                EditorMode::Normal => queue!(stdout(), SetCursorStyle::SteadyBlock)?,
+                EditorMode::Visual { start: _ } => queue!(stdout(), SetCursorStyle::SteadyBlock)?,
+                EditorMode::Insert { append: _ } => queue!(stdout(), SetCursorStyle::SteadyBar)?,
+                EditorMode::Command => queue!(stdout(), SetCursorStyle::SteadyBar)?,
             }
         } else {
-            execute!(stdout(), Hide)?;
+            queue!(stdout(), Hide)?;
         }
+
+        stdout().flush()?;
         Ok(())
     }
 
