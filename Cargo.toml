@@ -13,8 +13,6 @@ arboard = "3.4.1"
 anyhow = "1.0.97"
 crossterm = { version = "0.28.1", features = ["events"] }
 clap = { version = "4.5.27", features = ["derive"] }
-fluent = "0.16.1"
-fluent-templates = "0.13.0"
 chrono = "0.4.39"
 unicode-width = "0.2.0"
 serde = { version = "1.0", features = ["derive"] }
@@ -37,8 +35,6 @@ anyhow.workspace = true
 crossterm.workspace = true
 unicode-width.workspace = true
 arboard.workspace = true
-fluent.workspace = true
-fluent-templates.workspace = true
 clap.workspace = true
 chrono.workspace = true
 regex.workspace = true
