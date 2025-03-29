@@ -229,6 +229,69 @@ impl EditorBuffer {
         self.move_to_x(target.x);
     }
 
+    pub fn move_to_top(&mut self, mode: &EditorMode, window_size: UVec2) {
+        self.move_to_y(0, mode, window_size);
+    }
+
+    pub fn move_to_bottom(&mut self, mode: &EditorMode, window_size: UVec2) {
+        self.move_to_y(self.get_line_count() - 1, mode, window_size)
+    }
+
+    pub fn move_to_back_word(&mut self) {
+        let line = self.get_line(self.cursor.y);
+        let mut x = self.cursor.x;
+
+        if x == 0 {
+            if self.cursor.y == 0 {
+                return;
+            }
+
+            self.cursor.y -= 1;
+            x = self.get_line_length(self.cursor.y);
+        }
+
+        while x > 0 {
+            let Some(c) = line.to_string().chars().nth(x - 1) else {
+                x -= 1;
+                continue;
+            };
+
+            if c.is_whitespace() && self.cursor.x != x {
+                break;
+            }
+
+            x -= 1;
+        }
+
+        self.cursor.x = x;
+    }
+
+    pub fn move_to_next_word(&mut self) {
+        let line = self.get_line(self.cursor.y);
+        let mut x = self.cursor.x;
+
+        if x == self.get_line_length(self.cursor.y) {
+            if self.cursor.y == self.get_line_count() - 1 {
+                return;
+            }
+
+            self.cursor.y += 1;
+            self.cursor.x = 0;
+            return;
+        }
+
+        while x < self.get_line_length(self.cursor.y) {
+            let c = line.to_string().chars().nth(x).unwrap();
+            if c.is_whitespace() && x != self.cursor.x {
+                break;
+            }
+
+            x += 1;
+        }
+
+        self.cursor.x = x;
+    }
+
     pub fn move_by_x(&mut self, x: isize, mode: &EditorMode) {
         if x > 0 {
             self.sync(mode);
@@ -313,14 +376,10 @@ impl EditorBuffer {
                 EditorCursorAction::Right => self.move_by_x(1, mode),
                 EditorCursorAction::LineStart => self.move_to_x(0),
                 EditorCursorAction::LineEnd => self.move_to_x(usize::MAX),
-                EditorCursorAction::Top => self.move_to_y(0, mode, window_size),
-                EditorCursorAction::Bottom => {
-                    let line_count = self.get_line_count() - 1;
-                    self.move_to_y(line_count, mode, window_size);
-                }
-                // EditorCursorAction::NextWord => self.move_to_next_word(code),
-                // EditorCursorAction::BackWord => self.move_to_back_word(code),
-                _ => {}
+                EditorCursorAction::Top => self.move_to_top(mode, window_size),
+                EditorCursorAction::Bottom => self.move_to_bottom(mode, window_size),
+                EditorCursorAction::NextWord => self.move_to_next_word(),
+                EditorCursorAction::BackWord => self.move_to_back_word(),
             },
             EditorBufferAction::Edit(action) => match action {
                 EditorEditAction::DeleteLine => self.delete_line(self.cursor.y),
