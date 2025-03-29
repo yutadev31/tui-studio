@@ -301,7 +301,7 @@ impl EditorBuffer {
         &mut self,
         action: EditorBufferAction,
         mode: &EditorMode,
-        _clipboard: &mut Clipboard,
+        _clipboard: &mut Option<Clipboard>,
         window_size: UVec2,
     ) -> anyhow::Result<()> {
         match action {

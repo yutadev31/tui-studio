@@ -15,7 +15,7 @@ use crossterm::{
 
 use crate::{
     action::AppAction,
-    language_support::highlight::HighlightToken,
+    // language_support::highlight::HighlightToken,
     utils::{
         command::CommandManager,
         event::Event,
@@ -38,8 +38,8 @@ pub struct Editor {
     buffers: Vec<Arc<Mutex<EditorBuffer>>>,
     current_buffer_index: Option<usize>,
     mode: EditorMode,
-    clipboard: Clipboard,
-    highlight_tokens: Vec<HighlightToken>,
+    clipboard: Option<Clipboard>,
+    // highlight_tokens: Vec<HighlightToken>,
     command_input_buf: String,
     renderer: EditorRenderer,
 }
@@ -56,8 +56,8 @@ impl Editor {
             },
             current_buffer_index: Some(0),
             mode: EditorMode::Normal,
-            clipboard: Clipboard::new()?,
-            highlight_tokens: vec![],
+            clipboard: Clipboard::new().ok(),
+            // highlight_tokens: vec![],
             command_input_buf: String::new(),
             renderer: EditorRenderer::default(),
         })
@@ -215,7 +215,7 @@ impl Editor {
             &mut screen,
             self.rect.size,
             self,
-            &self.highlight_tokens,
+            // &self.highlight_tokens,
             &self.command_input_buf,
         )?;
 
