@@ -35,7 +35,7 @@ use super::{
 
 pub struct Editor {
     rect: Rect,
-    buffers: Vec<Arc<Mutex<EditorBuffer>>>,
+    buffers: Vec<EditorBuffer>,
     current_buffer_index: Option<usize>,
     mode: EditorMode,
     clipboard: Option<Clipboard>,
@@ -49,10 +49,8 @@ impl Editor {
         Ok(Self {
             rect,
             buffers: match path {
-                None => vec![Arc::new(Mutex::new(EditorBuffer::new()))],
-                Some(path) => vec![Arc::new(Mutex::new(EditorBuffer::open(PathBuf::from(
-                    path,
-                ))?))],
+                None => vec![EditorBuffer::new()],
+                Some(path) => vec![EditorBuffer::open(PathBuf::from(path))?],
             },
             current_buffer_index: Some(0),
             mode: EditorMode::Normal,
@@ -78,37 +76,39 @@ impl Editor {
         Ok(())
     }
 
-    pub(crate) fn get_current_buffer(&self) -> Option<Arc<Mutex<EditorBuffer>>> {
+    pub(crate) fn get_current_buffer(&self) -> Option<&EditorBuffer> {
+        self.current_buffer_index.map(|index| &self.buffers[index])
+    }
+
+    pub(crate) fn get_current_buffer_mut(&mut self) -> Option<&mut EditorBuffer> {
         self.current_buffer_index
-            .map(|index| self.buffers[index].clone())
+            .map(|index| &mut self.buffers[index])
     }
 
     pub(crate) fn set_normal_mode(&mut self) -> anyhow::Result<()> {
-        if let Some(current) = self.get_current_buffer() {
-            let Ok(mut current) = current.lock() else {
-                return Err(anyhow!("Failed to lock current buffer"));
+        {
+            let Some(_) = self.get_current_buffer() else {
+                return Err(anyhow!("No buffer open"));
             };
-
-            if let EditorMode::Insert { append } = self.mode {
-                if append {
-                    let (_, window_size) = self.rect.clone().into();
-                    current.move_by(IVec2::left(), &self.mode, window_size);
-                }
-            }
-
-            self.mode = EditorMode::Normal;
-            Ok(())
-        } else {
-            Err(anyhow!("No buffer open"))
         }
+
+        if let EditorMode::Insert { append } = &self.mode {
+            if append.clone() {
+                let (_, window_size) = self.rect.clone().into();
+                self.buffers[self.current_buffer_index.unwrap()].move_by(
+                    IVec2::left(),
+                    &self.mode,
+                    window_size,
+                );
+            }
+        }
+
+        self.mode = EditorMode::Normal;
+        Ok(())
     }
 
     pub(crate) fn set_visual_mode(&mut self) -> anyhow::Result<()> {
         if let Some(current) = self.get_current_buffer() {
-            let Ok(current) = current.lock() else {
-                return Err(anyhow!("Failed to lock current buffer"));
-            };
-
             let start = current.get_position(&self.mode);
             self.mode = EditorMode::Visual { start };
             Ok(())
@@ -118,24 +118,26 @@ impl Editor {
     }
 
     pub(crate) fn set_insert_mode(&mut self, append: bool) -> anyhow::Result<()> {
-        if let Some(current) = self.get_current_buffer() {
-            let Ok(mut current) = current.lock() else {
-                return Err(anyhow!("Failed to lock current buffer"));
+        let mode = self.mode.clone();
+
+        {
+            let Some(_) = self.get_current_buffer() else {
+                return Err(anyhow!("No buffer open"));
             };
-
-            current.sync(&self.mode);
-            self.mode = EditorMode::Insert { append };
-
-            if append {
-                let (_, window_size) = self.rect.clone().into();
-                current.move_by(IVec2::right(), &self.mode, window_size);
-            }
-
-            current.sync(&self.mode);
-            Ok(())
-        } else {
-            Err(anyhow!("No buffer open"))
         }
+
+        self.get_current_buffer_mut().unwrap().sync(&mode);
+        self.mode = EditorMode::Insert { append };
+
+        let (_, window_size) = self.rect.clone().into();
+
+        let current = self.get_current_buffer_mut().unwrap();
+        if append {
+            current.move_by(IVec2::right(), &mode, window_size);
+        }
+
+        current.sync(&mode);
+        Ok(())
     }
 
     pub(crate) fn set_command_mode(&mut self) {
@@ -147,14 +149,19 @@ impl Editor {
         match action {
             EditorAction::SetMode(mode) => self.set_mode(mode)?,
             EditorAction::Buffer(action) => {
-                if let Some(current) = self.get_current_buffer() {
-                    let Ok(mut current) = current.lock() else {
-                        return Err(anyhow!("Failed to lock current buffer"));
+                {
+                    let Some(_) = self.get_current_buffer() else {
+                        return Ok(());
                     };
-
-                    let (_, window_size) = self.rect.clone().into();
-                    current.on_action(action, &self.mode, &mut self.clipboard, window_size)?;
                 }
+
+                let (_, window_size) = self.rect.clone().into();
+                self.buffers[self.current_buffer_index.unwrap()].on_action(
+                    action,
+                    &self.mode,
+                    &mut self.clipboard,
+                    window_size,
+                )?;
             }
         };
 
@@ -187,14 +194,14 @@ impl Editor {
             }
         }
 
-        if let Some(current) = self.get_current_buffer() {
-            let Ok(mut current) = current.lock() else {
-                return Err(anyhow!("Failed to lock current buffer"));
+        {
+            let Some(_) = self.get_current_buffer() else {
+                return Ok(events);
             };
-
-            let (_, window_size) = self.rect.clone().into();
-            current.on_event(evt, &self.mode, window_size)?;
         }
+
+        let (_, window_size) = self.rect.clone().into();
+        self.buffers[self.current_buffer_index.unwrap()].on_event(evt, &self.mode, window_size)?;
 
         // if let Some(current) = self.buffer_manager.get_current() {
         //     let Ok(current) = current.lock() else {

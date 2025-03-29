@@ -1,7 +1,7 @@
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
+        Arc, Mutex, RwLock,
     },
     thread,
     time::Duration as StdDuration,
@@ -144,13 +144,13 @@ impl App {
     }
 
     pub fn run(path: Option<String>) -> anyhow::Result<()> {
-        let app = Arc::new(Mutex::new(App::new(path)?));
+        let app = Arc::new(RwLock::new(App::new(path)?));
         let running = Arc::new(AtomicBool::new(true));
 
-        app.lock().unwrap().init()?;
+        app.write().unwrap().init()?;
 
         {
-            let mut app = app.lock().unwrap();
+            let mut app = app.write().unwrap();
             app.on_event(Event::Resize)?;
             app.draw()?;
         }
@@ -162,7 +162,7 @@ impl App {
             let _handle = thread::spawn(move || {
                 while running_clone.load(Ordering::Relaxed) {
                     {
-                        if let Ok(app) = app_clone.lock() {
+                        if let Ok(app) = app_clone.read() {
                             if let Err(err) = app.draw() {
                                 log::error!("{}", err);
                             }
@@ -174,7 +174,7 @@ impl App {
 
             loop {
                 {
-                    if let Ok(mut app) = app.lock() {
+                    if let Ok(mut app) = app.write() {
                         if let Some(event) = app.crossterm_event_to_editor_event(event::read()?)? {
                             match app.on_event(event) {
                                 Err(err) => log::error!("{}", err),

@@ -244,10 +244,6 @@ impl EditorRenderer {
         command_input_buf: &String,
     ) -> anyhow::Result<Option<UVec2>> {
         if let Some(current) = editor.get_current_buffer() {
-            let Ok(current) = current.lock() else {
-                return Err(anyhow!("Failed to lock current buffer"));
-            };
-
             let mode = editor.get_mode();
 
             let lines = current.get_lines();
