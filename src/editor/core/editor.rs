@@ -14,7 +14,6 @@ use crossterm::{
 
 use crate::{
     action::AppAction,
-    // language_support::highlight::HighlightToken,
     utils::{
         command::CommandManager,
         event::Event,
