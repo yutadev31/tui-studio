@@ -26,10 +26,10 @@ use crate::{
 };
 
 use super::{
-    action::{EditorAction, EditorBufferAction, EditorCursorAction, EditorEditAction},
+    super::action::{EditorAction, EditorBufferAction, EditorCursorAction, EditorEditAction},
+    super::ui::renderer::EditorRenderer,
     buffer::EditorBuffer,
     mode::EditorMode,
-    renderer::EditorRenderer,
 };
 
 pub struct Editor {

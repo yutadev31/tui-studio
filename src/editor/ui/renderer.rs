@@ -2,10 +2,9 @@ use crossterm::style::{Color, ResetColor, SetBackgroundColor};
 
 use crate::{
     // language_support::highlight::HighlightToken,
+    editor::core::{editor::Editor, mode::EditorMode},
     utils::vec2::{IVec2, UVec2},
 };
-
-use super::{mode::EditorMode, Editor};
 
 #[derive(Default)]
 pub struct EditorRenderer {}
