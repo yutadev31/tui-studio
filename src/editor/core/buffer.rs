@@ -8,10 +8,13 @@ use anyhow::{anyhow, Context};
 use arboard::Clipboard;
 use unicode_width::UnicodeWidthChar;
 
-use crate::utils::{
-    event::Event,
-    key_binding::Key,
-    vec2::{IVec2, UVec2},
+use crate::{
+    editor::utils::file::EditorFile,
+    utils::{
+        event::Event,
+        key_binding::Key,
+        vec2::{IVec2, UVec2},
+    },
 };
 
 use super::{
@@ -21,8 +24,7 @@ use super::{
 
 #[derive(Default)]
 pub struct EditorBuffer {
-    path: Option<PathBuf>,
-    file: Option<File>,
+    file: EditorFile,
     content: Vec<String>,
     cursor: UVec2,
     scroll: UVec2,
@@ -37,48 +39,18 @@ impl EditorBuffer {
     }
 
     pub fn open(path: PathBuf) -> anyhow::Result<Self> {
-        let mut buf = String::new();
-
-        let mut file = Self::open_file(&path)?;
-        file.read_to_string(&mut buf)
-            .context("Failed to read file")?;
+        let mut file = EditorFile::open(path)?;
+        let buf = file.read()?;
 
         Ok(Self {
-            path: Some(path),
-            file: Some(file),
+            file: file,
             content: buf.lines().map(|line| line.to_string()).collect(),
             ..Default::default()
         })
     }
 
-    pub fn open_file(path: &PathBuf) -> anyhow::Result<File> {
-        Ok(OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .open(path)
-            .context("Failed to open file")?)
-    }
-
     pub fn save(&mut self) -> anyhow::Result<()> {
-        let Some(path) = &self.path else {
-            return Err(anyhow!("No buffer open"));
-        };
-
-        if let None = self.file {
-            let file = Self::open_file(path)?;
-            self.file = Some(file);
-        }
-
-        let Some(file) = &mut self.file else {
-            return Err(anyhow!("Failed to get file"));
-        };
-
-        file.seek(SeekFrom::Start(0))
-            .context("Failed to seek file")?;
-        file.write_all(self.content.join("\n").as_bytes())
-            .context("Failed to write file")?;
-
+        self.file.write(&self.content.join("\n"))?;
         Ok(())
     }
 
