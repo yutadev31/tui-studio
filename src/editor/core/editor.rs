@@ -1,6 +1,7 @@
 use std::{
     io::{stdout, Write},
     path::PathBuf,
+    sync::{Arc, Mutex},
 };
 
 use anyhow::anyhow;

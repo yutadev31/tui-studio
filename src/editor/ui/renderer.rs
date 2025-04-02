@@ -1,4 +1,5 @@
-use crossterm::style::{Color, ResetColor, SetBackgroundColor};
+use anyhow::anyhow;
+use crossterm::style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor};
 
 use crate::{
     // language_support::highlight::HighlightToken,
