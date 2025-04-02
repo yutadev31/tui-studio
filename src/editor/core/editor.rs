@@ -14,6 +14,7 @@ use crossterm::{
 
 use crate::{
     action::AppAction,
+    language_support::highlight::HighlightToken,
     utils::{
         command::CommandManager,
         event::Event,
@@ -37,7 +38,7 @@ pub struct Editor {
     current_buffer_index: Option<usize>,
     mode: EditorMode,
     clipboard: Option<Clipboard>,
-    // highlight_tokens: Vec<HighlightToken>,
+    highlight_tokens: Vec<HighlightToken>,
     command_input_buf: String,
     renderer: EditorRenderer,
 }
@@ -53,7 +54,7 @@ impl Editor {
             current_buffer_index: Some(0),
             mode: EditorMode::Normal,
             clipboard: Clipboard::new().ok(),
-            // highlight_tokens: vec![],
+            highlight_tokens: vec![],
             command_input_buf: String::new(),
             renderer: EditorRenderer::default(),
         })
@@ -201,26 +202,23 @@ impl Editor {
         let (_, window_size) = self.rect.clone().into();
         self.buffers[self.current_buffer_index.unwrap()].on_event(evt, &self.mode, window_size)?;
 
-        // if let Some(current) = self.buffer_manager.get_current() {
-        //     let Ok(current) = current.lock() else {
-        //         return Err(anyhow!("Failed to lock current buffer"));
-        //     };
-
-        //     if let Some(tokens) = current.highlight() {
-        //         self.highlight_tokens = tokens;
-        //     }
-        // }
+        if let Some(current) = self.get_current_buffer() {
+            if let Some(tokens) = current.highlight() {
+                self.highlight_tokens = tokens;
+            }
+        }
 
         Ok(events)
     }
 
     pub fn draw(&self) -> anyhow::Result<()> {
         let mut screen = vec![String::new(); self.rect.size.y].into_boxed_slice();
+
         let cursor_pos = self.renderer.render(
             &mut screen,
             self.rect.size,
             self,
-            // &self.highlight_tokens,
+            &self.highlight_tokens,
             &self.command_input_buf,
         )?;
 

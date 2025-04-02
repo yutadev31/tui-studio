@@ -1,8 +1,9 @@
-use crossterm::style::{Color, ResetColor, SetBackgroundColor};
+use crossterm::style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor};
 
 use crate::{
     // language_support::highlight::HighlightToken,
     editor::core::{editor::Editor, mode::EditorMode},
+    language_support::highlight::HighlightToken,
     utils::vec2::{IVec2, UVec2},
 };
 
@@ -34,32 +35,31 @@ impl EditorRenderer {
         y: usize,
         draw_y: usize,
         is_select: bool,
-        scroll_y: usize,
-        // tokens: &Vec<HighlightToken>,
+        tokens: &Vec<HighlightToken>,
         code: &String,
     ) {
         let mut code = code.clone();
 
-        // for highlight_token in tokens.iter().skip(scroll_y).rev() {
-        //     if highlight_token.end.y == y {
-        //         if let Some(x) = highlight_token.end.x.checked_sub(x) {
-        //             code.insert_str(x, format!("{}", ResetColor).as_str());
-        //         }
-        //     }
-        //
-        //     if highlight_token.start.y == y {
-        //         if let Some(x) = highlight_token.start.x.checked_sub(x) {
-        //             code.insert_str(
-        //                 x,
-        //                 format!(
-        //                     "{}",
-        //                     SetForegroundColor(highlight_token.clone().color.into()),
-        //                 )
-        //                 .as_str(),
-        //             );
-        //         }
-        //     }
-        // }
+        for highlight_token in tokens.iter().rev() {
+            if highlight_token.end.y == y {
+                if let Some(x) = highlight_token.end.x.checked_sub(x) {
+                    code.insert_str(x, format!("{}", ResetColor).as_str());
+                }
+            }
+
+            if highlight_token.start.y == y {
+                if let Some(x) = highlight_token.start.x.checked_sub(x) {
+                    code.insert_str(
+                        x,
+                        format!(
+                            "{}",
+                            SetForegroundColor(highlight_token.clone().color.into()),
+                        )
+                        .as_str(),
+                    );
+                }
+            }
+        }
 
         if is_select {
             code.insert_str(0, format!("{}", SetBackgroundColor(Color::White)).as_str());
@@ -79,7 +79,7 @@ impl EditorRenderer {
         cursor_pos: UVec2,
         start_pos: UVec2,
         scroll_y: usize,
-        // tokens: &Vec<HighlightToken>,
+        tokens: &Vec<HighlightToken>,
     ) {
         let (cursor_x, cursor_y) = cursor_pos.into();
         let (start_x, start_y) = start_pos.into();
@@ -134,8 +134,7 @@ impl EditorRenderer {
                 y,
                 draw_y,
                 false,
-                scroll_y,
-                // tokens,
+                tokens,
                 &front_text.to_string(),
             );
             self.render_code_string(
@@ -144,8 +143,7 @@ impl EditorRenderer {
                 y,
                 draw_y,
                 true,
-                scroll_y,
-                // tokens,
+                tokens,
                 &select_text.to_string(),
             );
             self.render_code_string(
@@ -154,15 +152,11 @@ impl EditorRenderer {
                 y,
                 draw_y,
                 false,
-                scroll_y,
-                // tokens,
+                tokens,
                 &back_text.to_string(),
             );
         } else {
-            self.render_code_string(
-                screen, 0, y, draw_y, false, scroll_y, // tokens,
-                line,
-            );
+            self.render_code_string(screen, 0, y, draw_y, false, tokens, line);
         }
     }
 
@@ -175,18 +169,14 @@ impl EditorRenderer {
         y: usize,
         draw_y: usize,
         line: &String,
-        // tokens: &Vec<HighlightToken>,
+        tokens: &Vec<HighlightToken>,
     ) -> anyhow::Result<()> {
         if let EditorMode::Visual { start } = mode.clone() {
             self.render_code_visual_mode(
-                screen, y, draw_y, line, cursor_pos, start, scroll_y,
-                // tokens,
+                screen, y, draw_y, line, cursor_pos, start, scroll_y, tokens,
             );
         } else {
-            self.render_code_string(
-                screen, 0, y, draw_y, false, scroll_y, // tokens,
-                line,
-            );
+            self.render_code_string(screen, 0, y, draw_y, false, tokens, line);
         }
 
         Ok(())
@@ -200,7 +190,7 @@ impl EditorRenderer {
         scroll_y: usize,
         cursor_pos: UVec2,
         lines: &Vec<String>,
-        // tokens: &Vec<HighlightToken>,
+        tokens: &Vec<HighlightToken>,
     ) -> anyhow::Result<()> {
         for (draw_y, line) in lines.iter().skip(scroll_y).take(window_size.y).enumerate() {
             self.render_code_line(
@@ -211,7 +201,7 @@ impl EditorRenderer {
                 draw_y + scroll_y,
                 draw_y,
                 line,
-                // tokens,
+                tokens,
             )?;
         }
 
@@ -238,7 +228,7 @@ impl EditorRenderer {
         screen: &mut Box<[String]>,
         window_size: UVec2,
         editor: &Editor,
-        // tokens: &Vec<HighlightToken>,
+        tokens: &Vec<HighlightToken>,
         command_input_buf: &String,
     ) -> anyhow::Result<Option<UVec2>> {
         if let Some(current) = editor.get_current_buffer() {
@@ -265,7 +255,7 @@ impl EditorRenderer {
                 scroll_y,
                 cursor_pos,
                 &lines,
-                // tokens,
+                tokens,
             )?;
 
             if let EditorMode::Command = mode {

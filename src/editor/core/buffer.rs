@@ -5,8 +5,17 @@ use unicode_width::UnicodeWidthChar;
 
 use crate::{
     editor::utils::file::EditorFile,
+    language_support::{
+        highlight::HighlightToken,
+        langs::{
+            commit_message::CommitMessageLanguageSupport, css::CSSLanguageSupport,
+            html::HTMLLanguageSupport, markdown::MarkdownLanguageSupport,
+        },
+        LanguageSupport,
+    },
     utils::{
         event::Event,
+        file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
         key_binding::Key,
         vec2::{IVec2, UVec2},
     },
@@ -23,6 +32,7 @@ pub struct EditorBuffer {
     content: Vec<String>,
     cursor: UVec2,
     scroll: UVec2,
+    language_support: Option<Box<dyn LanguageSupport>>,
 }
 
 impl EditorBuffer {
@@ -34,12 +44,23 @@ impl EditorBuffer {
     }
 
     pub fn open(path: PathBuf) -> anyhow::Result<Self> {
+        let file_name = path.file_name().unwrap().to_string_lossy().to_string();
         let mut file = EditorFile::open(path)?;
         let buf = file.read()?;
+
+        let file_type = FileType::file_name_to_type(file_name);
+        let language_support: Option<Box<dyn LanguageSupport>> = match file_type.get().as_str() {
+            HTML => Some(Box::new(HTMLLanguageSupport::new())),
+            CSS => Some(Box::new(CSSLanguageSupport::new())),
+            MARKDOWN => Some(Box::new(MarkdownLanguageSupport::new())),
+            COMMIT_MESSAGE => Some(Box::new(CommitMessageLanguageSupport::new())),
+            _ => None,
+        };
 
         Ok(Self {
             file,
             content: buf.lines().map(|line| line.to_string()).collect(),
+            language_support,
             ..Default::default()
         })
     }
@@ -47,6 +68,14 @@ impl EditorBuffer {
     pub fn save(&mut self) -> anyhow::Result<()> {
         self.file.write(&self.content.join("\n"))?;
         Ok(())
+    }
+
+    pub fn highlight(&self) -> Option<Vec<HighlightToken>> {
+        if let Some(language_support) = &self.language_support {
+            language_support.highlight(self.to_string().as_str())
+        } else {
+            None
+        }
     }
 
     pub fn get_line_count(&self) -> usize {
