@@ -1,10 +1,5 @@
-use std::{
-    fs::{File, OpenOptions},
-    io::{Read, Seek, SeekFrom, Write},
-    path::PathBuf,
-};
+use std::path::PathBuf;
 
-use anyhow::{anyhow, Context};
 use arboard::Clipboard;
 use unicode_width::UnicodeWidthChar;
 
