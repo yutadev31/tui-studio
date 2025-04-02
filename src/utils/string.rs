@@ -1,17 +1,17 @@
 use std::ops::Add;
 
 #[derive(Clone)]
-pub struct CodeString {
+pub struct WideString {
     value: String,
 }
 
-impl Default for CodeString {
+impl Default for WideString {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl CodeString {
+impl WideString {
     pub fn new() -> Self {
         Self {
             value: String::new(),
@@ -42,7 +42,7 @@ impl CodeString {
         self.value.split_at(index)
     }
 
-    pub fn get_range(&self, start: usize, end: usize) -> CodeString {
+    pub fn get_range(&self, start: usize, end: usize) -> WideString {
         let start = self.byte_index_to_char_index(start);
         let end = self.byte_index_to_char_index(end);
         let result = &self.value[start..end];
@@ -59,29 +59,29 @@ impl CodeString {
     }
 }
 
-impl Add for CodeString {
+impl Add for WideString {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        CodeString::from(self.value + rhs.value.as_str())
+        WideString::from(self.value + rhs.value.as_str())
     }
 }
 
-impl From<&str> for CodeString {
+impl From<&str> for WideString {
     fn from(value: &str) -> Self {
-        CodeString {
+        WideString {
             value: value.to_string(),
         }
     }
 }
 
-impl From<String> for CodeString {
+impl From<String> for WideString {
     fn from(value: String) -> Self {
-        CodeString { value }
+        WideString { value }
     }
 }
 
-impl ToString for CodeString {
+impl ToString for WideString {
     fn to_string(&self) -> String {
         self.value.clone()
     }

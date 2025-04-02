@@ -17,6 +17,7 @@ use crate::{
         event::Event,
         file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
         key_binding::Key,
+        string::WideString,
         vec2::{IVec2, UVec2},
     },
 };
@@ -29,7 +30,7 @@ use super::{
 #[derive(Default)]
 pub struct EditorBuffer {
     file: EditorFile,
-    content: Vec<String>,
+    content: Vec<WideString>,
     cursor: UVec2,
     scroll: UVec2,
     language_support: Option<Box<dyn LanguageSupport>>,
@@ -38,7 +39,7 @@ pub struct EditorBuffer {
 impl EditorBuffer {
     pub fn new() -> Self {
         Self {
-            content: vec![String::new(), String::new()],
+            content: vec![WideString::new(), WideString::new()],
             ..Default::default()
         }
     }
@@ -59,14 +60,14 @@ impl EditorBuffer {
 
         Ok(Self {
             file,
-            content: buf.lines().map(|line| line.to_string()).collect(),
+            content: buf.lines().map(|line| WideString::from(line)).collect(),
             language_support,
             ..Default::default()
         })
     }
 
     pub fn save(&mut self) -> anyhow::Result<()> {
-        self.file.write(&self.content.join("\n"))?;
+        self.file.write(&self.to_string())?;
         Ok(())
     }
 
@@ -83,19 +84,19 @@ impl EditorBuffer {
     }
 
     pub fn get_line_length(&self, y: usize) -> usize {
-        self.content[y].chars().count()
+        self.content[y].len()
     }
 
-    pub fn get_lines(&self) -> Vec<String> {
+    pub fn get_lines(&self) -> Vec<WideString> {
         self.content.clone()
     }
 
-    pub fn get_line(&self, y: usize) -> String {
+    pub fn get_line(&self, y: usize) -> WideString {
         self.content[y].clone()
     }
 
     pub fn insert_line(&mut self, y: usize) {
-        self.content.insert(y, String::new());
+        self.content.insert(y, WideString::new());
     }
 
     pub fn delete_line(&mut self, y: usize) {
@@ -105,13 +106,13 @@ impl EditorBuffer {
     pub fn split_line(&mut self, x: usize, y: usize) {
         let original = self.content[y].clone();
         let (p0, p1) = original.split_at(x);
-        self.content[y] = p0.to_string();
-        self.content.insert(y + 1, p1.to_string());
+        self.content[y] = WideString::from(p0);
+        self.content.insert(y + 1, WideString::from(p1));
     }
 
     pub fn join_lines(&mut self, y: usize) {
         if y + 1 < self.content.len() {
-            let combined = self.content[y].clone() + &self.content[y + 1].clone();
+            let combined = self.content[y].clone() + self.content[y + 1].clone();
             self.content[y] = combined;
             self.content.remove(y + 1);
         }
@@ -448,6 +449,10 @@ impl EditorBuffer {
 
 impl ToString for EditorBuffer {
     fn to_string(&self) -> String {
-        self.content.join("\n")
+        self.content
+            .iter()
+            .map(|line| line.to_string())
+            .collect::<Vec<String>>()
+            .join("\n")
     }
 }

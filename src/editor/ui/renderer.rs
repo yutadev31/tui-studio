@@ -4,7 +4,10 @@ use crate::{
     // language_support::highlight::HighlightToken,
     editor::core::{editor::Editor, mode::EditorMode},
     language_support::highlight::HighlightToken,
-    utils::vec2::{IVec2, UVec2},
+    utils::{
+        string::WideString,
+        vec2::{IVec2, UVec2},
+    },
 };
 
 #[derive(Default)]
@@ -15,7 +18,7 @@ impl EditorRenderer {
         &self,
         screen: &mut Box<[String]>,
         window_size: UVec2,
-        lines: &Vec<String>,
+        lines: &Vec<WideString>,
         scroll_y: usize,
         offset_x: usize,
     ) {
@@ -75,12 +78,13 @@ impl EditorRenderer {
         screen: &mut Box<[String]>,
         y: usize,
         draw_y: usize,
-        line: &String,
+        line: &WideString,
         cursor_pos: UVec2,
         start_pos: UVec2,
         scroll_y: usize,
         tokens: &Vec<HighlightToken>,
     ) {
+        let line = line.to_string();
         let (cursor_x, cursor_y) = cursor_pos.into();
         let (start_x, start_y) = start_pos.into();
 
@@ -156,7 +160,7 @@ impl EditorRenderer {
                 &back_text.to_string(),
             );
         } else {
-            self.render_code_string(screen, 0, y, draw_y, false, tokens, line);
+            self.render_code_string(screen, 0, y, draw_y, false, tokens, &line);
         }
     }
 
@@ -168,7 +172,7 @@ impl EditorRenderer {
         cursor_pos: UVec2,
         y: usize,
         draw_y: usize,
-        line: &String,
+        line: &WideString,
         tokens: &Vec<HighlightToken>,
     ) -> anyhow::Result<()> {
         if let EditorMode::Visual { start } = mode.clone() {
@@ -176,7 +180,7 @@ impl EditorRenderer {
                 screen, y, draw_y, line, cursor_pos, start, scroll_y, tokens,
             );
         } else {
-            self.render_code_string(screen, 0, y, draw_y, false, tokens, line);
+            self.render_code_string(screen, 0, y, draw_y, false, tokens, &line.to_string());
         }
 
         Ok(())
@@ -189,7 +193,7 @@ impl EditorRenderer {
         mode: &EditorMode,
         scroll_y: usize,
         cursor_pos: UVec2,
-        lines: &Vec<String>,
+        lines: &Vec<WideString>,
         tokens: &Vec<HighlightToken>,
     ) -> anyhow::Result<()> {
         for (draw_y, line) in lines.iter().skip(scroll_y).take(window_size.y).enumerate() {
