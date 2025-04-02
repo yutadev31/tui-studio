@@ -388,24 +388,28 @@ impl EditorBuffer {
                 // Event::Scroll(scroll) => self.scroll_by(scroll, &self.code),
                 _ => {}
             },
-            EditorMode::Insert { append: _ } => if let Event::Input(key) = evt { match key {
-                Key::Delete => self.delete_key(mode),
-                Key::Backspace => self.backspace_key(mode, window_size)?,
-                Key::Char('\t') => {
-                    self.insert_char(cursor_x, cursor_y, '\t');
-                    self.move_by_x(1, mode);
+            EditorMode::Insert { append: _ } => {
+                if let Event::Input(key) = evt {
+                    match key {
+                        Key::Delete => self.delete_key(mode),
+                        Key::Backspace => self.backspace_key(mode, window_size)?,
+                        Key::Char('\t') => {
+                            self.insert_char(cursor_x, cursor_y, '\t');
+                            self.move_by_x(1, mode);
+                        }
+                        Key::Char('\n') => {
+                            self.split_line(cursor_x, cursor_y);
+                            self.move_by_y(1, mode, window_size);
+                            self.move_to_x(0);
+                        }
+                        Key::Char(c) => {
+                            self.insert_char(cursor_x, cursor_y, c);
+                            self.move_by_x(1, mode);
+                        }
+                        _ => {}
+                    }
                 }
-                Key::Char('\n') => {
-                    self.split_line(cursor_x, cursor_y);
-                    self.move_by_y(1, mode, window_size);
-                    self.move_to_x(0);
-                }
-                Key::Char(c) => {
-                    self.insert_char(cursor_x, cursor_y, c);
-                    self.move_by_x(1, mode);
-                }
-                _ => {}
-            } },
+            }
             _ => {}
         }
 

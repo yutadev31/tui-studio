@@ -2,14 +2,17 @@ use std::fmt::Display;
 
 use crate::utils::vec2::UVec2;
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-#[derive(Default)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Default)]
 pub enum EditorMode {
     #[default]
     Normal,
-    Visual { start: UVec2 },
+    Visual {
+        start: UVec2,
+    },
     Command,
-    Insert { append: bool },
+    Insert {
+        append: bool,
+    },
 }
 
 impl Display for EditorMode {
@@ -31,4 +34,3 @@ impl Display for EditorMode {
         )
     }
 }
-

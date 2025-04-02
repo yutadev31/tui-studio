@@ -16,7 +16,9 @@ fn main() -> anyhow::Result<()> {
     init_term()?;
     let args = Args::parse();
 
-    if let Err(err) = App::run(args.path) { error!("{}", err) };
+    if let Err(err) = App::run(args.path) {
+        error!("{}", err)
+    };
 
     safe_exit();
     Ok(())
