@@ -1,7 +1,6 @@
 use crossterm::style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor};
 
 use crate::{
-    // language_support::highlight::HighlightToken,
     editor::core::{editor::Editor, mode::EditorMode},
     language_support::highlight::HighlightToken,
     utils::{
