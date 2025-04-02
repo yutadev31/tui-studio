@@ -31,7 +31,7 @@ impl EditorFile {
             return Err(anyhow!("File name is missing."));
         };
 
-        if let None = self.file {
+        if self.file.is_none() {
             self.file = Some(Self::open_file(path)?);
         }
 
@@ -54,7 +54,7 @@ impl EditorFile {
             return Err(anyhow!("File name is missing."));
         };
 
-        if let None = self.file {
+        if self.file.is_none() {
             self.file = Some(Self::open_file(path)?);
         }
 

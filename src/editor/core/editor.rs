@@ -91,7 +91,7 @@ impl Editor {
         }
 
         if let EditorMode::Insert { append } = &self.mode {
-            if append.clone() {
+            if *append {
                 let (_, window_size) = self.rect.clone().into();
                 self.buffers[self.current_buffer_index.unwrap()].move_by(
                     IVec2::left(),
@@ -176,7 +176,7 @@ impl Editor {
             if let Event::Input(key) = evt.clone() {
                 match key {
                     Key::Backspace => {
-                        if self.command_input_buf.len() == 0 {
+                        if self.command_input_buf.is_empty() {
                             self.set_normal_mode()?;
                         } else {
                             self.command_input_buf.pop();

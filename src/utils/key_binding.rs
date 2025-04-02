@@ -56,6 +56,7 @@ impl From<KeyEvent> for Key {
 
 pub type KeySequence = Vec<Key>;
 
+#[derive(Default)]
 pub struct KeyConfig {
     bindings: HashMap<(KeyConfigType, KeySequence), AppAction>,
 }
@@ -89,10 +90,3 @@ impl KeyConfig {
     }
 }
 
-impl Default for KeyConfig {
-    fn default() -> Self {
-        Self {
-            bindings: HashMap::new(),
-        }
-    }
-}

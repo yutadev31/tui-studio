@@ -57,7 +57,7 @@ impl App {
     ) -> anyhow::Result<Option<Event>> {
         match evt {
             CrosstermEvent::Key(evt) => {
-                if self.key_buf.len() == 0 {
+                if self.key_buf.is_empty() {
                     self.first_key_time = Some(Utc::now())
                 } else if let Some(first_key_time) = self.first_key_time {
                     let now = Utc::now();

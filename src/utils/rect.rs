@@ -12,8 +12,8 @@ impl Rect {
     }
 }
 
-impl Into<(UVec2, UVec2)> for Rect {
-    fn into(self) -> (UVec2, UVec2) {
-        (self.pos, self.size)
+impl From<Rect> for (UVec2, UVec2) {
+    fn from(val: Rect) -> Self {
+        (val.pos, val.size)
     }
 }

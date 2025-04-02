@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::action::AppAction;
 
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct CommandManager {
     commands: HashMap<String, Vec<AppAction>>,
 }
@@ -17,10 +18,3 @@ impl CommandManager {
     }
 }
 
-impl Default for CommandManager {
-    fn default() -> Self {
-        Self {
-            commands: HashMap::new(),
-        }
-    }
-}

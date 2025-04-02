@@ -38,7 +38,7 @@ impl EditorBuffer {
         let buf = file.read()?;
 
         Ok(Self {
-            file: file,
+            file,
             content: buf.lines().map(|line| line.to_string()).collect(),
             ..Default::default()
         })
@@ -143,7 +143,7 @@ impl EditorBuffer {
                 .chars()
                 .take(x)
                 .filter_map(|c| c.width())
-                .fold(0, |sum, x| sum + x),
+                .sum(),
             self.cursor.y,
         )
     }
@@ -306,7 +306,7 @@ impl EditorBuffer {
     }
 
     pub fn get_offset(&self) -> UVec2 {
-        self.scroll.clone()
+        self.scroll
     }
 
     pub fn scroll_to_x(&mut self, x: usize) {
@@ -380,11 +380,7 @@ impl EditorBuffer {
                     let offset_x = num_len + 1;
                     let scroll_y = self.get_offset().y;
 
-                    let x = if let Some(x) = pos.x.checked_sub(offset_x) {
-                        x
-                    } else {
-                        0
-                    };
+                    let x = pos.x.checked_sub(offset_x).unwrap_or_default();
 
                     self.move_to_y(pos.y + scroll_y, mode, window_size);
                     self.move_to_x(x);
@@ -392,27 +388,24 @@ impl EditorBuffer {
                 // Event::Scroll(scroll) => self.scroll_by(scroll, &self.code),
                 _ => {}
             },
-            EditorMode::Insert { append: _ } => match evt {
-                Event::Input(key) => match key {
-                    Key::Delete => self.delete_key(mode),
-                    Key::Backspace => self.backspace_key(mode, window_size)?,
-                    Key::Char('\t') => {
-                        self.insert_char(cursor_x, cursor_y, '\t');
-                        self.move_by_x(1, mode);
-                    }
-                    Key::Char('\n') => {
-                        self.split_line(cursor_x, cursor_y);
-                        self.move_by_y(1, mode, window_size);
-                        self.move_to_x(0);
-                    }
-                    Key::Char(c) => {
-                        self.insert_char(cursor_x, cursor_y, c);
-                        self.move_by_x(1, mode);
-                    }
-                    _ => {}
-                },
+            EditorMode::Insert { append: _ } => if let Event::Input(key) = evt { match key {
+                Key::Delete => self.delete_key(mode),
+                Key::Backspace => self.backspace_key(mode, window_size)?,
+                Key::Char('\t') => {
+                    self.insert_char(cursor_x, cursor_y, '\t');
+                    self.move_by_x(1, mode);
+                }
+                Key::Char('\n') => {
+                    self.split_line(cursor_x, cursor_y);
+                    self.move_by_y(1, mode, window_size);
+                    self.move_to_x(0);
+                }
+                Key::Char(c) => {
+                    self.insert_char(cursor_x, cursor_y, c);
+                    self.move_by_x(1, mode);
+                }
                 _ => {}
-            },
+            } },
             _ => {}
         }
 

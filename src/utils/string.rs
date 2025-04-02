@@ -5,6 +5,12 @@ pub struct CodeString {
     value: String,
 }
 
+impl Default for CodeString {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CodeString {
     pub fn new() -> Self {
         Self {

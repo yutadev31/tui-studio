@@ -112,9 +112,9 @@ impl From<(usize, usize)> for UVec2 {
     }
 }
 
-impl Into<(usize, usize)> for UVec2 {
-    fn into(self) -> (usize, usize) {
-        (self.x, self.y)
+impl From<UVec2> for (usize, usize) {
+    fn from(val: UVec2) -> Self {
+        (val.x, val.y)
     }
 }
 
@@ -124,8 +124,8 @@ impl From<(isize, isize)> for IVec2 {
     }
 }
 
-impl Into<(isize, isize)> for IVec2 {
-    fn into(self) -> (isize, isize) {
-        (self.x, self.y)
+impl From<IVec2> for (isize, isize) {
+    fn from(val: IVec2) -> Self {
+        (val.x, val.y)
     }
 }

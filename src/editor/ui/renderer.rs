@@ -20,7 +20,7 @@ impl EditorRenderer {
     ) {
         (0..lines.len())
             .skip(scroll_y)
-            .take(window_size.y.into())
+            .take(window_size.y)
             .enumerate()
             .for_each(|(draw_y, y)| {
                 screen[draw_y].push_str(format!("{}{:<offset_x$}", ResetColor, y + 1).as_str());
@@ -87,7 +87,7 @@ impl EditorRenderer {
         let (min_y, max_y) = (start_y.min(cursor_y), start_y.max(cursor_y));
         if min_y <= y && max_y >= y {
             let start = if start_y == y {
-                if start_pos < cursor_pos || line.len() == 0 {
+                if start_pos < cursor_pos || line.is_empty() {
                     start_x
                 } else {
                     start_x + 1
@@ -99,7 +99,7 @@ impl EditorRenderer {
             };
 
             let end = if cursor_y == y {
-                if start_pos < cursor_pos || line.len() == 0 {
+                if start_pos < cursor_pos || line.is_empty() {
                     cursor_x
                 } else {
                     cursor_x + 1
@@ -185,7 +185,7 @@ impl EditorRenderer {
         } else {
             self.render_code_string(
                 screen, 0, y, draw_y, false, scroll_y, // tokens,
-                &line,
+                line,
             );
         }
 
