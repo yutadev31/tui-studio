@@ -20,7 +20,7 @@ use super::{
 };
 
 #[derive(Default)]
-pub(crate) struct EditorBuffer {
+pub struct EditorBuffer {
     path: Option<PathBuf>,
     file: Option<File>,
     content: Vec<String>,

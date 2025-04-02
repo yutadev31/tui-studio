@@ -43,7 +43,7 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub(crate) fn new(path: Option<String>, rect: Rect) -> anyhow::Result<Self> {
+    pub fn new(path: Option<String>, rect: Rect) -> anyhow::Result<Self> {
         Ok(Self {
             rect,
             buffers: match path {
@@ -59,11 +59,11 @@ impl Editor {
         })
     }
 
-    pub(crate) fn get_mode(&self) -> EditorMode {
+    pub fn get_mode(&self) -> EditorMode {
         self.mode.clone()
     }
 
-    pub(crate) fn set_mode(&mut self, mode: EditorMode) -> anyhow::Result<()> {
+    pub fn set_mode(&mut self, mode: EditorMode) -> anyhow::Result<()> {
         match mode {
             EditorMode::Normal => self.set_normal_mode()?,
             EditorMode::Command => self.set_command_mode(),
@@ -74,16 +74,16 @@ impl Editor {
         Ok(())
     }
 
-    pub(crate) fn get_current_buffer(&self) -> Option<&EditorBuffer> {
+    pub fn get_current_buffer(&self) -> Option<&EditorBuffer> {
         self.current_buffer_index.map(|index| &self.buffers[index])
     }
 
-    pub(crate) fn get_current_buffer_mut(&mut self) -> Option<&mut EditorBuffer> {
+    pub fn get_current_buffer_mut(&mut self) -> Option<&mut EditorBuffer> {
         self.current_buffer_index
             .map(|index| &mut self.buffers[index])
     }
 
-    pub(crate) fn set_normal_mode(&mut self) -> anyhow::Result<()> {
+    pub fn set_normal_mode(&mut self) -> anyhow::Result<()> {
         {
             let Some(_) = self.get_current_buffer() else {
                 return Err(anyhow!("No buffer open"));
@@ -105,7 +105,7 @@ impl Editor {
         Ok(())
     }
 
-    pub(crate) fn set_visual_mode(&mut self) -> anyhow::Result<()> {
+    pub fn set_visual_mode(&mut self) -> anyhow::Result<()> {
         if let Some(current) = self.get_current_buffer() {
             let start = current.get_position(&self.mode);
             self.mode = EditorMode::Visual { start };
@@ -115,7 +115,7 @@ impl Editor {
         }
     }
 
-    pub(crate) fn set_insert_mode(&mut self, append: bool) -> anyhow::Result<()> {
+    pub fn set_insert_mode(&mut self, append: bool) -> anyhow::Result<()> {
         let mode = self.mode.clone();
 
         {
@@ -138,12 +138,12 @@ impl Editor {
         Ok(())
     }
 
-    pub(crate) fn set_command_mode(&mut self) {
+    pub fn set_command_mode(&mut self) {
         self.mode = EditorMode::Command;
         self.command_input_buf = String::new();
     }
 
-    pub(crate) fn on_action(&mut self, action: EditorAction) -> anyhow::Result<()> {
+    pub fn on_action(&mut self, action: EditorAction) -> anyhow::Result<()> {
         match action {
             EditorAction::SetMode(mode) => self.set_mode(mode)?,
             EditorAction::Buffer(action) => {
@@ -166,7 +166,7 @@ impl Editor {
         Ok(())
     }
 
-    pub(crate) fn on_event(&mut self, evt: Event) -> anyhow::Result<Vec<Event>> {
+    pub fn on_event(&mut self, evt: Event) -> anyhow::Result<Vec<Event>> {
         let mut events = vec![];
         let term_size = get_term_size()?;
 
@@ -214,7 +214,7 @@ impl Editor {
         Ok(events)
     }
 
-    pub(crate) fn draw(&self) -> anyhow::Result<()> {
+    pub fn draw(&self) -> anyhow::Result<()> {
         let mut screen = vec![String::new(); self.rect.size.y].into_boxed_slice();
         let cursor_pos = self.renderer.render(
             &mut screen,
@@ -400,7 +400,7 @@ impl Editor {
         );
     }
 
-    pub(crate) fn register_commands(&self, cmd_manager: &mut CommandManager) {
+    pub fn register_commands(&self, cmd_manager: &mut CommandManager) {
         cmd_manager.register("q", vec![AppAction::Quit]);
         cmd_manager.register(
             "w",
