@@ -22,9 +22,9 @@ impl EditorFile {
         })
     }
 
-    pub fn set_file_path(&mut self, path: PathBuf) {
-        self.path = Some(path);
-    }
+    // pub fn set_file_path(&mut self, path: PathBuf) {
+    //     self.path = Some(path);
+    // }
 
     pub fn read(&mut self) -> anyhow::Result<String> {
         let Some(path) = &self.path else {

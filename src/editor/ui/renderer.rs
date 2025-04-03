@@ -80,7 +80,6 @@ impl EditorRenderer {
         line: &WideString,
         cursor_pos: UVec2,
         start_pos: UVec2,
-        scroll_y: usize,
         tokens: &Vec<HighlightToken>,
     ) {
         let line = line.to_string();
@@ -167,7 +166,6 @@ impl EditorRenderer {
         &self,
         screen: &mut Box<[String]>,
         mode: &EditorMode,
-        scroll_y: usize,
         cursor_pos: UVec2,
         y: usize,
         draw_y: usize,
@@ -175,9 +173,7 @@ impl EditorRenderer {
         tokens: &Vec<HighlightToken>,
     ) -> anyhow::Result<()> {
         if let EditorMode::Visual { start } = mode.clone() {
-            self.render_code_visual_mode(
-                screen, y, draw_y, line, cursor_pos, start, scroll_y, tokens,
-            );
+            self.render_code_visual_mode(screen, y, draw_y, line, cursor_pos, start, tokens);
         } else {
             self.render_code_string(screen, 0, y, draw_y, false, tokens, &line.to_string());
         }
@@ -199,7 +195,6 @@ impl EditorRenderer {
             self.render_code_line(
                 screen,
                 mode,
-                scroll_y,
                 cursor_pos,
                 draw_y + scroll_y,
                 draw_y,

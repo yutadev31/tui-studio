@@ -95,7 +95,7 @@ impl EditorBuffer {
         self.content[y].clone()
     }
 
-    pub fn insert_line(&mut self, y: usize) {
+    pub fn _insert_line(&mut self, y: usize) {
         self.content.insert(y, WideString::new());
     }
 
@@ -221,7 +221,7 @@ impl EditorBuffer {
         self.sync_scroll_y(mode, window_size);
     }
 
-    pub fn move_to(&mut self, target: UVec2, mode: &EditorMode, window_size: UVec2) {
+    pub fn _move_to(&mut self, target: UVec2, mode: &EditorMode, window_size: UVec2) {
         self.move_to_y(target.y, mode, window_size);
         self.move_to_x(target.x);
     }
@@ -339,7 +339,7 @@ impl EditorBuffer {
         self.scroll
     }
 
-    pub fn scroll_to_x(&mut self, x: usize) {
+    pub fn _scroll_to_x(&mut self, x: usize) {
         self.scroll.x = x;
     }
 

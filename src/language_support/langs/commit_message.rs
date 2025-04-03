@@ -3,10 +3,7 @@ use crate::{
         highlight::{regex_tokenize, HighlightToken},
         LanguageSupport,
     },
-    utils::{
-        color::{Color, ToColor},
-        file_type::COMMIT_MESSAGE,
-    },
+    utils::color::{Color, ToColor},
 };
 
 const SYNTAX: [(&str, TokenKind); 4] = [
@@ -44,9 +41,9 @@ impl CommitMessageLanguageSupport {
 }
 
 impl LanguageSupport for CommitMessageLanguageSupport {
-    fn file_type(&self) -> &'static str {
-        COMMIT_MESSAGE
-    }
+    // fn file_type(&self) -> &'static str {
+    //     COMMIT_MESSAGE
+    // }
 
     fn highlight(&self, source_code: &str) -> Option<Vec<HighlightToken>> {
         Some(regex_tokenize(source_code, SYNTAX.to_vec()))

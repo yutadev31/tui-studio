@@ -3,10 +3,7 @@ use crate::{
         highlight::{regex_tokenize, HighlightToken},
         LanguageSupport,
     },
-    utils::{
-        color::{Color, ToColor},
-        file_type::CSS,
-    },
+    utils::color::{Color, ToColor},
 };
 
 const SYNTAX: [(&str, TokenKind); 6] = [
@@ -50,9 +47,9 @@ impl CSSLanguageSupport {
 }
 
 impl LanguageSupport for CSSLanguageSupport {
-    fn file_type(&self) -> &'static str {
-        CSS
-    }
+    // fn file_type(&self) -> &'static str {
+    //     CSS
+    // }
 
     fn highlight(&self, source_code: &str) -> Option<Vec<HighlightToken>> {
         Some(regex_tokenize(source_code, SYNTAX.to_vec()))
