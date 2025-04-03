@@ -1,4 +1,10 @@
-use crossterm::style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor};
+use std::{cmp::Ordering, io::stdout};
+
+use crossterm::{
+    cursor::MoveTo,
+    queue,
+    style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
+};
 
 use crate::{
     editor::core::{editor::Editor, mode::EditorMode},
@@ -15,9 +21,8 @@ pub struct EditorRenderer {}
 impl EditorRenderer {
     fn render_numbers(
         &self,
-        screen: &mut Box<[String]>,
         window_size: UVec2,
-        lines: &Vec<WideString>,
+        lines: &[WideString],
         scroll_y: usize,
         offset_x: usize,
     ) {
@@ -26,21 +31,24 @@ impl EditorRenderer {
             .take(window_size.y)
             .enumerate()
             .for_each(|(draw_y, y)| {
-                screen[draw_y].push_str(format!("{}{:<offset_x$}", ResetColor, y + 1).as_str());
+                queue!(
+                    stdout(),
+                    MoveTo(0, draw_y as u16),
+                    Print(format!("{}{:<offset_x$}", ResetColor, y + 1))
+                )
+                .unwrap();
             });
     }
 
     fn render_code_string(
         &self,
-        screen: &mut Box<[String]>,
         x: usize,
         y: usize,
-        draw_y: usize,
         is_select: bool,
-        tokens: &Vec<HighlightToken>,
-        code: &String,
+        tokens: &[HighlightToken],
+        code: &str,
     ) {
-        let mut code = code.clone();
+        let mut code = code.to_string();
 
         for highlight_token in tokens.iter().rev() {
             if highlight_token.end.y == y {
@@ -69,18 +77,16 @@ impl EditorRenderer {
             code.insert_str(0, format!("{}", SetBackgroundColor(Color::Reset)).as_str());
         }
 
-        screen[draw_y].push_str(code.to_string().as_str());
+        queue!(stdout(), Print(code.to_string())).unwrap();
     }
 
     fn render_code_visual_mode(
         &self,
-        screen: &mut Box<[String]>,
         y: usize,
-        draw_y: usize,
         line: &WideString,
         cursor_pos: UVec2,
         start_pos: UVec2,
-        tokens: &Vec<HighlightToken>,
+        tokens: &[HighlightToken],
     ) {
         let line = line.to_string();
         let (cursor_x, cursor_y) = cursor_pos.into();
@@ -88,28 +94,28 @@ impl EditorRenderer {
 
         let (min_y, max_y) = (start_y.min(cursor_y), start_y.max(cursor_y));
         if min_y <= y && max_y >= y {
-            let start = if start_y == y {
-                if start_pos < cursor_pos || line.is_empty() {
-                    start_x
-                } else {
-                    start_x + 1
+            let start = match start_y.cmp(&y) {
+                Ordering::Greater => line.len(),
+                Ordering::Less => 0,
+                Ordering::Equal => {
+                    if start_pos < cursor_pos || line.is_empty() {
+                        start_x
+                    } else {
+                        start_x + 1
+                    }
                 }
-            } else if start_y < y {
-                0
-            } else {
-                line.len()
             };
 
-            let end = if cursor_y == y {
-                if start_pos < cursor_pos || line.is_empty() {
-                    cursor_x
-                } else {
-                    cursor_x + 1
+            let end = match cursor_y.cmp(&y) {
+                Ordering::Greater => line.len(),
+                Ordering::Less => 0,
+                Ordering::Equal => {
+                    if start_pos < cursor_pos || line.is_empty() {
+                        cursor_x
+                    } else {
+                        cursor_x + 1
+                    }
                 }
-            } else if cursor_y < y {
-                0
-            } else {
-                line.len()
             };
 
             let (front_index, front_text) = if start <= end {
@@ -130,52 +136,26 @@ impl EditorRenderer {
                 (start, &line[start..line.len()])
             };
 
-            self.render_code_string(
-                screen,
-                front_index,
-                y,
-                draw_y,
-                false,
-                tokens,
-                &front_text.to_string(),
-            );
-            self.render_code_string(
-                screen,
-                select_index,
-                y,
-                draw_y,
-                true,
-                tokens,
-                &select_text.to_string(),
-            );
-            self.render_code_string(
-                screen,
-                back_index,
-                y,
-                draw_y,
-                false,
-                tokens,
-                &back_text.to_string(),
-            );
+            self.render_code_string(front_index, y, false, tokens, front_text);
+            self.render_code_string(select_index, y, true, tokens, select_text);
+            self.render_code_string(back_index, y, false, tokens, back_text);
         } else {
-            self.render_code_string(screen, 0, y, draw_y, false, tokens, &line);
+            self.render_code_string(0, y, false, tokens, &line);
         }
     }
 
     fn render_code_line(
         &self,
-        screen: &mut Box<[String]>,
         mode: &EditorMode,
         cursor_pos: UVec2,
         y: usize,
-        draw_y: usize,
         line: &WideString,
-        tokens: &Vec<HighlightToken>,
+        tokens: &[HighlightToken],
     ) -> anyhow::Result<()> {
         if let EditorMode::Visual { start } = mode.clone() {
-            self.render_code_visual_mode(screen, y, draw_y, line, cursor_pos, start, tokens);
+            self.render_code_visual_mode(y, line, cursor_pos, start, tokens);
         } else {
-            self.render_code_string(screen, 0, y, draw_y, false, tokens, &line.to_string());
+            self.render_code_string(0, y, false, tokens, &line.to_string());
         }
 
         Ok(())
@@ -183,51 +163,45 @@ impl EditorRenderer {
 
     fn render_code(
         &self,
-        screen: &mut Box<[String]>,
         window_size: UVec2,
         mode: &EditorMode,
         scroll_y: usize,
         cursor_pos: UVec2,
-        lines: &Vec<WideString>,
-        tokens: &Vec<HighlightToken>,
+        offset_x: usize,
+        lines: &[WideString],
+        tokens: &[HighlightToken],
     ) -> anyhow::Result<()> {
         for (draw_y, line) in lines.iter().skip(scroll_y).take(window_size.y).enumerate() {
-            self.render_code_line(
-                screen,
-                mode,
-                cursor_pos,
-                draw_y + scroll_y,
-                draw_y,
-                line,
-                tokens,
-            )?;
+            queue!(stdout(), MoveTo(offset_x as u16, draw_y as u16)).unwrap();
+            self.render_code_line(mode, cursor_pos, draw_y + scroll_y, line, tokens)?;
         }
 
         Ok(())
     }
 
-    fn render_command_box(
-        &self,
-        screen: &mut Box<[String]>,
-        window_size: UVec2,
-        command_input_buf: &String,
-    ) -> UVec2 {
+    fn render_command_box(&self, window_size: UVec2, command_input_buf: &str) -> UVec2 {
         let y = window_size.y - 1;
-        screen[y] = ":".to_string();
-        screen[y].push_str(command_input_buf.as_str());
-        let len = screen[y].len();
-        screen[y].push_str(" ".repeat(window_size.x - len).as_str());
+        let len = command_input_buf.len() + 1;
+        let space = "".repeat(window_size.x - len);
+
+        queue!(
+            stdout(),
+            MoveTo(0, y as u16),
+            Print(":"),
+            Print(command_input_buf),
+            Print(space)
+        )
+        .unwrap();
 
         UVec2::new(len, y)
     }
 
     pub fn render(
         &self,
-        screen: &mut Box<[String]>,
         window_size: UVec2,
         editor: &Editor,
-        tokens: &Vec<HighlightToken>,
-        command_input_buf: &String,
+        tokens: &[HighlightToken],
+        command_input_buf: &str,
     ) -> anyhow::Result<Option<UVec2>> {
         if let Some(current) = editor.get_current_buffer() {
             let mode = editor.get_mode();
@@ -245,20 +219,19 @@ impl EditorRenderer {
             let mut draw_cursor_pos =
                 draw_cursor_pos.checked_add(IVec2::new(offset_x as isize, -(scroll_y as isize)));
 
-            self.render_numbers(screen, window_size, &lines, scroll_y, offset_x);
+            self.render_numbers(window_size, &lines, scroll_y, offset_x);
             self.render_code(
-                screen,
                 window_size,
                 &mode,
                 scroll_y,
                 cursor_pos,
+                offset_x,
                 &lines,
                 tokens,
             )?;
 
             if let EditorMode::Command = mode {
-                draw_cursor_pos =
-                    Some(self.render_command_box(screen, window_size, command_input_buf));
+                draw_cursor_pos = Some(self.render_command_box(window_size, command_input_buf));
             }
 
             Ok(draw_cursor_pos)

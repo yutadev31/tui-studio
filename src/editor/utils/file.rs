@@ -14,29 +14,29 @@ pub struct EditorFile {
 
 impl EditorFile {
     pub fn open(path: PathBuf) -> anyhow::Result<Self> {
-        let file = Self::open_file(&path)?;
+        let file = if path.is_file() {
+            Some(Self::open_file(&path)?)
+        } else {
+            None
+        };
 
         Ok(Self {
             path: Some(path),
-            file: Some(file),
+            file,
         })
     }
 
-    // pub fn set_file_path(&mut self, path: PathBuf) {
-    //     self.path = Some(path);
-    // }
+    pub fn _set_file_path(&mut self, path: PathBuf) {
+        self.path = Some(path);
+    }
 
     pub fn read(&mut self) -> anyhow::Result<String> {
-        let Some(path) = &self.path else {
+        let Some(_) = &self.path else {
             return Err(anyhow!("File name is missing."));
         };
 
-        if self.file.is_none() {
-            self.file = Some(Self::open_file(path)?);
-        }
-
-        match &mut self.file {
-            None => panic!(),
+        Ok(match &mut self.file {
+            None => String::from("\n"),
             Some(file) => {
                 file.seek(SeekFrom::Start(0))?;
                 let mut buf = String::new();
@@ -44,9 +44,9 @@ impl EditorFile {
                 if buf.ends_with("\n") {
                     buf.push('\n');
                 }
-                Ok(buf)
+                buf
             }
-        }
+        })
     }
 
     pub fn write(&mut self, content: &str) -> anyhow::Result<()> {
@@ -74,6 +74,7 @@ impl EditorFile {
             .read(true)
             .write(true)
             .create(true)
+            .truncate(false)
             .open(path)?)
     }
 }

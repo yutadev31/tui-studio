@@ -8,7 +8,6 @@ use arboard::Clipboard;
 use crossterm::{
     cursor::{Hide, MoveTo, SetCursorStyle, Show},
     queue,
-    style::Print,
     terminal::{Clear, ClearType},
 };
 
@@ -212,24 +211,14 @@ impl Editor {
     }
 
     pub fn draw(&self) -> anyhow::Result<()> {
-        let mut screen = vec![String::new(); self.rect.size.y].into_boxed_slice();
+        queue!(stdout(), Clear(ClearType::All))?;
 
         let cursor_pos = self.renderer.render(
-            &mut screen,
             self.rect.size,
             self,
             &self.highlight_tokens,
             &self.command_input_buf,
         )?;
-
-        for (y, line) in screen.iter().enumerate() {
-            queue!(
-                stdout(),
-                MoveTo(self.rect.pos.x as u16, (self.rect.pos.y + y) as u16),
-                Clear(ClearType::CurrentLine),
-                Print(line)
-            )?;
-        }
 
         if let Some(cursor_pos) = cursor_pos {
             queue!(
@@ -257,12 +246,12 @@ impl Editor {
         key_config.register(
             KeyConfigType::All,
             vec![Key::Ctrl('c')],
-            EditorAction::SetMode(EditorMode::Normal).to_app(),
+            EditorAction::SetMode(EditorMode::Normal).into_app(),
         );
         key_config.register(
             KeyConfigType::All,
             vec![Key::Esc],
-            EditorAction::SetMode(EditorMode::Normal).to_app(),
+            EditorAction::SetMode(EditorMode::Normal).into_app(),
         );
         key_config.register(
             KeyConfigType::Normal,

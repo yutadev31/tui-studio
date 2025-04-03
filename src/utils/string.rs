@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::{fmt::Display, ops::Add};
 
 #[derive(Clone)]
 pub struct WideString {
@@ -57,6 +57,10 @@ impl WideString {
     pub fn len(&self) -> usize {
         self.value.chars().count()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 impl Add for WideString {
@@ -81,8 +85,8 @@ impl From<String> for WideString {
     }
 }
 
-impl ToString for WideString {
-    fn to_string(&self) -> String {
-        self.value.clone()
+impl Display for WideString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value.clone())
     }
 }

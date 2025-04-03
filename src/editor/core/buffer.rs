@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{cmp::Ordering, fmt::Display, path::PathBuf};
 
 use arboard::Clipboard;
 use unicode_width::UnicodeWidthChar;
@@ -60,7 +60,7 @@ impl EditorBuffer {
 
         Ok(Self {
             file,
-            content: buf.lines().map(|line| WideString::from(line)).collect(),
+            content: buf.lines().map(WideString::from).collect(),
             language_support,
             ..Default::default()
         })
@@ -290,29 +290,37 @@ impl EditorBuffer {
     }
 
     pub fn move_by_x(&mut self, x: isize, mode: &EditorMode) {
-        if x > 0 {
-            self.sync(mode);
-            self.cursor.x = self.clamp_x(self.cursor.x + x as usize, mode);
-        } else if x < 0 {
-            self.sync(mode);
-            if self.cursor.x < -x as usize {
-                self.cursor.x = 0;
-            } else {
-                self.cursor.x -= -x as usize;
+        match x.cmp(&0) {
+            Ordering::Greater => {
+                self.sync(mode);
+                self.cursor.x = self.clamp_x(self.cursor.x + x as usize, mode);
             }
-        }
+            Ordering::Less => {
+                self.sync(mode);
+                if self.cursor.x < -x as usize {
+                    self.cursor.x = 0;
+                } else {
+                    self.cursor.x -= -x as usize;
+                }
+            }
+            _ => {}
+        };
     }
 
     pub fn move_by_y(&mut self, y: isize, mode: &EditorMode, window_size: UVec2) {
-        if y > 0 {
-            self.cursor.y = self.clamp_y(self.cursor.y + y as usize);
-        } else if y < 0 {
-            if self.cursor.y < -y as usize {
-                self.cursor.y = 0;
-            } else {
-                self.cursor.y -= -y as usize;
+        match y.cmp(&0) {
+            Ordering::Greater => {
+                self.cursor.y = self.clamp_y(self.cursor.y + y as usize);
             }
-        }
+            Ordering::Less => {
+                if self.cursor.y < -y as usize {
+                    self.cursor.y = 0;
+                } else {
+                    self.cursor.y -= -y as usize;
+                }
+            }
+            _ => {}
+        };
 
         self.sync_scroll_y(mode, window_size);
     }
@@ -447,12 +455,16 @@ impl EditorBuffer {
     }
 }
 
-impl ToString for EditorBuffer {
-    fn to_string(&self) -> String {
-        self.content
-            .iter()
-            .map(|line| line.to_string())
-            .collect::<Vec<String>>()
-            .join("\n")
+impl Display for EditorBuffer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.content
+                .iter()
+                .map(|line| line.to_string())
+                .collect::<Vec<String>>()
+                .join("\n")
+        )
     }
 }

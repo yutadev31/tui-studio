@@ -13,6 +13,6 @@ impl CommandManager {
     }
 
     pub fn get_command(&self, alias: &str) -> Option<&Vec<AppAction>> {
-        self.commands.get(&alias.to_string())
+        self.commands.get(alias)
     }
 }

@@ -15,8 +15,8 @@ pub enum EditorCursorAction {
 }
 
 impl EditorCursorAction {
-    pub fn to_app(self) -> AppAction {
-        EditorBufferAction::Cursor(self).to_app()
+    pub fn into_app(self) -> AppAction {
+        EditorBufferAction::Cursor(self).into_app()
     }
 }
 
@@ -30,8 +30,8 @@ pub enum EditorEditAction {
 }
 
 impl EditorEditAction {
-    pub fn to_app(self) -> AppAction {
-        EditorBufferAction::Edit(self).to_app()
+    pub fn into_app(self) -> AppAction {
+        EditorBufferAction::Edit(self).into_app()
     }
 }
 
@@ -43,8 +43,8 @@ pub enum EditorBufferAction {
 }
 
 impl EditorBufferAction {
-    pub fn to_app(self) -> AppAction {
-        EditorAction::Buffer(self).to_app()
+    pub fn into_app(self) -> AppAction {
+        EditorAction::Buffer(self).into_app()
     }
 }
 
@@ -55,7 +55,7 @@ pub enum EditorAction {
 }
 
 impl EditorAction {
-    pub fn to_app(self) -> AppAction {
+    pub fn into_app(self) -> AppAction {
         AppAction::EditorAction(self)
     }
 }
