@@ -161,6 +161,7 @@ impl EditorRenderer {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn render_code(
         &self,
         window_size: UVec2,
