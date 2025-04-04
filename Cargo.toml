@@ -7,7 +7,7 @@ license = "MIT"
 authors = ["Yuta"]
 
 [dependencies]
-arboard = "3.4.1"
+arboard = "3.5.0"
 anyhow = "1.0.97"
 crossterm = { version = "0.28.1", features = ["events"] }
 clap = { version = "4.5.35", features = ["derive"] }
