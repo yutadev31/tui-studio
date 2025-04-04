@@ -4,6 +4,7 @@ use crossterm::{
     cursor::MoveTo,
     queue,
     style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
+    terminal::{Clear, ClearType},
 };
 
 use crate::{
@@ -183,14 +184,13 @@ impl EditorRenderer {
     fn render_command_box(&self, window_size: UVec2, command_input_buf: &str) -> UVec2 {
         let y = window_size.y - 1;
         let len = command_input_buf.len() + 1;
-        let space = "".repeat(window_size.x - len);
 
         queue!(
             stdout(),
             MoveTo(0, y as u16),
+            Clear(ClearType::CurrentLine),
             Print(":"),
             Print(command_input_buf),
-            Print(space)
         )
         .unwrap();
 
