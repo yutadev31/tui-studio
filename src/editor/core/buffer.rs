@@ -355,6 +355,43 @@ impl EditorBuffer {
         self.scroll.y = y;
     }
 
+    fn scroll_by_x(&mut self, x: isize) {
+        match x.cmp(&0) {
+            Ordering::Greater => {
+                self.scroll.x = self.scroll.x + x as usize;
+            }
+            Ordering::Less => {
+                if self.scroll.x < -x as usize {
+                    self.scroll.x = 0;
+                } else {
+                    self.scroll.x -= -x as usize;
+                }
+            }
+            _ => {}
+        };
+    }
+
+    fn scroll_by_y(&mut self, y: isize) {
+        match y.cmp(&0) {
+            Ordering::Greater => {
+                self.scroll.y = self.scroll.y + y as usize;
+            }
+            Ordering::Less => {
+                if self.scroll.y < -y as usize {
+                    self.scroll.y = 0;
+                } else {
+                    self.scroll.y -= -y as usize;
+                }
+            }
+            _ => {}
+        };
+    }
+
+    fn scroll_by(&mut self, offset: IVec2) {
+        self.scroll_by_y(offset.y);
+        self.scroll_by_x(offset.x);
+    }
+
     pub fn sync_scroll_y(&mut self, mode: &EditorMode, window_size: UVec2) {
         let cursor = self.get_position(mode);
 
@@ -423,7 +460,7 @@ impl EditorBuffer {
                     self.move_to_y(pos.y + scroll_y, mode, window_size);
                     self.move_to_x(x);
                 }
-                // Event::Scroll(scroll) => self.scroll_by(scroll, &self.code),
+                Event::Scroll(scroll) => self.scroll_by(scroll),
                 _ => {}
             },
             EditorMode::Insert { append: _ } => {
