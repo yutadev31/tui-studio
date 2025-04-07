@@ -8,7 +8,7 @@ use crossterm::{
 };
 
 use crate::{
-    editor::core::{editor::Editor, mode::EditorMode},
+    editor::{editor::Editor, mode::EditorMode},
     language_support::highlight::HighlightToken,
     utils::vec2::{IVec2, UVec2},
 };

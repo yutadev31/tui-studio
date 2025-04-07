@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use ropey::Rope;
 
 use crate::{
-    editor::utils::file::EditorFile,
     language_support::{
         langs::{
             commit_message::CommitMessageLanguageSupport, css::CSSLanguageSupport,

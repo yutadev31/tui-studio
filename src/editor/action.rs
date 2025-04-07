@@ -1,4 +1,4 @@
-use crate::{action::AppAction, editor::core::mode::EditorMode};
+use crate::{action::AppAction, editor::mode::EditorMode};
 
 #[derive(Debug, Clone, Hash)]
 pub enum EditorCursorAction {

@@ -9,7 +9,7 @@ use std::{
 
 use crate::{action::AppAction, utils::vec2::UVec2};
 use crate::{
-    editor::core::editor::Editor,
+    editor::editor::Editor,
     utils::{
         command::CommandManager,
         event::Event,

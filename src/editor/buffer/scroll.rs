@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use crate::{
-    editor::core::mode::EditorMode,
+    editor::mode::EditorMode,
     utils::vec2::{IVec2, UVec2},
 };
 

@@ -14,7 +14,7 @@ use crate::{
 };
 
 use super::{
-    super::action::{EditorBufferAction, EditorCursorAction, EditorEditAction},
+    action::{EditorBufferAction, EditorCursorAction, EditorEditAction},
     mode::EditorMode,
 };
 
