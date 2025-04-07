@@ -7,4 +7,3 @@ pub mod log;
 pub mod rect;
 pub mod term;
 pub mod vec2;
-pub mod wide_string;
