@@ -9,7 +9,7 @@ use unicode_width::UnicodeWidthChar;
 use crate::{
     editor::utils::file::EditorFile,
     language_support::{highlight::HighlightToken, LanguageSupport},
-    utils::{event::Event, key_binding::Key, string::WideString, vec2::UVec2},
+    utils::{event::Event, key_binding::Key, vec2::UVec2, wide_string::WideString},
 };
 
 use super::{

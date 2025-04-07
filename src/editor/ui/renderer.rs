@@ -11,8 +11,8 @@ use crate::{
     editor::core::{editor::Editor, mode::EditorMode},
     language_support::highlight::HighlightToken,
     utils::{
-        string::WideString,
         vec2::{IVec2, UVec2},
+        wide_string::WideString,
     },
 };
 

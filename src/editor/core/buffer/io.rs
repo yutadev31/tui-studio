@@ -11,7 +11,7 @@ use crate::{
     },
     utils::{
         file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
-        string::WideString,
+        wide_string::WideString,
     },
 };
 

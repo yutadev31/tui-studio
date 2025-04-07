@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::utils::string::WideString;
+use crate::utils::wide_string::WideString;
 
 use super::EditorBuffer;
 

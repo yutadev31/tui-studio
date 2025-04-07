@@ -5,6 +5,6 @@ pub mod file_type;
 pub mod key_binding;
 pub mod log;
 pub mod rect;
-pub mod string;
 pub mod term;
 pub mod vec2;
+pub mod wide_string;
