@@ -10,10 +10,7 @@ use crossterm::{
 use crate::{
     editor::core::{editor::Editor, mode::EditorMode},
     language_support::highlight::HighlightToken,
-    utils::{
-        vec2::{IVec2, UVec2},
-        wide_string::WideString,
-    },
+    utils::vec2::{IVec2, UVec2},
 };
 
 #[derive(Default)]
@@ -23,7 +20,7 @@ impl EditorRenderer {
     fn render_numbers(
         &self,
         window_size: UVec2,
-        lines: &[WideString],
+        lines: &[String],
         scroll_y: usize,
         offset_x: usize,
     ) {
@@ -84,7 +81,7 @@ impl EditorRenderer {
     fn render_code_visual_mode(
         &self,
         y: usize,
-        line: &WideString,
+        line: &String,
         cursor_pos: UVec2,
         start_pos: UVec2,
         tokens: &[HighlightToken],
@@ -150,7 +147,7 @@ impl EditorRenderer {
         mode: &EditorMode,
         cursor_pos: UVec2,
         y: usize,
-        line: &WideString,
+        line: &String,
         tokens: &[HighlightToken],
     ) -> anyhow::Result<()> {
         if let EditorMode::Visual { start } = mode.clone() {
@@ -170,7 +167,7 @@ impl EditorRenderer {
         scroll_y: usize,
         cursor_pos: UVec2,
         offset_x: usize,
-        lines: &[WideString],
+        lines: &[String],
         tokens: &[HighlightToken],
     ) -> anyhow::Result<()> {
         for (draw_y, line) in lines.iter().skip(scroll_y).take(window_size.y).enumerate() {

@@ -1,69 +1,47 @@
 use std::fmt::Display;
 
-use crate::utils::wide_string::WideString;
-
 use super::EditorBuffer;
 
 impl EditorBuffer {
     pub fn get_line_count(&self) -> usize {
-        self.content.len()
+        self.content.len_lines()
     }
 
     pub fn get_line_length(&self, y: usize) -> usize {
-        self.content[y].len()
+        self.content.line(y).len_chars()
     }
 
-    pub fn get_lines(&self) -> Vec<WideString> {
-        self.content.clone()
+    pub fn get_lines(&self) -> Vec<String> {
+        self.content
+            .to_string()
+            .split("\n")
+            .map(|line| line.to_string())
+            .collect()
     }
 
-    pub fn get_line(&self, y: usize) -> WideString {
-        self.content[y].clone()
-    }
-
-    #[allow(unused)]
-    pub fn insert_line(&mut self, y: usize) {
-        self.content.insert(y, WideString::new());
+    pub fn get_line(&self, y: usize) -> String {
+        self.content.line(y).to_string()
     }
 
     pub fn delete_line(&mut self, y: usize) {
-        self.content.remove(y);
-    }
-
-    pub fn split_line(&mut self, x: usize, y: usize) {
-        let original = self.content[y].clone();
-        let (p0, p1) = original.split_at(x);
-        self.content[y] = WideString::from(p0);
-        self.content.insert(y + 1, WideString::from(p1));
-    }
-
-    pub fn join_lines(&mut self, y: usize) {
-        if y + 1 < self.content.len() {
-            let combined = self.content[y].clone() + self.content[y + 1].clone();
-            self.content[y] = combined;
-            self.content.remove(y + 1);
-        }
+        let start_index = self.content.line_to_char(y);
+        let end_index = self.content.line_to_char(y + 1);
+        self.content.remove(start_index..end_index);
     }
 
     pub fn insert_char(&mut self, x: usize, y: usize, ch: char) {
-        self.content[y].insert(x, ch);
+        let index = self.content.line_to_char(y) + x;
+        self.content.insert_char(index, ch);
     }
 
     pub fn delete_char(&mut self, x: usize, y: usize) {
-        self.content[y].remove(x);
+        let index = self.content.line_to_char(y) + x;
+        self.content.remove(index..index + 1);
     }
 }
 
 impl Display for EditorBuffer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.content
-                .iter()
-                .map(|line| line.to_string())
-                .collect::<Vec<String>>()
-                .join("\n")
-        )
+        write!(f, "{}", self.content.to_string())
     }
 }

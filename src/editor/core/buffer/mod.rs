@@ -4,12 +4,13 @@ mod io;
 mod scroll;
 
 use arboard::Clipboard;
+use ropey::Rope;
 use unicode_width::UnicodeWidthChar;
 
 use crate::{
     editor::utils::file::EditorFile,
     language_support::{highlight::HighlightToken, LanguageSupport},
-    utils::{event::Event, key_binding::Key, vec2::UVec2, wide_string::WideString},
+    utils::{event::Event, key_binding::Key, vec2::UVec2},
 };
 
 use super::{
@@ -20,7 +21,7 @@ use super::{
 #[derive(Default)]
 pub struct EditorBuffer {
     file: EditorFile,
-    content: Vec<WideString>,
+    content: Rope,
     cursor: UVec2,
     scroll: UVec2,
     language_support: Option<Box<dyn LanguageSupport>>,
@@ -38,12 +39,7 @@ impl EditorBuffer {
     // TODO この関数はuiに移動予定
     pub fn delete_key(&mut self, mode: &EditorMode) {
         let cursor = self.get_position(mode);
-
-        if cursor.x == self.get_line_length(cursor.y) {
-            self.join_lines(cursor.y);
-        } else {
-            self.delete_char(cursor.x, cursor.y);
-        }
+        self.delete_char(cursor.x, cursor.y);
     }
 
     // TODO この関数はuiに移動予定
@@ -58,12 +54,12 @@ impl EditorBuffer {
             let line_length = self.get_line_length(cursor.y - 1);
             self.move_by_y(-1, mode, window_size);
 
-            // line_length - 1 するのが本来は良いが usize が 0 以下になるのを防ぐため、- 1 はしない
-            self.move_to_x(line_length);
-            self.join_lines(cursor.y - 1);
+            let x = line_length;
+            let x = if x == 0 { 0 } else { x - 1 };
+            self.move_to_x(x);
+            self.delete_char(self.cursor.x, self.cursor.y);
         } else {
             let remove_x = cursor.x - 1;
-
             self.move_by_x(-1, mode);
             self.delete_char(remove_x, cursor.y);
         }
@@ -152,12 +148,8 @@ impl EditorBuffer {
                     match key {
                         Key::Delete => self.delete_key(mode),
                         Key::Backspace => self.backspace_key(mode, window_size)?,
-                        Key::Char('\t') => {
-                            self.insert_char(cursor_x, cursor_y, '\t');
-                            self.move_by_x(1, mode);
-                        }
                         Key::Char('\n') => {
-                            self.split_line(cursor_x, cursor_y);
+                            self.insert_char(cursor_x, cursor_y, '\n');
                             self.move_by_y(1, mode, window_size);
                             self.move_to_x(0);
                         }

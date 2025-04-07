@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use ropey::Rope;
+
 use crate::{
     editor::utils::file::EditorFile,
     language_support::{
@@ -9,10 +11,7 @@ use crate::{
         },
         LanguageSupport,
     },
-    utils::{
-        file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
-        wide_string::WideString,
-    },
+    utils::file_type::{FileType, COMMIT_MESSAGE, CSS, HTML, MARKDOWN},
 };
 
 use super::EditorBuffer;
@@ -20,7 +19,7 @@ use super::EditorBuffer;
 impl EditorBuffer {
     pub fn new() -> Self {
         Self {
-            content: vec![WideString::new(), WideString::new()],
+            content: Rope::new(),
             ..Default::default()
         }
     }
@@ -41,7 +40,7 @@ impl EditorBuffer {
 
         Ok(Self {
             file,
-            content: buf.lines().map(WideString::from).collect(),
+            content: Rope::from_str(buf.as_str()),
             language_support,
             ..Default::default()
         })
