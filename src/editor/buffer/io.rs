@@ -1,7 +1,5 @@
 use std::path::PathBuf;
 
-use ropey::Rope;
-
 use crate::{
     editor::utils::file::EditorFile,
     language_support::{
@@ -19,7 +17,7 @@ use super::EditorBuffer;
 impl EditorBuffer {
     pub fn new() -> Self {
         Self {
-            content: Rope::new(),
+            content: vec![vec![]],
             ..Default::default()
         }
     }
@@ -40,7 +38,7 @@ impl EditorBuffer {
 
         Ok(Self {
             file,
-            content: Rope::from_str(buf.as_str()),
+            content: buf.split("\n").map(|line| line.chars().collect()).collect(),
             language_support,
             ..Default::default()
         })
