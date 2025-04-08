@@ -1,7 +1,13 @@
 use super::EditorBuffer;
 
 impl EditorBuffer {
-    pub fn undo() {}
+    #[allow(unused)]
+    pub fn undo() {
+        todo!()
+    }
 
-    pub fn redo() {}
+    #[allow(unused)]
+    pub fn redo() {
+        todo!()
+    }
 }

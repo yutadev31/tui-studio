@@ -20,7 +20,7 @@ use crate::{
         key_binding::{Key, KeyConfig, KeyConfigType},
         rect::Rect,
         term::get_term_size,
-        vec2::{IVec2, UVec2},
+        vec2::IVec2,
     },
 };
 
