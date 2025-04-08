@@ -12,6 +12,10 @@ impl EditorBuffer {
         UVec2::new(self.clamp_x(self.cursor.x, mode), self.cursor.y)
     }
 
+    pub fn get_visual_start(&self) -> UVec2 {
+        self.visual_start.clone()
+    }
+
     pub(super) fn clamp_x(&self, x: usize, mode: &EditorMode) -> usize {
         let line_len = self.get_line_length(self.cursor.y);
 
@@ -176,5 +180,9 @@ impl EditorBuffer {
     pub fn sync(&mut self, mode: &EditorMode) {
         self.sync_x(mode);
         self.sync_y();
+    }
+
+    pub fn start_visual_mode(&mut self) {
+        self.visual_start = self.cursor.clone();
     }
 }

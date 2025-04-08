@@ -23,6 +23,7 @@ pub struct EditorBuffer {
     file: EditorFile,
     content: Vec<Vec<char>>,
     cursor: UVec2,
+    visual_start: UVec2,
     scroll: UVec2,
     language_support: Option<Box<dyn LanguageSupport>>,
 }

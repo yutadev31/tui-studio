@@ -106,9 +106,9 @@ impl Editor {
     }
 
     pub fn set_visual_mode(&mut self) -> anyhow::Result<()> {
-        if let Some(current) = self.get_current_buffer() {
-            let start = current.get_position(&self.mode);
-            self.mode = EditorMode::Visual { start };
+        if let Some(current) = self.get_current_buffer_mut() {
+            current.start_visual_mode();
+            self.mode = EditorMode::Visual;
             Ok(())
         } else {
             Err(anyhow!("No buffer open"))
@@ -229,7 +229,7 @@ impl Editor {
 
             match self.mode {
                 EditorMode::Normal => queue!(stdout(), SetCursorStyle::SteadyBlock)?,
-                EditorMode::Visual { start: _ } => queue!(stdout(), SetCursorStyle::SteadyBlock)?,
+                EditorMode::Visual => queue!(stdout(), SetCursorStyle::SteadyBlock)?,
                 EditorMode::Insert { append: _ } => queue!(stdout(), SetCursorStyle::SteadyBar)?,
                 EditorMode::Command => queue!(stdout(), SetCursorStyle::SteadyBar)?,
             }
@@ -271,9 +271,7 @@ impl Editor {
         key_config.register(
             KeyConfigType::Normal,
             vec![Key::Char('v')],
-            AppAction::EditorAction(EditorAction::SetMode(EditorMode::Visual {
-                start: UVec2::default(),
-            })),
+            AppAction::EditorAction(EditorAction::SetMode(EditorMode::Visual)),
         );
 
         // Cursor Movement

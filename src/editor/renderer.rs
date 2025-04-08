@@ -149,9 +149,10 @@ impl EditorRenderer {
         y: usize,
         line: &String,
         tokens: &[HighlightToken],
+        visual_start: UVec2,
     ) -> anyhow::Result<()> {
-        if let EditorMode::Visual { start } = mode.clone() {
-            self.render_code_visual_mode(y, line, cursor_pos, start, tokens);
+        if let EditorMode::Visual = mode.clone() {
+            self.render_code_visual_mode(y, line, cursor_pos, visual_start, tokens);
         } else {
             self.render_code_string(0, y, false, tokens, &line.to_string());
         }
@@ -169,10 +170,18 @@ impl EditorRenderer {
         offset_x: usize,
         lines: &[String],
         tokens: &[HighlightToken],
+        visual_start: UVec2,
     ) -> anyhow::Result<()> {
         for (draw_y, line) in lines.iter().skip(scroll_y).take(window_size.y).enumerate() {
             queue!(stdout(), MoveTo(offset_x as u16, draw_y as u16)).unwrap();
-            self.render_code_line(mode, cursor_pos, draw_y + scroll_y, line, tokens)?;
+            self.render_code_line(
+                mode,
+                cursor_pos,
+                draw_y + scroll_y,
+                line,
+                tokens,
+                visual_start,
+            )?;
         }
 
         Ok(())
@@ -217,6 +226,8 @@ impl EditorRenderer {
             let mut draw_cursor_pos =
                 draw_cursor_pos.checked_add(IVec2::new(offset_x as isize, -(scroll_y as isize)));
 
+            let visual_start = current.get_visual_start();
+
             self.render_numbers(window_size, &lines, scroll_y, offset_x);
             self.render_code(
                 window_size,
@@ -226,6 +237,7 @@ impl EditorRenderer {
                 offset_x,
                 &lines,
                 tokens,
+                visual_start,
             )?;
 
             if let EditorMode::Command = mode {
