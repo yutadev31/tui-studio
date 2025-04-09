@@ -22,7 +22,7 @@ impl Display for EditorMode {
                 EditorMode::Command => "COMMAND",
                 EditorMode::Insert { append } =>
                     if *append {
-                        "INSERT (APPEND)"
+                        "APPEND"
                     } else {
                         "INSERT"
                     },

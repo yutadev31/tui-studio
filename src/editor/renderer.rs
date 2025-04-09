@@ -203,6 +203,24 @@ impl EditorRenderer {
         UVec2::new(len, y)
     }
 
+    fn render_status_line(&self, window_size: UVec2, mode: &EditorMode) {
+        let y = window_size.y - 1;
+        let mode = format!(" {} ", mode.to_string());
+        let space = " ".repeat(window_size.x - mode.len());
+
+        queue!(
+            stdout(),
+            MoveTo(0, y as u16),
+            Clear(ClearType::CurrentLine),
+            SetBackgroundColor(Color::White),
+            SetForegroundColor(Color::Black),
+            Print(mode),
+            Print(space),
+            ResetColor
+        )
+        .unwrap();
+    }
+
     pub fn render(
         &self,
         window_size: UVec2,
@@ -242,6 +260,8 @@ impl EditorRenderer {
 
             if let EditorMode::Command = mode {
                 draw_cursor_pos = Some(self.render_command_box(window_size, command_input_buf));
+            } else {
+                self.render_status_line(window_size, &mode);
             }
 
             Ok(draw_cursor_pos)
