@@ -13,7 +13,7 @@ impl EditorBuffer {
     }
 
     pub fn get_visual_start(&self) -> UVec2 {
-        self.visual_start.clone()
+        self.visual_start
     }
 
     pub(super) fn clamp_x(&self, x: usize, mode: &EditorMode) -> usize {
@@ -183,6 +183,6 @@ impl EditorBuffer {
     }
 
     pub fn start_visual_mode(&mut self) {
-        self.visual_start = self.cursor.clone();
+        self.visual_start = self.cursor;
     }
 }
