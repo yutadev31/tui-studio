@@ -8,7 +8,7 @@ authors = ["Yuta"]
 
 [dependencies]
 arboard = "3.5.0"
-anyhow = "1.0.97"
+anyhow = "1.0.98"
 crossterm = { version = "0.29.0", features = ["events"] }
 clap = { version = "4.5.35", features = ["derive"] }
 chrono = "0.4.40"
