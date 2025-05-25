@@ -205,7 +205,7 @@ impl EditorRenderer {
 
     fn render_status_line(&self, window_size: UVec2, mode: &EditorMode) {
         let y = window_size.y - 1;
-        let mode = format!(" {} ", mode.to_string());
+        let mode = format!(" {} ", mode);
         let space = " ".repeat(window_size.x - mode.len());
 
         queue!(

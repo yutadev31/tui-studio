@@ -65,7 +65,7 @@ impl FileType {
     }
 
     pub fn file_name_to_type(file_name: String) -> Self {
-        let extension = file_name.split('.').last();
+        let extension = file_name.split('.').next_back();
 
         match file_name.as_str() {
             "Makefile" => return Self::new(MAKEFILE),

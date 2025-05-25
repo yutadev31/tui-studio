@@ -68,7 +68,7 @@ impl Editor {
             EditorMode::Normal => self.set_normal_mode()?,
             EditorMode::Command => self.set_command_mode(),
             EditorMode::Insert { append } => self.set_insert_mode(append)?,
-            EditorMode::Visual { .. } => self.set_visual_mode()?,
+            EditorMode::Visual => self.set_visual_mode()?,
         }
 
         Ok(())

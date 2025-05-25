@@ -81,7 +81,7 @@ impl KeyConfig {
                 EditorMode::Normal => self
                     .get_binding(KeyConfigType::Normal, sequence.clone())
                     .or(self.get_binding(KeyConfigType::NormalAndVisual, sequence)),
-                EditorMode::Visual { .. } => self
+                EditorMode::Visual => self
                     .get_binding(KeyConfigType::Visual, sequence.clone())
                     .or(self.get_binding(KeyConfigType::NormalAndVisual, sequence)),
                 EditorMode::Command => self.get_binding(KeyConfigType::Command, sequence),

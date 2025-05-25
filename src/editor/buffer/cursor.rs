@@ -20,7 +20,7 @@ impl EditorBuffer {
         let line_len = self.get_line_length(self.cursor.y);
 
         match mode {
-            EditorMode::Normal | EditorMode::Visual { .. } => {
+            EditorMode::Normal | EditorMode::Visual => {
                 if line_len == 0 {
                     0
                 } else if x > line_len - 1 {
